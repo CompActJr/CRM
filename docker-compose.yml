@@ -1,29 +1,12 @@
 services:
-  db:
-    image: mysql:8.0
-    container_name: crm-compact-db
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      MYSQL_DATABASE: crm_integrador
-    volumes:
-      - crm_mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-
   api:
     build:
       context: ./CRM-Backend
     container_name: crm-compact-api
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
-      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-root}@db:3306/crm_integrador
+      DATABASE_URL: ${DATABASE_URL}
+      DIRECT_URL: ${DIRECT_URL}
       PORT: 3333
     ports:
       - "3333:3333"
@@ -39,6 +22,3 @@ services:
       - api
     ports:
       - "8080:80"
-
-volumes:
-  crm_mysql_data:
