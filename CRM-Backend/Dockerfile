@@ -12,4 +12,4 @@ COPY . .
 
 EXPOSE 3333
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node prisma/ensureSeed.js && exec npm start"]
+CMD ["sh", "-c", "npx prisma db push && node prisma/ensureSeed.js && exec npm start"]
