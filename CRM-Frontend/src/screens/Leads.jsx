@@ -19,9 +19,19 @@ const ImportRules = {
 function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
   const [leads, setLeads] = useState([])
   const [search, setSearch] = useState('')
-  const [responsavelFilter, setResponsavelFilter] = useState('')
+  const [filters, setFilters] = useState({
+    nome: '',
+    empresa: '',
+    usuarioId: '',
+    cidade: '',
+    dataInicio: false,
+    dataFim: false,
+    status: '',
+    nicho: '',
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [importFile, setImportFile] = useState(null)
   const [importRule, setImportRule] = useState(ImportRules.upsert)
@@ -34,14 +44,14 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
     setLoading(true)
     setError('')
     try {
-      const data = await fetchLeads({ usuarioId: responsavelFilter || undefined })
+      const data = await fetchLeads()
       setLeads(data)
     } catch (requestError) {
       setError(requestError.message)
     } finally {
       setLoading(false)
     }
-  }, [responsavelFilter])
+  }, [])
 
   useEffect(() => {
     loadLeads()
@@ -101,6 +111,10 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
       setImporting(false)
     }
   }
+  const applyFilters = async () => {
+      const data = await fetchLeads(filters)
+      setLeads(data)
+    }
 
   return (
     <>
@@ -114,7 +128,10 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
-        <FiltroResponsavel value={responsavelFilter} onChange={setResponsavelFilter} />
+        <button className="secondaryBtn"
+                onClick={() => setIsAdvancedFiltersOpen((value) => !value)}>
+          Filtros avançados
+        </button>
         <button onClick={() => setIsImportOpen((value) => !value)} className="secondaryBtn">
           <Upload size={18} />
           Importar planilha
@@ -124,6 +141,91 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
           Novo Lead
         </button>
       </div>
+      {isAdvancedFiltersOpen && (
+        <section className="filtersPanel">
+          <div className="formGrid">
+            <label className="inputGroup">
+              <span>Nome</span>
+              <input
+                value={filters.nome}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    nome: event.target.value,
+                  })
+                }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Empresa</span>
+              <input
+                value={filters.empresa}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    empresa: event.target.value,
+                  })
+                }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Responsável</span>
+              <FiltroResponsavel
+                value={filters.usuarioId}
+                onChange={(value) =>
+                  setFilters ({
+                    ...filters,
+                    usuarioId: value,
+                  })
+                }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Cidade</span>
+              <input
+                value={filters.cidade}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    cidade: event.target.value,
+                  })
+                }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Nicho</span>
+              <input
+                value={filters.nicho}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    nicho: event.target.value,
+                  })
+                }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Status</span>
+              <select
+                value={filters.status}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    status: event.target.value,
+                  })
+                }
+              >
+                <option value="">Todos</option>
+                <option value="Ativo">Ativo</option>
+                <option value="Inativo">Inativo</option>
+              </select>
+            </label>
+            <button onClick={applyFilters} className="primaryBtn">
+              Filtrar
+            </button>
+          </div>
+        </section>
+      )}
       {error && <p className="formError">{error}</p>}
       {isImportOpen && (
         <section className="importPanel">
