@@ -10,6 +10,8 @@ RUN npx prisma generate
 
 COPY . .
 
+ENV PORT=3333
+
 EXPOSE 3333
 
-CMD ["sh", "-c", "npx prisma db push && node prisma/ensureSeed.js && exec npm start"]
+1CMD ["sh", "-c", "npx prisma db push && node prisma/ensureSeed.js && exec npm start"]

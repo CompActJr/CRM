@@ -70,6 +70,10 @@ app.use('/usuarios', usuariosRoutes)
 
 app.use(errorHandler)
 
-app.listen(Config.port, () => {
-  console.log(`API rodando em http://localhost:${Config.port}`)
-})
+const PORT = Number(process.env.PORT) || 3333;
+app.listen({
+  port: PORT,
+  host: '0.0.0.0' 
+}, () => {
+  console.log(`Server running on port ${PORT}`);
+});

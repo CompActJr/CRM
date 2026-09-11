@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-echo "Aplicando migrations..."
-npx prisma migrate deploy
+echo "Sincronizando banco de dados (prisma db push)..."
+npx prisma db push --accept-data-loss
 
 echo "Verificando seed inicial..."
 node prisma/ensureSeed.js
