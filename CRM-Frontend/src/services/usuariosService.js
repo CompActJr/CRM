@@ -22,3 +22,18 @@ export const deleteUsuario = (id) =>
   apiRequest(`/usuarios/${id}`, {
     method: 'DELETE',
   })
+
+export const uploadUsuarioAvatar = (id, file) => {
+  const formData = new FormData()
+  formData.append('avatar', file)
+  return apiRequest(`/usuarios/${id}/avatar`, {
+    method: 'POST',
+    body: formData,
+  })
+}
+
+export const deleteUsuarioAvatar = (id) =>
+  apiRequest(`/usuarios/${id}/avatar`, {
+    method: 'DELETE',
+  })
+

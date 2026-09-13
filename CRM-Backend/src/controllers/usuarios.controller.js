@@ -38,7 +38,28 @@ export const create = async (request, response, next) => {
 
 export const update = async (request, response, next) => {
   try {
-    const usuario = await usuariosService.updateUsuario(request.params.id, request.body)
+    const usuario = await usuariosService.updateUsuario(request.params.id, request.body, {
+      isSelf: request.isSelf,
+      isAdmin: request.isAdmin,
+    })
+    response.json(usuario)
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const uploadAvatar = async (request, response, next) => {
+  try {
+    const usuario = await usuariosService.updateUsuarioAvatar(request.params.id, request.file)
+    response.json(usuario)
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const removeAvatar = async (request, response, next) => {
+  try {
+    const usuario = await usuariosService.deleteUsuarioAvatar(request.params.id)
     response.json(usuario)
   } catch (error) {
     next(error)

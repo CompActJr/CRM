@@ -52,6 +52,7 @@ model Usuario {
   cargo         String         @db.VarChar(80)
   senha         String         @db.VarChar(255)
   perfilAcesso  PerfilAcesso   @default(Usuario) @map("perfil_acesso")
+  avatarUrl     String?        @map("avatar_url") @db.Text
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   leads         Lead[]

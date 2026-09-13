@@ -23,7 +23,7 @@ import { clearSessionUser, loadSessionUser, saveSessionUser } from './utils/auth
 import { adminOnlyScreens, isAdministrador } from './utils/userAccess'
 import './styles.css'
 
-function AppShell({ currentUser, onLogout }) {
+function AppShell({ currentUser, onLogout, onUpdateUser }) {
   const [navigation, setNavigation] = useState(getInitialNavigation)
 
   const {
@@ -184,9 +184,14 @@ function AppShell({ currentUser, onLogout }) {
   }
 
   return (
-    <SessionProvider user={currentUser}>
+    <SessionProvider
+      user={currentUser}
+      onLogout={onLogout}
+      setScreen={setScreen}
+      onUpdateUser={onUpdateUser}
+    >
       <div className="app">
-        <Sidebar screen={screen} setScreen={setScreen} onLogout={onLogout} currentUser={currentUser} />
+        <Sidebar screen={screen} setScreen={setScreen} currentUser={currentUser} />
         <main className="content">{screens[screen] ?? <Dashboard />}</main>
       </div>
     </SessionProvider>
@@ -207,8 +212,18 @@ function App() {
     window.history.replaceState(null, '', window.location.pathname)
   }
 
+  const handleUpdateSessionUser = (updatedUser) => {
+    const nextUser = { ...sessionUser, ...updatedUser }
+    saveSessionUser(nextUser)
+    setSessionUser(nextUser)
+  }
+
   return sessionUser ? (
-    <AppShell currentUser={sessionUser} onLogout={handleLogout} />
+    <AppShell
+      currentUser={sessionUser}
+      onLogout={handleLogout}
+      onUpdateUser={handleUpdateSessionUser}
+    />
   ) : (
     <Login onLogin={handleLogin} />
   )
