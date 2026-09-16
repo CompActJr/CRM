@@ -26,6 +26,13 @@ const parseUsuarioId = (usuarioId) => {
   return parsed
 }
 
+const parseStatusFilter = (query) => {
+  if (query.status === 'Ativo' || query.status === 'Inativo') {
+    return query.status
+  }
+  return null
+}
+
 const buildLeadData = async (body) => {
   const nome = body.nome?.trim()
   if (!nome) {
@@ -83,7 +90,62 @@ const leadListInclude = {
 
 export const listLeads = async (query = {}) => {
   const usuarioId = parseUsuarioIdFilter(query)
-  const where = usuarioId ? { usuarioId } : {}
+  const status = parseStatusFilter(query)
+  const dataInicio = parseDateInput(query.dataInicio)
+  const dataFim = parseDateInput(query.dataFim)
+  if (query.dataInicio && !dataInicio) {
+    const error = new Error(ErrorMessages.invalidDataInicio)
+    error.statusCode = 400
+    throw error
+  }
+  if (query.dataFim && !dataFim) {
+    const error = new Error(ErrorMessages.invalidDataFim)
+    error.statusCode = 400
+    throw error
+  }
+  if (dataInicio && dataFim && dataInicio > dataFim) {
+    const error = new Error(ErrorMessages.invalidDataRange)
+    error.statusCode = 400
+    throw error
+  }
+
+  const where = {}
+
+  if (usuarioId) {
+    where.usuarioId = usuarioId
+  }
+
+  if (query.nome) {
+    where.nome = query.nome
+  }
+
+  if (query.empresa) {
+    where.empresa = query.empresa
+  }
+
+  if (query.cidade) {
+    where.cidade = query.cidade
+  }
+
+  if (dataInicio || dataFim) {
+    where.dataCadastro = {}
+
+    if (dataInicio) {
+      where.dataCadastro.gte = dataInicio
+    }
+
+    if (dataFim) {
+      where.dataCadastro.lte = dataFim
+    }
+  }
+
+  if (status) {
+    where.status = status
+  }
+
+  if (query.nicho) {
+    where.nicho = query.nicho
+  }
 
   const leads = await prisma.lead.findMany({
     where,
