@@ -194,8 +194,6 @@ function AppShell({ currentUser, onLogout }) {
 }
 
 function App() {
-  const [sessionUser, setSessionUser] = useState(() => loadSessionUser())
-
   const handleLogin = (usuario) => {
     saveSessionUser(usuario)
     setSessionUser(usuario)
