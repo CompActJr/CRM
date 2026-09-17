@@ -194,6 +194,17 @@ function AppShell({ currentUser, onLogout }) {
 }
 
 function App() {
+   const fakeAdminUser = {
+    id: '1',
+    nome: 'Desenvolvedor Local',
+    email: 'dev@local.com',
+    cargo: 'ADMINISTRADOR', // Mantém telas de admin (como Usuários) liberadas
+  }
+
+  // Inicializa o estado diretamente com o usuário fake
+  const [sessionUser, setSessionUser] = useState(() => fakeAdminUser)
+
+  
   const handleLogin = (usuario) => {
     saveSessionUser(usuario)
     setSessionUser(usuario)
