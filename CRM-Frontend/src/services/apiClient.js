@@ -5,13 +5,17 @@ export const apiRequest = async (path, options = {}) => {
   const sessionUser = loadSessionUser()
   const authHeaders = sessionUser?.id ? { 'X-Usuario-Id': String(sessionUser.id) } : {}
 
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
+
+  const headers = {
+    ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
+    ...authHeaders,
+    ...options.headers,
+  }
+
   const response = await fetch(`${ApiConfig.baseUrl}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders,
-      ...options.headers,
-    },
     ...options,
+    headers,
   })
 
   if (response.status === 204) {

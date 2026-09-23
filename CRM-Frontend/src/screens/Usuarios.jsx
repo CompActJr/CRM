@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Edit, Plus, Search, Trash2 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import { deleteUsuario, fetchUsuarios } from '../services/usuariosService'
+import {defaultAvatarPath} from "../assets/assetsConfig";
 
 function Usuarios({ setScreen, onNewUsuario, onEditUsuario }) {
   const [usuarios, setUsuarios] = useState([])
@@ -73,6 +74,7 @@ function Usuarios({ setScreen, onNewUsuario, onEditUsuario }) {
           <table>
             <thead>
               <tr>
+                <th>Avatar</th>
                 <th>Nome</th>
                 <th>Email</th>
                 <th>Cargo</th>
@@ -90,6 +92,11 @@ function Usuarios({ setScreen, onNewUsuario, onEditUsuario }) {
               ) : (
                 filteredUsuarios.map((usuario) => (
                   <tr key={usuario.id}>
+                    <td>
+                      <span className="avatar">
+                        <img src={usuario.avatarUrl || defaultAvatarPath} alt={`Avatar de ${usuario.nome}`} />
+                      </span>
+                    </td>
                     <td>{usuario.nome}</td>
                     <td>{usuario.email}</td>
                     <td>{usuario.cargo}</td>
@@ -98,9 +105,11 @@ function Usuarios({ setScreen, onNewUsuario, onEditUsuario }) {
                         {usuario.perfil}
                       </span>
                     </td>
-                    <td className="actions">
+                    <td>
+                      <div className="actions">
                       <Edit size={16} onClick={() => onEditUsuario(usuario.id)} />
                       <Trash2 size={16} onClick={() => handleDelete(usuario)} />
+                      </div>
                     </td>
                   </tr>
                 ))

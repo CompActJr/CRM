@@ -1,8 +1,9 @@
-import { useSession } from '../../context/SessionContext'
-import { getPerfilLabel, getUserInitials } from '../../utils/userDisplay'
+import { useAuth } from '../../context/SessionContext'
+import UserProfileMenu from './UserProfileMenu'
 
 function Header({ title, subtitle }) {
-  const currentUser = useSession()
+  const auth = useAuth()
+  const currentUser = auth?.user ?? auth
 
   return (
     <header className="pageHeader">
@@ -11,13 +12,12 @@ function Header({ title, subtitle }) {
         <p>{subtitle}</p>
       </div>
       {currentUser && (
-        <div className="profile">
-          <div className="avatar">{getUserInitials(currentUser.nome)}</div>
-          <div>
-            <strong>{currentUser.nome}</strong>
-            <span>{getPerfilLabel(currentUser.perfilAcesso)}</span>
-          </div>
-        </div>
+        <UserProfileMenu
+          currentUser={currentUser}
+          onLogout={auth?.onLogout}
+          setScreen={auth?.setScreen}
+          onUpdateUser={auth?.onUpdateUser}
+        />
       )}
     </header>
   )

@@ -1,4 +1,4 @@
-import { BarChart3, BriefcaseBusiness, KanbanSquare, LayoutDashboard, LogOut, UserCog, Users } from 'lucide-react'
+import { BarChart3, BriefcaseBusiness, KanbanSquare, LayoutDashboard, UserCog, Users } from 'lucide-react'
 import { isAdministrador } from '../../utils/userAccess'
 
 const navItems = [
@@ -10,7 +10,7 @@ const navItems = [
   ['usuarios', UserCog, 'Usuários', true],
 ]
 
-function Sidebar({ screen, setScreen, onLogout, currentUser }) {
+function Sidebar({ screen, setScreen, currentUser }) {
   const visibleNavItems = navItems.filter((item) => !item[3] || isAdministrador(currentUser))
   return (
     <aside className="sidebar">
@@ -29,10 +29,6 @@ function Sidebar({ screen, setScreen, onLogout, currentUser }) {
           </button>
         ))}
       </nav>
-      <button type="button" className="logout" onClick={onLogout}>
-        <LogOut size={18} />
-        Sair
-      </button>
     </aside>
   )
 }

@@ -5,7 +5,7 @@ import Header from '../components/layout/Header'
 import ModalGerenciarCargos from '../components/usuarios/ModalGerenciarCargos'
 import { useSession } from '../context/SessionContext'
 import { fetchCargos } from '../services/cargosService'
-import { createUsuario, fetchUsuarioById, updateUsuario } from '../services/usuariosService'
+import { createUsuario, fetchUsuarioById, updateUsuario, uploadUsuarioAvatar } from '../services/usuariosService'
 
 const EmptyForm = {
   nome: '',
@@ -13,6 +13,7 @@ const EmptyForm = {
   senha: '',
   cargo: '',
   perfil: 'Usuário',
+  avatar: null,
 }
 
 function UsuarioForm({ setScreen, usuarioId }) {
@@ -53,6 +54,7 @@ function UsuarioForm({ setScreen, usuarioId }) {
           senha: '',
           cargo: usuario.cargo ?? '',
           perfil: usuario.perfil ?? 'Usuário',
+          avatar: usuario.avatar ?? '',
         })
       } catch (requestError) {
         setError(requestError.message)
@@ -92,8 +94,26 @@ function UsuarioForm({ setScreen, usuarioId }) {
       }
       if (isEditing) {
         await updateUsuario(usuarioId, payload)
+        if (form.avatar) {
+          await uploadUsuarioAvatar(usuarioId, form.avatar)
+        }
       } else {
-        await createUsuario({ ...payload, senha: form.senha })
+        if (form.avatar) {
+          const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+          if(!allowedTypes.includes(form.avatar.type)) {
+            setError('Formato de arquivo inválido')
+            return
+          }
+          if (form.avatar.size > 15 * 1024 * 1024) {
+            setError('Tamanho de aquivo inválido (MÁX: 15MB)')
+            return
+          }
+
+        }
+        const usuario = await createUsuario({ ...payload, senha: form.senha })
+        if (form.avatar) {
+          await uploadUsuarioAvatar(usuario.id, form.avatar)
+        }
       }
       setScreen('usuarios')
     } catch (requestError) {
@@ -188,6 +208,19 @@ function UsuarioForm({ setScreen, usuarioId }) {
                 <option value="Administrador">Administrador</option>
                 <option value="Usuário">Usuário</option>
               </select>
+            </label>
+            <label className="inputGroup">
+              <span>Avatar</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) =>
+                    setForm((current) => ({
+                    ...current,
+                    avatar: event.target.files[0] ?? null,
+                }))
+              }
+              />
             </label>
           </div>
           {cargoOptions.length === 0 && (
