@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Download, Edit, Eye, Plus, Search, Trash2, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Download, Edit, Eye, Plus, Search, Trash2, Upload, ArrowDown, ArrowUp } from 'lucide-react'
 import Header from '../components/layout/Header'
 import FiltroResponsavel from '../components/filtros/FiltroResponsavel'
 import TarefaPendenteTag from '../components/tarefas/TarefaPendenteTag'
@@ -24,8 +24,8 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
     empresa: '',
     usuarioId: '',
     cidade: '',
-    dataInicio: false,
-    dataFim: false,
+    dataInicio: '',
+    dataFim: '',
     status: '',
     nicho: '',
   })
@@ -128,8 +128,8 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
-        <button className="secondaryBtn"
-                onClick={() => setIsAdvancedFiltersOpen((value) => !value)}>
+        <button onClick={() => setIsAdvancedFiltersOpen((value) => !value)} className="secondaryBtn">
+          {!isAdvancedFiltersOpen ? <ArrowDown size={18} /> : <ArrowUp size={18} /> }
           Filtros avançados
         </button>
         <button onClick={() => setIsImportOpen((value) => !value)} className="secondaryBtn">
@@ -205,6 +205,32 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
               />
             </label>
             <label className="inputGroup">
+              <span>Data Inicio</span>
+              <input
+                type="date"
+                value={filters.dataInicio}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    dataInicio: event.target.value,
+                  })
+                }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Data Fim</span>
+              <input
+                  type="date"
+                  value={filters.dataFim}
+                  onChange={(event) =>
+                      setFilters({
+                        ...filters,
+                        dataFim: event.target.value,
+                      })
+                  }
+              />
+            </label>
+            <label className="inputGroup">
               <span>Status</span>
               <select
                 value={filters.status}
@@ -220,7 +246,7 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
                 <option value="Inativo">Inativo</option>
               </select>
             </label>
-            <button onClick={applyFilters} className="primaryBtn">
+            <button onClick={applyFilters} className="primaryBtn fullLine">
               Filtrar
             </button>
           </div>
