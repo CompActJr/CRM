@@ -210,17 +210,8 @@ function App() {
     link.href = faviconUrl
   }, [])
 
-  const fakeAdminUser = {
-    id: '1',
-    nome: 'Desenvolvedor Local',
-    email: 'dev@local.com',
-    cargo: 'ADMINISTRADOR', // Mantém telas de admin (como Usuários) liberadas
-  }
+  const [sessionUser, setSessionUser] = useState(loadSessionUser)
 
-  // Inicializa o estado diretamente com o usuário fake
-  const [sessionUser, setSessionUser] = useState(() => fakeAdminUser)
-
-  
   const handleLogin = (usuario) => {
     saveSessionUser(usuario)
     setSessionUser(usuario)
