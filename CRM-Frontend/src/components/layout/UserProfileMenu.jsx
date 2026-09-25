@@ -13,6 +13,11 @@ import ModalMeuPerfil from '../usuarios/ModalMeuPerfil'
 
 function UserAvatar({ user, size, className = '' }) {
   const [imgError, setImgError] = useState(false)
+
+  useEffect(() => {
+    setImgError(false)
+  }, [user?.avatarUrl])
+
   const style = size
     ? { width: size, height: size, fontSize: `${Math.round(size * 0.38)}px` }
     : {}

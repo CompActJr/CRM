@@ -17,7 +17,7 @@ export const login = async ({ email, senha }) => {
 
   const usuario = await prisma.usuario.findFirst({
     where: { email: normalizedEmail },
-    select: { id: true, nome: true, email: true, cargo: true, perfilAcesso: true, senha: true },
+    select: { id: true, nome: true, email: true, cargo: true, perfilAcesso: true, avatarUrl: true, senha: true },
   })
 
   if (!usuario) {
@@ -39,5 +39,6 @@ export const login = async ({ email, senha }) => {
     email: usuario.email,
     cargo: usuario.cargo,
     perfilAcesso: usuario.perfilAcesso,
+    avatarUrl: usuario.avatarUrl,
   }
 }
