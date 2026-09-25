@@ -8,38 +8,43 @@ const SeedConfig = {
   adminSenha: '123456',
 }
 
-const EtapasFunil = [
-  { nome: 'Prospecção', ordem: 1 },
-  { nome: 'Qualificação', ordem: 2 },
-  { nome: 'Diagnóstico', ordem: 3 },
-  { nome: 'Proposta', ordem: 4 },
-  { nome: 'Negociação', ordem: 5 },
-  { nome: 'Fechado', ordem: 6 },
-  { nome: 'Perdida', ordem: 7 },
-]
+import { EtapasFunilDefault as EtapasFunil } from '../src/config/constants.js'
 
 const MotivosPerda = ['Preço alto', 'Sem orçamento', 'Sem resposta do cliente', 'Prazo não atendido']
 
 const CargosDefault = [
   'Administrador',
-  'Diretor Comercial',
-  'Segundo em comando',
-  'Assessor',
   'Vendedor',
-  'Consultora Comercial',
-  'Executivo de Vendas',
 ]
 
 async function main() {
+  // Sincroniza/Upsert das etapas do funil com segurança
+  for (const etapa of EtapasFunil) {
+    const existingByName = await prisma.etapaFunil.findFirst({ where: { nome: etapa.nome } })
+    const existingByOrdem = await prisma.etapaFunil.findFirst({ where: { ordem: etapa.ordem } })
+
+    if (existingByName) {
+      await prisma.etapaFunil.update({
+        where: { id: existingByName.id },
+        data: { ordem: etapa.ordem },
+      })
+    } else if (existingByOrdem) {
+      await prisma.etapaFunil.update({
+        where: { id: existingByOrdem.id },
+        data: { nome: etapa.nome },
+      })
+    } else {
+      await prisma.etapaFunil.create({ data: etapa })
+    }
+  }
+
   const usuarioCount = await prisma.usuario.count()
   if (usuarioCount > 0) {
-    console.log('Banco já inicializado — seed ignorado.')
+    console.log('Banco já inicializado — etapas sincronizadas.')
     return
   }
 
   const senhaHash = await bcrypt.hash(SeedConfig.adminSenha, 10)
-
-  await Promise.all(EtapasFunil.map((etapa) => prisma.etapaFunil.create({ data: etapa })))
 
   await prisma.motivoPerda.createMany({
     data: MotivosPerda.map((nome) => ({ nome })),

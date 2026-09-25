@@ -28,10 +28,16 @@ function FunilColuna({
       {showTempoMedio ? (
         <div
           className={`stageTimeTag ${
-            diasMedios === null ? 'low' : diasMedios >= 7 ? 'high' : diasMedios >= 5 ? 'medium' : 'low'
+            diasMedios === null ? 'low' : diasMedios >= 7 ? 'frio' : diasMedios >= 5 ? 'morno' : 'quente'
           }`}
         >
-          {diasMedios === null ? 'Sem dados' : `${diasMedios} dias médios`}
+          {diasMedios === null
+            ? 'Sem dados'
+            : diasMedios >= 7
+            ? `Frio ${diasMedios >= 1 ? `(${diasMedios} dias)` : ''}`
+            : diasMedios >= 5
+            ? `Morno ${diasMedios >= 1 ? `(${diasMedios} dias)` : ''}`
+            : `Quente ${diasMedios >= 1 ? `(${diasMedios} dias)` : ''}`}
         </div>
       ) : (
         <div className="stageTimeTag low">{isPerdida ? 'Encerradas' : 'Ganhas'}</div>
