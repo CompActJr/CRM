@@ -92,7 +92,7 @@ function Relatorios() {
             ))}
           </select>
         </label>
-        <button type="button" className="primaryBtn" onClick={handleGerar} disabled={loading}>
+        <button type="button" className="primaryBtn" onClick={handleGerar} disabled={loading} style={{ marginTop: '10px' }}>
           <Filter size={18} />
           {loading ? 'Gerando...' : 'Gerar relatório'}
         </button>
