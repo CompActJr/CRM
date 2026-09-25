@@ -192,7 +192,7 @@ function UserProfileMenu({ currentUser, onLogout, setScreen, onUpdateUser }) {
         >
           <div className="modalCard" style={{ maxWidth: '420px' }}>
             <div className="modalHeader">
-              <h3>Sobre o CRM Compact.Jr</h3>
+              <h3>Sobre o CRM CompAct.Jr</h3>
               <button
                 type="button"
                 className="iconBtn"

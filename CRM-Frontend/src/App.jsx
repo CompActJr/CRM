@@ -14,6 +14,7 @@ import Oportunidades from './screens/Oportunidades'
 import Relatorios from './screens/Relatorios'
 import UsuarioForm from './screens/UsuarioForm'
 import Usuarios from './screens/Usuarios'
+import faviconUrl from './assets/Logo.png'
 import {
   buildNavigationPath,
   createScreenNavigation,
@@ -199,7 +200,17 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
 }
 
 function App() {
-   const fakeAdminUser = {
+  useEffect(() => {
+    let link = document.querySelector("link[rel~='icon']")
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+    link.href = faviconUrl
+  }, [])
+
+  const fakeAdminUser = {
     id: '1',
     nome: 'Desenvolvedor Local',
     email: 'dev@local.com',
