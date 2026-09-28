@@ -115,6 +115,15 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
       const data = await fetchLeads(filters)
       setLeads(data)
     }
+  const formatText = (text) => {
+  if (!text) return ''
+  
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+  }
 
   return (
     <>
@@ -381,7 +390,7 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
                   <tr key={lead.id}>
                     <td>
                       <div className="tableTitleCell">
-                        <span>{lead.nome}</span>
+                        <span>{formatText(lead.nome)}</span>
                         <TarefaPendenteTag
                           count={lead.tarefasPendentes}
                           prazoMaisProximo={lead.prazoMaisProximo}
@@ -389,10 +398,10 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
                         />
                       </div>
                     </td>
-                    <td>{lead.empresa}</td>
-                    <td>{lead.responsavel}</td>
-                    <td>{lead.cidade}</td>
-                    <td>{lead.nicho}</td>
+                    <td>{formatText(lead.empresa)}</td>
+                    <td>{(lead.responsavel)}</td>
+                    <td>{formatText(lead.cidade)}</td>
+                    <td>{formatText(lead.nicho)}</td>
                     <td>{lead.dataCadastro}</td>
                     <td>
                       <span className={lead.status === 'Ativo' ? 'tag ok' : 'tag danger'}>{lead.status}</span>

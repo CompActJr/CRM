@@ -33,8 +33,13 @@ const parseStatusFilter = (query) => {
   return null
 }
 
+const normalizeString = (string) => {
+  const normalized = string?.trim().toLowerCase()
+  return normalized || null
+}
+
 const buildLeadData = async (body) => {
-  const nome = body.nome?.trim()
+  const nome = body.nome?.trim().toLowerCase()
   if (!nome) {
     const error = new Error(ErrorMessages.nomeRequired)
     error.statusCode = 400
@@ -70,9 +75,9 @@ const buildLeadData = async (body) => {
     nome,
     email: body.email?.trim() || null,
     telefone: body.telefone?.trim() || null,
-    empresa: body.empresa?.trim() || null,
-    cidade: body.cidade?.trim() || null,
-    nicho: body.nicho?.trim() || null,
+    empresa: body.empresa?.trim().toLowerCase() || null,
+    cidade: body.cidade?.trim().toLowerCase() || null,
+    nicho: body.nicho?.trim().toLowerCase() || null,
     observacoes: body.observacoes?.trim() || null,
     status,
     dataCadastro,
@@ -91,6 +96,10 @@ const leadListInclude = {
 export const listLeads = async (query = {}) => {
   const usuarioId = parseUsuarioIdFilter(query)
   const status = parseStatusFilter(query)
+  const nome = normalizeString(query.nome)
+  const empresa = normalizeString(query.empresa)
+  const cidade = normalizeString(query.cidade)
+  const nicho = normalizeString(query.nicho)
   const dataInicio = parseDateInput(query.dataInicio)
   const dataFim = parseDateInput(query.dataFim)
   if (query.dataInicio && !dataInicio) {
@@ -115,16 +124,16 @@ export const listLeads = async (query = {}) => {
     where.usuarioId = usuarioId
   }
 
-  if (query.nome) {
-    where.nome = query.nome
+  if (nome) {
+    where.nome = nome
   }
 
-  if (query.empresa) {
-    where.empresa = query.empresa
+  if (empresa) {
+    where.empresa = empresa
   }
 
-  if (query.cidade) {
-    where.cidade = query.cidade
+  if (cidade) {
+    where.cidade = cidade
   }
 
   if (dataInicio || dataFim) {
@@ -143,8 +152,8 @@ export const listLeads = async (query = {}) => {
     where.status = status
   }
 
-  if (query.nicho) {
-    where.nicho = query.nicho
+  if (nicho) {
+    where.nicho = nicho
   }
 
   const leads = await prisma.lead.findMany({
