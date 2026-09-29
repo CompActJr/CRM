@@ -14,6 +14,7 @@ import Oportunidades from './screens/Oportunidades'
 import Relatorios from './screens/Relatorios'
 import UsuarioForm from './screens/UsuarioForm'
 import Usuarios from './screens/Usuarios'
+import faviconUrl from './assets/Logo.png'
 import {
   buildNavigationPath,
   createScreenNavigation,
@@ -23,7 +24,7 @@ import { clearSessionUser, loadSessionUser, saveSessionUser } from './utils/auth
 import { adminOnlyScreens, isAdministrador } from './utils/userAccess'
 import './styles.css'
 
-function AppShell({ currentUser, onLogout }) {
+function AppShell({ currentUser, onLogout, onUpdateUser }) {
   const [navigation, setNavigation] = useState(getInitialNavigation)
 
   const {
@@ -184,9 +185,14 @@ function AppShell({ currentUser, onLogout }) {
   }
 
   return (
-    <SessionProvider user={currentUser}>
+    <SessionProvider
+      user={currentUser}
+      onLogout={onLogout}
+      setScreen={setScreen}
+      onUpdateUser={onUpdateUser}
+    >
       <div className="app">
-        <Sidebar screen={screen} setScreen={setScreen} onLogout={onLogout} currentUser={currentUser} />
+        <Sidebar screen={screen} setScreen={setScreen} currentUser={currentUser} />
         <main className="content">{screens[screen] ?? <Dashboard />}</main>
       </div>
     </SessionProvider>
@@ -194,7 +200,17 @@ function AppShell({ currentUser, onLogout }) {
 }
 
 function App() {
-  const [sessionUser, setSessionUser] = useState(() => loadSessionUser())
+  useEffect(() => {
+    let link = document.querySelector("link[rel~='icon']")
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+    link.href = faviconUrl
+  }, [])
+
+  const [sessionUser, setSessionUser] = useState(loadSessionUser)
 
   const handleLogin = (usuario) => {
     saveSessionUser(usuario)
@@ -207,8 +223,18 @@ function App() {
     window.history.replaceState(null, '', window.location.pathname)
   }
 
+  const handleUpdateSessionUser = (updatedUser) => {
+    const nextUser = { ...sessionUser, ...updatedUser }
+    saveSessionUser(nextUser)
+    setSessionUser(nextUser)
+  }
+
   return sessionUser ? (
-    <AppShell currentUser={sessionUser} onLogout={handleLogout} />
+    <AppShell
+      currentUser={sessionUser}
+      onLogout={handleLogout}
+      onUpdateUser={handleUpdateSessionUser}
+    />
   ) : (
     <Login onLogin={handleLogin} />
   )

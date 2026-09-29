@@ -4,14 +4,25 @@ import Metric from '../components/common/Metric'
 import { fetchDashboardStats } from '../services/dashboardService'
 
 const PeriodoOptions = [
+  { value: 0.25, label: 'Última semana' },
   { value: 3, label: 'Últimos 3 meses' },
   { value: 6, label: 'Últimos 6 meses' },
   { value: 12, label: 'Últimos 12 meses' },
+  { value: 'custom', label: 'Personalizado' },
 ]
 
 function Dashboard() {
   const [stats, setStats] = useState(null)
   const [meses, setMeses] = useState(6)
+  
+  // Inicializamos as datas padrão direto no useState para evitar o loop infinito
+  const [dataInicio, setDataInicio] = useState(() => {
+    return new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  })
+  const [dataFim, setDataFim] = useState(() => {
+    return new Date().toISOString().split('T')[0]
+  })
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -19,20 +30,27 @@ function Dashboard() {
     setLoading(true)
     setError('')
     try {
-      const data = await fetchDashboardStats(meses)
+      const data = await fetchDashboardStats({ meses, dataInicio, dataFim })
       setStats(data)
     } catch (requestError) {
       setError(requestError.message)
     } finally {
       setLoading(false)
     }
-  }, [meses])
+  }, [meses, dataInicio, dataFim])
 
   useEffect(() => {
     loadStats()
   }, [loadStats])
 
-  if (loading) {
+  const renderChartTitle = () => {
+    if (!stats) return ''
+    if (stats.meses === 0.25) return 'Leads por dia (última semana)'
+    if (stats.meses === 'custom') return 'Leads por período personalizado'
+    return `Leads por mês (últimos ${stats.meses ?? meses} meses)`
+  }
+
+  if (loading && !stats) {
     return (
       <>
         <Header title="Dashboard" subtitle="Resumo geral do desempenho comercial" />
@@ -56,7 +74,13 @@ function Dashboard() {
       <section className="filtersPanel">
         <label>
           <span>Período</span>
-          <select value={meses} onChange={(event) => setMeses(Number(event.target.value))}>
+          <select
+            value={meses}
+            onChange={(event) => {
+              const val = event.target.value === 'custom' ? 'custom' : Number(event.target.value)
+              setMeses(val)
+            }}
+          >
             {PeriodoOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -64,6 +88,27 @@ function Dashboard() {
             ))}
           </select>
         </label>
+
+        {meses === 'custom' && (
+          <>
+            <label>
+              <span>Data Início</span>
+              <input
+                type="date"
+                value={dataInicio}
+                onChange={(event) => setDataInicio(event.target.value)}
+              />
+            </label>
+            <label>
+              <span>Data Fim</span>
+              <input
+                type="date"
+                value={dataFim}
+                onChange={(event) => setDataFim(event.target.value)}
+              />
+            </label>
+          </>
+        )}
       </section>
       <section className="cardsGrid">
         <Metric title="Total de Leads" value={String(stats.totalLeads)} change={`${stats.leadsAtivos} ativos`} />
@@ -74,14 +119,14 @@ function Dashboard() {
         />
         <Metric title="Taxa de Conversão" value={`${stats.taxaConversao}%`} change="Oportunidades fechadas" />
         <Metric
-          title="Valor total em vendas fechadas"
-          value={stats.vendasFechadas.valor}
-          change={`${stats.vendasFechadas.quantidade} vendas concluídas`}
+          title="Valor total de negócios em andamento"
+          value={stats.negociosEmAndamento?.valor ?? 'R$ 0,00'}
+          change={`${stats.negociosEmAndamento?.quantidade ?? 0} oportunidades ativas`}
         />
       </section>
       <section className="gridTwo">
         <div className="panel">
-          <h2>Leads por mês (últimos {stats.meses ?? meses} meses)</h2>
+          <h2>{renderChartTitle()}</h2>
           <div className="barChart">
             {stats.leadsPorMes.map((item) => (
               <div key={`${item.label}-${item.count}`} className="barGroup">

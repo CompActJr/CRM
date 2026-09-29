@@ -2,6 +2,15 @@ export const Config = {
   port: Number(process.env.PORT) || 3333,
 }
 
+export const EtapasFunilDefault = [
+  { nome: 'Mapeamento', ordem: 1 },
+  { nome: 'Entrada de Contato', ordem: 2 },
+  { nome: 'Diagnóstico', ordem: 3 },
+  { nome: 'Proposta', ordem: 4 },
+  { nome: 'Negociação', ordem: 5 },
+  { nome: 'Pós Venda', ordem: 6 },
+]
+
 export const ErrorMessages = {
   invalidLeadId: 'ID do lead inválido',
   leadNotFound: 'Lead não encontrado',
@@ -10,6 +19,9 @@ export const ErrorMessages = {
   nomeRequired: 'Nome é obrigatório',
   dataCadastroRequired: 'Data de cadastro é obrigatória',
   invalidDataCadastro: 'Data de cadastro inválida',
+  invalidDataInicio: 'Data de inicio inválida',
+  invalidDataFim: 'Data de fim inválida',
+  invalidDataRange: 'Intervalo de datas inválido',
   emailRequired: 'Email é obrigatório',
   senhaRequired: 'Senha é obrigatória',
   invalidCredentials: 'Email ou senha inválidos',

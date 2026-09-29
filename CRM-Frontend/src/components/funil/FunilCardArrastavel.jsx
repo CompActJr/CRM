@@ -20,6 +20,24 @@ function FunilCardArrastavel({ oportunidade, onViewOportunidade, onEditOportunid
       className={`opCard ${isDragging ? 'opCardDragging' : ''}`}
     >
       <div className="opCardDragHandle" {...listeners} {...attributes}>
+        {oportunidade.diasNaEtapa !== undefined && (
+          <div
+            className={`stageTimeTag ${
+              oportunidade.diasNaEtapa >= 7
+                ? 'frio'
+                : oportunidade.diasNaEtapa >= 5
+                ? 'morno'
+                : 'quente'
+            }`}
+            style={{ marginBottom: '8px' }}
+          >
+            {oportunidade.diasNaEtapa >= 7
+              ? `Frio ${oportunidade.diasNaEtapa >= 1 ? `(${oportunidade.diasNaEtapa} dias)` : ''}`
+              : oportunidade.diasNaEtapa >= 5
+              ? `Morno ${oportunidade.diasNaEtapa >= 1 ? `(${oportunidade.diasNaEtapa} dias)` : ''}`
+              : `Quente ${oportunidade.diasNaEtapa >= 1 ? `(${oportunidade.diasNaEtapa} dias)` : ''}`}
+          </div>
+        )}
         <h3>{oportunidade.titulo}</h3>
         <p>{oportunidade.lead}</p>
         {oportunidade.motivoPerda && (

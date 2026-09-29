@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Download, Edit, Eye, Plus, Search, Trash2, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Download, Edit, Eye, Plus, Search, Trash2, Upload, ArrowDown, ArrowUp } from 'lucide-react'
 import Header from '../components/layout/Header'
 import FiltroResponsavel from '../components/filtros/FiltroResponsavel'
 import TarefaPendenteTag from '../components/tarefas/TarefaPendenteTag'
@@ -19,9 +19,19 @@ const ImportRules = {
 function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
   const [leads, setLeads] = useState([])
   const [search, setSearch] = useState('')
-  const [responsavelFilter, setResponsavelFilter] = useState('')
+  const [filters, setFilters] = useState({
+    nome: '',
+    empresa: '',
+    usuarioId: '',
+    cidade: '',
+    dataInicio: '',
+    dataFim: '',
+    status: '',
+    nicho: '',
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [importFile, setImportFile] = useState(null)
   const [importRule, setImportRule] = useState(ImportRules.upsert)
@@ -34,14 +44,14 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
     setLoading(true)
     setError('')
     try {
-      const data = await fetchLeads({ usuarioId: responsavelFilter || undefined })
+      const data = await fetchLeads()
       setLeads(data)
     } catch (requestError) {
       setError(requestError.message)
     } finally {
       setLoading(false)
     }
-  }, [responsavelFilter])
+  }, [])
 
   useEffect(() => {
     loadLeads()
@@ -101,6 +111,19 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
       setImporting(false)
     }
   }
+  const applyFilters = async () => {
+      const data = await fetchLeads(filters)
+      setLeads(data)
+    }
+  const formatText = (text) => {
+  if (!text) return ''
+  
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+  }
 
   return (
     <>
@@ -114,7 +137,10 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
-        <FiltroResponsavel value={responsavelFilter} onChange={setResponsavelFilter} />
+        <button onClick={() => setIsAdvancedFiltersOpen((value) => !value)} className="secondaryBtn">
+          {!isAdvancedFiltersOpen ? <ArrowDown size={18} /> : <ArrowUp size={18} /> }
+          Filtros avançados
+        </button>
         <button onClick={() => setIsImportOpen((value) => !value)} className="secondaryBtn">
           <Upload size={18} />
           Importar planilha
@@ -124,6 +150,117 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
           Novo Lead
         </button>
       </div>
+      {isAdvancedFiltersOpen && (
+        <section className="filtersPanel">
+          <div className="formGrid">
+            <label className="inputGroup">
+              <span>Nome</span>
+              <input
+                value={filters.nome}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    nome: event.target.value,
+                  })
+                }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Empresa</span>
+              <input
+                value={filters.empresa}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    empresa: event.target.value,
+                  })
+                }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Responsável</span>
+              <FiltroResponsavel
+                value={filters.usuarioId}
+                onChange={(value) =>
+                  setFilters ({
+                    ...filters,
+                    usuarioId: value,
+                  })
+                }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Cidade</span>
+              <input
+                value={filters.cidade}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    cidade: event.target.value,
+                  })
+                }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Nicho</span>
+              <input
+                value={filters.nicho}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    nicho: event.target.value,
+                  })
+                }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Data Inicio</span>
+              <input
+                type="date"
+                value={filters.dataInicio}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    dataInicio: event.target.value,
+                  })
+                }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Data Fim</span>
+              <input
+                  type="date"
+                  value={filters.dataFim}
+                  onChange={(event) =>
+                      setFilters({
+                        ...filters,
+                        dataFim: event.target.value,
+                      })
+                  }
+              />
+            </label>
+            <label className="inputGroup">
+              <span>Status</span>
+              <select
+                value={filters.status}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    status: event.target.value,
+                  })
+                }
+              >
+                <option value="">Todos</option>
+                <option value="Ativo">Ativo</option>
+                <option value="Inativo">Inativo</option>
+              </select>
+            </label>
+            <button onClick={applyFilters} className="primaryBtn fullLine">
+              Filtrar
+            </button>
+          </div>
+        </section>
+      )}
       {error && <p className="formError">{error}</p>}
       {isImportOpen && (
         <section className="importPanel">
@@ -253,7 +390,7 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
                   <tr key={lead.id}>
                     <td>
                       <div className="tableTitleCell">
-                        <span>{lead.nome}</span>
+                        <span>{formatText(lead.nome)}</span>
                         <TarefaPendenteTag
                           count={lead.tarefasPendentes}
                           prazoMaisProximo={lead.prazoMaisProximo}
@@ -261,10 +398,10 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
                         />
                       </div>
                     </td>
-                    <td>{lead.empresa}</td>
-                    <td>{lead.responsavel}</td>
-                    <td>{lead.cidade}</td>
-                    <td>{lead.nicho}</td>
+                    <td>{formatText(lead.empresa)}</td>
+                    <td>{(lead.responsavel)}</td>
+                    <td>{formatText(lead.cidade)}</td>
+                    <td>{formatText(lead.nicho)}</td>
                     <td>{lead.dataCadastro}</td>
                     <td>
                       <span className={lead.status === 'Ativo' ? 'tag ok' : 'tag danger'}>{lead.status}</span>

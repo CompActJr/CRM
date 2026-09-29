@@ -144,21 +144,38 @@ export const listOportunidadesFunil = async (query = {}) => {
     prisma.etapaFunil.findMany({ orderBy: { ordem: 'asc' } }),
     prisma.oportunidade.findMany({
       where,
-      include: oportunidadeInclude,
+      include: {
+        ...oportunidadeInclude,
+        historicoEtapas: {
+          where: { saidaEm: null },
+          orderBy: { entradaEm: 'desc' },
+          take: 1,
+        },
+      },
       orderBy: { dataCriacao: 'desc' },
     }),
   ])
 
-  const mapped = oportunidades.map(mapOportunidadeToResponse)
+  const agora = Date.now()
+  const MS_PER_DAY = 1000 * 60 * 60 * 24
+
+  const mapped = oportunidades.map((op) => {
+    const response = mapOportunidadeToResponse(op)
+    const ultimaEntrada = op.historicoEtapas?.[0]?.entradaEm || op.dataCriacao
+    const diasNaEtapa = Math.floor((agora - new Date(ultimaEntrada).getTime()) / MS_PER_DAY)
+    return {
+      ...response,
+      diasNaEtapa: Math.max(0, diasNaEtapa),
+    }
+  })
+
   const funil = {}
 
   for (const etapa of etapas) {
     funil[etapa.nome] = mapped.filter((item) => item.etapaFunilId === etapa.id)
   }
 
-  const tempoMedioPorEtapa = await calcularTempoMedioPorEtapa(query)
-
-  return { funil, tempoMedioPorEtapa }
+  return { funil }
 }
 
 export const getOportunidadeById = async (idParam) => {

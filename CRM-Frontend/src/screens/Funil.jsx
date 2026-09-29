@@ -30,17 +30,44 @@ const etapasSemTempoMedio = new Set(['Fechado', 'Perdida'])
 function FunilOverlayCard({ oportunidade }) {
   return (
     <div className="opCard opCardOverlay">
+      
+      {/* Etiqueta de Tempo na Etapa */}
+      {oportunidade.diasNaEtapa !== undefined && (
+        <div
+          className={`stageTimeTag ${
+            oportunidade.diasNaEtapa >= 7
+              ? 'frio'
+              : oportunidade.diasNaEtapa >= 5
+              ? 'morno'
+              : 'quente'
+          }`}
+          style={{ marginBottom: '8px' }}
+        >
+          {oportunidade.diasNaEtapa >= 7
+            ? `Frio ${oportunidade.diasNaEtapa >= 1 ? `(${oportunidade.diasNaEtapa} dias)` : ''}`
+            : oportunidade.diasNaEtapa >= 5
+            ? `Morno ${oportunidade.diasNaEtapa >= 1 ? `(${oportunidade.diasNaEtapa} dias)` : ''}`
+            : `Quente ${oportunidade.diasNaEtapa >= 1 ? `(${oportunidade.diasNaEtapa} dias)` : ''}`}
+        </div>
+      )}
+
+      {/* Informações da Oportunidade */}
       <h3>{oportunidade.titulo}</h3>
       <p>{oportunidade.lead}</p>
+      
+      {/* Meta e Prioridade */}
       <div className="cardMeta">
         <span>{oportunidade.responsavel}</span>
         <span className={`priority ${getPriorityClass(oportunidade.prioridade)}`}>
           {oportunidade.prioridade}
         </span>
       </div>
+
+      {/* Valor */}
       <strong>{oportunidade.valor}</strong>
+      
     </div>
-  )
+  );
 }
 
 function Funil({ onNewOportunidade, onViewOportunidade, onEditOportunidade, currentUser }) {

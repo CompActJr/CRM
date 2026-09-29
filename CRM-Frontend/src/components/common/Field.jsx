@@ -1,4 +1,14 @@
-function Field({ label, placeholder, type = 'text', value, onChange, name, required = false }) {
+function Field({
+  label,
+  placeholder,
+  type = 'text',
+  value,
+  onChange,
+  name,
+  required = false,
+  disabled = false,
+  ...rest
+}) {
   return (
     <label className="inputGroup">
       <span>{label}</span>
@@ -9,6 +19,8 @@ function Field({ label, placeholder, type = 'text', value, onChange, name, requi
         value={value ?? ''}
         onChange={onChange}
         required={required}
+        disabled={disabled}
+        {...rest}
       />
     </label>
   )

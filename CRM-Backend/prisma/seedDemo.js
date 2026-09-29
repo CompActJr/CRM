@@ -10,15 +10,7 @@ const SeedConfig = {
   adminSenha: '123456',
 }
 
-const EtapasFunil = [
-  { nome: 'Prospecção', ordem: 1 },
-  { nome: 'Qualificação', ordem: 2 },
-  { nome: 'Diagnóstico', ordem: 3 },
-  { nome: 'Proposta', ordem: 4 },
-  { nome: 'Negociação', ordem: 5 },
-  { nome: 'Fechado', ordem: 6 },
-  { nome: 'Perdida', ordem: 7 },
-]
+import { EtapasFunilDefault as EtapasFunil } from '../src/config/constants.js'
 
 const MotivosPerda = ['Preço alto', 'Sem orçamento', 'Sem resposta do cliente', 'Prazo não atendido']
 

@@ -25,8 +25,8 @@ function Login({ onLogin }) {
   return (
     <main className="loginPage">
       <form className="loginCard" onSubmit={handleSubmit}>
-        <img className="loginLogoImage" src={loginLogoPath} alt="Logo CRM Compact.Jr" />
-        <h1>CRM Compact.Jr</h1>
+        <img className="loginLogoImage" src={loginLogoPath} alt="Logo CRM CompAct.Jr" />
+        <h1>CRM CompAct.Jr</h1>
         <label>Email</label>
         <input
           type="email"

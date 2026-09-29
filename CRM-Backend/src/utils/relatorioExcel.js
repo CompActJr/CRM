@@ -45,7 +45,7 @@ const mergeAndStyleRow = (sheet, rowNumber, fromCol, toCol, value, style) => {
 
 export const buildRelatorioExcelBuffer = async (relatorio) => {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'CRM Compact.Jr'
+  workbook.creator = 'CRM CompAct.Jr'
   workbook.created = new Date()
 
   const sheet = workbook.addWorksheet('Relatório', {

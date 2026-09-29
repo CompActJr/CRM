@@ -1,5 +1,6 @@
-import { BarChart3, BriefcaseBusiness, KanbanSquare, LayoutDashboard, LogOut, UserCog, Users } from 'lucide-react'
+import { BarChart3, BriefcaseBusiness, KanbanSquare, LayoutDashboard, UserCog, Users } from 'lucide-react'
 import { isAdministrador } from '../../utils/userAccess'
+import logoImage from '../../assets/Logo.png'
 
 const navItems = [
   ['dashboard', LayoutDashboard, 'Dashboard'],
@@ -10,14 +11,20 @@ const navItems = [
   ['usuarios', UserCog, 'Usuários', true],
 ]
 
-function Sidebar({ screen, setScreen, onLogout, currentUser }) {
+function Sidebar({ screen, setScreen, currentUser }) {
   const visibleNavItems = navItems.filter((item) => !item[3] || isAdministrador(currentUser))
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brandIcon">C</div>
+        <div className="brandIcon">
+          <img
+            style={{ width: '100%', height: 'auto', borderRadius: '10%' }}
+            src={logoImage}
+            alt='logo'
+          />
+        </div>
         <div>
-          <strong>CRM Compact.Jr</strong>
+          <strong>CRM CompAct.Jr</strong>
           <span>Gestão Comercial</span>
         </div>
       </div>
@@ -29,10 +36,6 @@ function Sidebar({ screen, setScreen, onLogout, currentUser }) {
           </button>
         ))}
       </nav>
-      <button type="button" className="logout" onClick={onLogout}>
-        <LogOut size={18} />
-        Sair
-      </button>
     </aside>
   )
 }

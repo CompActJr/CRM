@@ -4,7 +4,7 @@ import { formatDateBr } from './date.js'
 
 const PdfConfig = {
   margin: 50,
-  brand: 'CRM Compact.Jr',
+  brand: 'CRM CompAct.Jr',
   subtitle: 'Gestão Comercial',
   accent: '#1e40af',
 }

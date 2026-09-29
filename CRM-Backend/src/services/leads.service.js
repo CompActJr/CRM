@@ -26,8 +26,20 @@ const parseUsuarioId = (usuarioId) => {
   return parsed
 }
 
+const parseStatusFilter = (query) => {
+  if (query.status === 'Ativo' || query.status === 'Inativo') {
+    return query.status
+  }
+  return null
+}
+
+const normalizeString = (string) => {
+  const normalized = string?.trim().toLowerCase()
+  return normalized || null
+}
+
 const buildLeadData = async (body) => {
-  const nome = body.nome?.trim()
+  const nome = body.nome?.trim().toLowerCase()
   if (!nome) {
     const error = new Error(ErrorMessages.nomeRequired)
     error.statusCode = 400
@@ -63,9 +75,9 @@ const buildLeadData = async (body) => {
     nome,
     email: body.email?.trim() || null,
     telefone: body.telefone?.trim() || null,
-    empresa: body.empresa?.trim() || null,
-    cidade: body.cidade?.trim() || null,
-    nicho: body.nicho?.trim() || null,
+    empresa: body.empresa?.trim().toLowerCase() || null,
+    cidade: body.cidade?.trim().toLowerCase() || null,
+    nicho: body.nicho?.trim().toLowerCase() || null,
     observacoes: body.observacoes?.trim() || null,
     status,
     dataCadastro,
@@ -83,7 +95,66 @@ const leadListInclude = {
 
 export const listLeads = async (query = {}) => {
   const usuarioId = parseUsuarioIdFilter(query)
-  const where = usuarioId ? { usuarioId } : {}
+  const status = parseStatusFilter(query)
+  const nome = normalizeString(query.nome)
+  const empresa = normalizeString(query.empresa)
+  const cidade = normalizeString(query.cidade)
+  const nicho = normalizeString(query.nicho)
+  const dataInicio = parseDateInput(query.dataInicio)
+  const dataFim = parseDateInput(query.dataFim)
+  if (query.dataInicio && !dataInicio) {
+    const error = new Error(ErrorMessages.invalidDataInicio)
+    error.statusCode = 400
+    throw error
+  }
+  if (query.dataFim && !dataFim) {
+    const error = new Error(ErrorMessages.invalidDataFim)
+    error.statusCode = 400
+    throw error
+  }
+  if (dataInicio && dataFim && dataInicio > dataFim) {
+    const error = new Error(ErrorMessages.invalidDataRange)
+    error.statusCode = 400
+    throw error
+  }
+
+  const where = {}
+
+  if (usuarioId) {
+    where.usuarioId = usuarioId
+  }
+
+  if (nome) {
+    where.nome = nome
+  }
+
+  if (empresa) {
+    where.empresa = empresa
+  }
+
+  if (cidade) {
+    where.cidade = cidade
+  }
+
+  if (dataInicio || dataFim) {
+    where.dataCadastro = {}
+
+    if (dataInicio) {
+      where.dataCadastro.gte = dataInicio
+    }
+
+    if (dataFim) {
+      where.dataCadastro.lte = dataFim
+    }
+  }
+
+  if (status) {
+    where.status = status
+  }
+
+  if (nicho) {
+    where.nicho = nicho
+  }
 
   const leads = await prisma.lead.findMany({
     where,
