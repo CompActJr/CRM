@@ -9,9 +9,9 @@ export const listOpcoes = async (_request, response, next) => {
   }
 }
 
-export const list = async (_request, response, next) => {
+export const list = async (request, response, next) => {
   try {
-    const usuarios = await usuariosService.listUsuarios()
+    const usuarios = await usuariosService.listUsuarios(request.query)
     response.json(usuarios)
   } catch (error) {
     next(error)

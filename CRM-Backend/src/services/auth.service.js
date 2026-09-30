@@ -16,7 +16,7 @@ export const login = async ({ email, senha }) => {
   }
 
   const usuario = await prisma.usuario.findFirst({
-    where: { email: normalizedEmail },
+    where: { email: normalizedEmail, ativo: true },
     select: { id: true, nome: true, email: true, cargo: true, perfilAcesso: true, avatarUrl: true, senha: true },
   })
 
