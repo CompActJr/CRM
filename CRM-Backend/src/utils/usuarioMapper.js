@@ -16,4 +16,5 @@ export const mapUsuarioToResponse = (usuario) => ({
   perfilAcesso: usuario.perfilAcesso,
   perfil: formatPerfilLabel(usuario.perfilAcesso),
   avatarUrl: usuario.avatarUrl ?? null,
+  ativo: usuario.ativo ?? true,
 })

@@ -87,8 +87,11 @@ const ensureEmailAvailable = async (email, usuarioId = null) => {
   }
 }
 
-export const listUsuarios = async () => {
+export const listUsuarios = async (query = {}) => {
+  const onlyActive = query.ativos !== 'false' && query.ativos !== '0'
+
   const usuarios = await prisma.usuario.findMany({
+    where: onlyActive ? { ativo: true } : undefined,
     orderBy: { nome: 'asc' },
   })
   return usuarios.map(mapUsuarioToResponse)
@@ -96,6 +99,7 @@ export const listUsuarios = async () => {
 
 export const listUsuariosOpcoes = async () => {
   const usuarios = await prisma.usuario.findMany({
+    where: { ativo: true },
     select: { id: true, nome: true, avatarUrl: true },
     orderBy: { nome: 'asc' },
   })
@@ -237,10 +241,6 @@ export const deleteUsuario = async (idParam) => {
 
   const existing = await prisma.usuario.findUnique({
     where: { id },
-    include: {
-      leads: { select: { id: true }, take: 1 },
-      oportunidades: { select: { id: true }, take: 1 },
-    },
   })
 
   if (!existing) {
@@ -249,21 +249,8 @@ export const deleteUsuario = async (idParam) => {
     throw error
   }
 
-  if (existing.leads.length > 0) {
-    const error = new Error(ErrorMessages.usuarioHasLeads)
-    error.statusCode = 409
-    throw error
-  }
-
-  if (existing.oportunidades.length > 0) {
-    const error = new Error(ErrorMessages.usuarioHasOportunidades)
-    error.statusCode = 409
-    throw error
-  }
-
-  if (existing.avatarUrl) {
-    await deleteAvatarFromSupabase(existing.avatarUrl)
-  }
-
-  await prisma.usuario.delete({ where: { id } })
+  await prisma.usuario.update({
+    where: { id },
+    data: { ativo: false },
+  })
 }
