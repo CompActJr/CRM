@@ -59,7 +59,7 @@ Conta inicial de administrador:
 |--------|-------|
 | `admin@empresa.com` | `123456` |
 
-O seed também cria as etapas do funil e motivos de perda padrão. Leads, oportunidades e demais dados devem ser cadastrados pelo sistema.
+O seed também cria as etapas do funil e motivos de perda padrão. Leads, negocios e demais dados devem ser cadastrados pelo sistema.
 
 ## Zerar o banco e começar do zero
 

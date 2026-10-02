@@ -2,8 +2,8 @@ const DefaultNavigation = {
   screen: 'dashboard',
   editingLeadId: null,
   viewingLeadId: null,
-  editingOportunidadeId: null,
-  viewingOportunidadeId: null,
+  editingNegocioId: null,
+  viewingNegocioId: null,
   editingUsuarioId: null,
   activeTab: null,
 }
@@ -21,17 +21,17 @@ export const buildNavigationPath = (state) => {
     return state.editingLeadId ? `#/leads/editar/${state.editingLeadId}` : '#/leads/novo'
   }
   if (screen === 'leadDetails' && state.viewingLeadId) {
-    const tabSuffix = state.activeTab && state.activeTab !== 'oportunidades' ? `/${state.activeTab}` : ''
+    const tabSuffix = state.activeTab && state.activeTab !== 'negocios' ? `/${state.activeTab}` : ''
     return `#/leads/${state.viewingLeadId}${tabSuffix}`
   }
-  if (screen === 'oportunidadeForm') {
-    return state.editingOportunidadeId
-      ? `#/oportunidades/editar/${state.editingOportunidadeId}`
-      : '#/oportunidades/nova'
+  if (screen === 'negocioForm') {
+    return state.editingNegocioId
+      ? `#/negocios/editar/${state.editingNegocioId}`
+      : '#/negocios/nova'
   }
-  if (screen === 'oportunidadeDetails' && state.viewingOportunidadeId) {
+  if (screen === 'negocioDetails' && state.viewingNegocioId) {
     const tabSuffix = state.activeTab && state.activeTab !== 'timeline' ? `/${state.activeTab}` : ''
-    return `#/oportunidades/${state.viewingOportunidadeId}${tabSuffix}`
+    return `#/negocios/${state.viewingNegocioId}${tabSuffix}`
   }
   if (screen === 'usuarioForm') {
     return state.editingUsuarioId
@@ -43,7 +43,7 @@ export const buildNavigationPath = (state) => {
     dashboard: '#/dashboard',
     leads: '#/leads',
     funil: '#/funil',
-    oportunidade: '#/oportunidades',
+    negocio: '#/negocios',
     relatorios: '#/relatorios',
     usuarios: '#/usuarios',
   }
@@ -66,34 +66,34 @@ export const parseNavigationPath = (hash = '') => {
     }
     if (segments[1]) {
       const viewingLeadId = parseId(segments[1])
-      const activeTab = segments[2] ?? 'oportunidades'
+      const activeTab = segments[2] ?? 'negocios'
       return { ...DefaultNavigation, screen: 'leadDetails', viewingLeadId, activeTab }
     }
     return { ...DefaultNavigation, screen: 'leads' }
   }
 
-  if (segments[0] === 'oportunidades') {
+  if (segments[0] === 'negocios') {
     if (segments[1] === 'nova') {
-      return { ...DefaultNavigation, screen: 'oportunidadeForm' }
+      return { ...DefaultNavigation, screen: 'negocioForm' }
     }
     if (segments[1] === 'editar' && segments[2]) {
       return {
         ...DefaultNavigation,
-        screen: 'oportunidadeForm',
-        editingOportunidadeId: parseId(segments[2]),
+        screen: 'negocioForm',
+        editingNegocioId: parseId(segments[2]),
       }
     }
     if (segments[1]) {
-      const viewingOportunidadeId = parseId(segments[1])
+      const viewingNegocioId = parseId(segments[1])
       const activeTab = segments[2] ?? 'timeline'
       return {
         ...DefaultNavigation,
-        screen: 'oportunidadeDetails',
-        viewingOportunidadeId,
+        screen: 'negocioDetails',
+        viewingNegocioId,
         activeTab,
       }
     }
-    return { ...DefaultNavigation, screen: 'oportunidade' }
+    return { ...DefaultNavigation, screen: 'negocio' }
   }
 
   if (segments[0] === 'usuarios') {

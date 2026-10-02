@@ -3,10 +3,10 @@ import { parseUsuarioIdFilter } from '../utils/usuarioFilter.js'
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24
 
-export const registrarEntradaEtapa = async (tx, oportunidadeId, etapaFunilId, entradaEm = new Date()) => {
-  return tx.oportunidadeEtapaHistorico.create({
+export const registrarEntradaEtapa = async (tx, negocioId, etapaFunilId, entradaEm = new Date()) => {
+  return tx.negocioEtapaHistorico.create({
     data: {
-      oportunidadeId,
+      negocioId,
       etapaFunilId,
       entradaEm,
     },
@@ -15,34 +15,34 @@ export const registrarEntradaEtapa = async (tx, oportunidadeId, etapaFunilId, en
 
 export const registrarMudancaEtapa = async (
   tx,
-  oportunidadeId,
+  negocioId,
   novaEtapaFunilId,
   momento = new Date()
 ) => {
-  const etapaAberta = await tx.oportunidadeEtapaHistorico.findFirst({
-    where: { oportunidadeId, saidaEm: null },
+  const etapaAberta = await tx.negocioEtapaHistorico.findFirst({
+    where: { negocioId, saidaEm: null },
     orderBy: { entradaEm: 'desc' },
   })
 
   if (etapaAberta) {
     if (etapaAberta.etapaFunilId === novaEtapaFunilId) return
-    await tx.oportunidadeEtapaHistorico.update({
+    await tx.negocioEtapaHistorico.update({
       where: { id: etapaAberta.id },
       data: { saidaEm: momento },
     })
   }
 
-  await registrarEntradaEtapa(tx, oportunidadeId, novaEtapaFunilId, momento)
+  await registrarEntradaEtapa(tx, negocioId, novaEtapaFunilId, momento)
 }
 
 export const calcularTempoMedioPorEtapa = async (query = {}) => {
   const usuarioId = parseUsuarioIdFilter(query)
-  const filtroOportunidade = usuarioId ? { oportunidade: { usuarioId } } : {}
+  const filtroNegocio = usuarioId ? { negocio: { responsaveis: { some: { id: usuarioId } } } } : {}
 
   const [etapas, registros] = await Promise.all([
     prisma.etapaFunil.findMany({ orderBy: { ordem: 'asc' } }),
-    prisma.oportunidadeEtapaHistorico.findMany({
-      where: filtroOportunidade,
+    prisma.negocioEtapaHistorico.findMany({
+      where: filtroNegocio,
       include: { etapaFunil: { select: { nome: true } } },
     }),
   ])

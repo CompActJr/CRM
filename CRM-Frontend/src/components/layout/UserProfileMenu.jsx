@@ -212,7 +212,7 @@ function UserProfileMenu({ currentUser, onLogout, setScreen, onUpdateUser }) {
                 <strong>Versão:</strong> 1.0.0 (Produção)
               </p>
               <p>
-                <strong>Objetivo:</strong> Gestão comercial integrada de leads, oportunidades, funil de vendas e relatórios analíticos.
+                <strong>Objetivo:</strong> Gestão comercial integrada de leads, negócios, funil de vendas e relatórios analíticos.
               </p>
               <p style={{ marginTop: '12px', fontSize: '13px', color: '#94a3b8' }}>
                 Desenvolvido com foco em produtividade para a Compact.Jr.

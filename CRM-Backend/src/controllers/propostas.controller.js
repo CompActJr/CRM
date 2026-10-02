@@ -1,8 +1,8 @@
 import * as propostasService from '../services/propostas.service.js'
 
-export const listByOportunidade = async (request, response, next) => {
+export const listByNegocio = async (request, response, next) => {
   try {
-    const propostas = await propostasService.listPropostasByOportunidade(request.params.oportunidadeId)
+    const propostas = await propostasService.listPropostasByNegocio(request.params.negocioId)
     response.json(propostas)
   } catch (error) {
     next(error)
@@ -12,7 +12,7 @@ export const listByOportunidade = async (request, response, next) => {
 export const create = async (request, response, next) => {
   try {
     const proposta = await propostasService.createProposta(
-      request.params.oportunidadeId,
+      request.params.negocioId,
       request.body
     )
     response.status(201).json(proposta)

@@ -1,11 +1,11 @@
 import { ApiConfig } from '../config/api.js'
 import { apiRequest } from './apiClient.js'
 
-export const fetchPropostasByOportunidade = (oportunidadeId) =>
-  apiRequest(`/oportunidades/${oportunidadeId}/propostas`)
+export const fetchPropostasByNegocio = (negocioId) =>
+  apiRequest(`/negocios/${negocioId}/propostas`)
 
-export const createProposta = (oportunidadeId, payload) =>
-  apiRequest(`/oportunidades/${oportunidadeId}/propostas`, {
+export const createProposta = (negocioId, payload) =>
+  apiRequest(`/negocios/${negocioId}/propostas`, {
     method: 'POST',
     body: JSON.stringify(payload),
   })

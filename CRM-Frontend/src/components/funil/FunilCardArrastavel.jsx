@@ -2,10 +2,10 @@ import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { getPriorityClass } from '../../utils/priorityClass'
 
-function FunilCardArrastavel({ oportunidade, onViewOportunidade, onEditOportunidade }) {
+function FunilCardArrastavel({ negocio, onViewNegocio, onEditNegocio }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: String(oportunidade.id),
-    data: { oportunidade },
+    id: String(negocio.id),
+    data: { negocio },
   })
 
   const style = {
@@ -20,49 +20,48 @@ function FunilCardArrastavel({ oportunidade, onViewOportunidade, onEditOportunid
       className={`opCard ${isDragging ? 'opCardDragging' : ''}`}
     >
       <div className="opCardDragHandle" {...listeners} {...attributes}>
-        {oportunidade.diasNaEtapa !== undefined && (
+        {negocio.diasNaEtapa !== undefined && (
           <div
-            className={`stageTimeTag ${
-              oportunidade.diasNaEtapa >= 7
-                ? 'frio'
-                : oportunidade.diasNaEtapa >= 5
+            className={`stageTimeTag ${negocio.diasNaEtapa >= 7
+              ? 'frio'
+              : negocio.diasNaEtapa >= 5
                 ? 'morno'
                 : 'quente'
-            }`}
+              }`}
             style={{ marginBottom: '8px' }}
           >
-            {oportunidade.diasNaEtapa >= 7
-              ? `Frio ${oportunidade.diasNaEtapa >= 1 ? `(${oportunidade.diasNaEtapa} dias)` : ''}`
-              : oportunidade.diasNaEtapa >= 5
-              ? `Morno ${oportunidade.diasNaEtapa >= 1 ? `(${oportunidade.diasNaEtapa} dias)` : ''}`
-              : `Quente ${oportunidade.diasNaEtapa >= 1 ? `(${oportunidade.diasNaEtapa} dias)` : ''}`}
+            {negocio.diasNaEtapa >= 7
+              ? `Frio ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`
+              : negocio.diasNaEtapa >= 5
+                ? `Morno ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`
+                : `Quente ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`}
           </div>
         )}
-        <h3>{oportunidade.titulo}</h3>
-        <p>{oportunidade.lead}</p>
-        {oportunidade.motivoPerda && (
-          <p className="opCardMotivoPerda">{oportunidade.motivoPerda}</p>
+        <h3>{negocio.titulo}</h3>
+        <p>{negocio.lead}</p>
+        {negocio.motivoPerda && (
+          <p className="opCardMotivoPerda">{negocio.motivoPerda}</p>
         )}
         <div className="cardMeta">
-          <span>{oportunidade.responsavel}</span>
-          <span className={`priority ${getPriorityClass(oportunidade.prioridade)}`}>
-            {oportunidade.prioridade}
+          <span>{negocio.responsavel}</span>
+          <span className={`priority ${getPriorityClass(negocio.prioridade)}`}>
+            {negocio.prioridade}
           </span>
         </div>
-        <strong>{oportunidade.valor}</strong>
+        <strong>{negocio.valor}</strong>
       </div>
       <div className="opCardActions">
         <button
           type="button"
           className="secondaryBtn opCardActionBtn"
-          onClick={() => onViewOportunidade(oportunidade.id)}
+          onClick={() => onViewNegocio(negocio.id)}
         >
           Ver
         </button>
         <button
           type="button"
           className="secondaryBtn opCardActionBtn"
-          onClick={() => onEditOportunidade(oportunidade.id)}
+          onClick={() => onEditNegocio(negocio.id)}
         >
           Editar
         </button>

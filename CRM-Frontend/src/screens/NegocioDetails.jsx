@@ -1,3 +1,23 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { useCallback, useEffect, useState } from 'react'
 
 import { Download, FileText, XCircle } from 'lucide-react'
@@ -8,22 +28,22 @@ import PainelPropostas from '../components/propostas/PainelPropostas'
 
 import PainelTarefas from '../components/tarefas/PainelTarefas'
 
-import ModalMarcarPerdida from '../components/oportunidades/ModalMarcarPerdida'
+import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
 
 import Header from '../components/layout/Header'
 
-import { fetchPropostasByOportunidade, downloadPropostaPdf } from '../services/propostasService'
-import { fetchOportunidadeById } from '../services/oportunidadesService'
+import { fetchPropostasByNegocio, downloadPropostaPdf } from '../services/propostasService'
+import { fetchNegocioById } from '../services/negociosService'
 
 import { getPriorityClass } from '../utils/priorityClass'
 
 
 
-function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline', currentUser }) {
+function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', currentUser }) {
 
   const [activeTab, setActiveTab] = useState(initialTab)
 
-  const [oportunidade, setOportunidade] = useState(null)
+  const [negocio, setNegocio] = useState(null)
 
   const [propostas, setPropostas] = useState([])
 
@@ -37,9 +57,9 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
 
 
-  const loadOportunidade = useCallback(async () => {
+  const loadNegocio = useCallback(async () => {
 
-    if (!oportunidadeId) {
+    if (!negocioId) {
 
       setLoading(false)
 
@@ -54,11 +74,11 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
     try {
 
       const [data, propostasData] = await Promise.all([
-        fetchOportunidadeById(oportunidadeId),
-        fetchPropostasByOportunidade(oportunidadeId),
+        fetchNegocioById(negocioId),
+        fetchPropostasByNegocio(negocioId),
       ])
 
-      setOportunidade(data)
+      setNegocio(data)
 
       setPropostas(propostasData)
 
@@ -72,19 +92,19 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
     }
 
-  }, [oportunidadeId])
+  }, [negocioId])
 
 
 
   useEffect(() => {
 
-    loadOportunidade()
+    loadNegocio()
 
-  }, [loadOportunidade])
+  }, [loadNegocio])
 
   useEffect(() => {
     setActiveTab(initialTab)
-  }, [oportunidadeId, initialTab])
+  }, [negocioId, initialTab])
 
   const propostaRecente = propostas[0] ?? null
 
@@ -109,7 +129,7 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
       <>
 
-        <Header title="Detalhes da Oportunidade" subtitle="Carregando dados da oportunidade" />
+        <Header title="Detalhes do Negócio" subtitle="Carregando dados do negócio" />
 
         <p className="tableMessage">Carregando...</p>
 
@@ -121,19 +141,19 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
 
 
-  if (error || !oportunidade) {
+  if (error || !negocio) {
 
     return (
 
       <>
 
-        <Header title="Detalhes da Oportunidade" subtitle="Não foi possível carregar a oportunidade" />
+        <Header title="Detalhes do Negócio" subtitle="Não foi possível carregar o negócio" />
 
-        <p className="formError">{error || 'Oportunidade não encontrada.'}</p>
+        <p className="formError">{error || 'Negócio não encontrado.'}</p>
 
-        <button className="secondaryBtn" onClick={() => setScreen('oportunidade')}>
+        <button className="secondaryBtn" onClick={() => setScreen('negocio')}>
 
-          Voltar para Oportunidades
+          Voltar para Negocios
 
         </button>
 
@@ -149,23 +169,23 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
     <>
 
-      <Header title="Detalhes da Oportunidade" subtitle="Acompanhe evolução comercial, histórico e documentos" />
+      <Header title="Detalhes do Negócio" subtitle="Acompanhe evolução comercial, histórico e documentos" />
 
       <div className="leadDetailsLayout">
 
         <aside className="leadSummaryCard">
 
-          <h2>{oportunidade.titulo}</h2>
+          <h2>{negocio.titulo}</h2>
 
           <div className="leadSummaryTags">
 
-            <span className={`priority ${getPriorityClass(oportunidade.prioridade)}`}>
+            <span className={`priority ${getPriorityClass(negocio.prioridade)}`}>
 
-              {oportunidade.prioridade}
+              {negocio.prioridade}
 
             </span>
 
-            {oportunidade.perdida && <span className="tag danger">Perdida</span>}
+            {negocio.perdida && <span className="tag danger">Perdido</span>}
 
           </div>
 
@@ -175,23 +195,40 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
               <strong>Lead</strong>
 
-              <p>{oportunidade.lead}</p>
+              <p>{negocio.lead}</p>
 
             </div>
 
             <div>
-
-              <strong>Responsável</strong>
-
-              <p>{oportunidade.responsavel}</p>
-
+              <strong>Responsáveis</strong>
+              {negocio.responsaveis && negocio.responsaveis.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                  {negocio.responsaveis.map((resp) => (
+                    <span
+                      key={resp.id}
+                      style={{
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {resp.nome}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p>{negocio.responsavel || '-'}</p>
+              )}
             </div>
 
             <div>
 
               <strong>Etapa</strong>
 
-              <p>{oportunidade.etapa}</p>
+              <p>{negocio.etapa}</p>
 
             </div>
 
@@ -199,7 +236,7 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
               <strong>Valor</strong>
 
-              <p>{oportunidade.valor}</p>
+              <p>{negocio.valor}</p>
 
             </div>
 
@@ -207,17 +244,17 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
               <strong>Data de criação</strong>
 
-              <p>{oportunidade.dataCriacao}</p>
+              <p>{negocio.dataCriacao}</p>
 
             </div>
 
-            {oportunidade.motivoPerda && (
+            {negocio.motivoPerda && (
 
               <div>
 
                 <strong>Motivo da perda</strong>
 
-                <p>{oportunidade.motivoPerda}</p>
+                <p>{negocio.motivoPerda}</p>
 
               </div>
 
@@ -225,7 +262,7 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
           </div>
 
-          {!oportunidade.perdida && (
+          {!negocio.perdida && (
 
             <button type="button" className="dangerBtn full" onClick={() => setShowPerdaModal(true)}>
 
@@ -237,9 +274,9 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
           )}
 
-          <button className="secondaryBtn full" onClick={() => setScreen('oportunidade')}>
+          <button className="secondaryBtn full" onClick={() => setScreen('negocio')}>
 
-            Voltar para Oportunidades
+            Voltar para Negocios
 
           </button>
 
@@ -283,9 +320,9 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
             <PainelInteracoes
 
-              leadId={oportunidade.leadId}
+              leadId={negocio.leadId}
 
-              oportunidadeId={oportunidade.id}
+              negocioId={negocio.id}
 
               currentUser={currentUser}
 
@@ -299,9 +336,9 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
             <PainelTarefas
 
-              leadId={oportunidade.leadId}
+              leadId={negocio.leadId}
 
-              oportunidadeId={oportunidade.id}
+              negocioId={negocio.id}
 
               currentUser={currentUser}
 
@@ -315,7 +352,7 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
             <PainelPropostas
 
-              oportunidadeId={oportunidade.id}
+              negocioId={negocio.id}
 
               currentUser={currentUser}
 
@@ -363,7 +400,7 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
                     <p>
 
-                      Proposta vinculada à oportunidade <strong>{oportunidade.titulo}</strong>.
+                      Proposta vinculada ao negócio <strong>{negocio.titulo}</strong>.
 
                     </p>
 
@@ -375,9 +412,9 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
                       <li>Data: {propostaRecente.dataProposta}</li>
 
-                      <li>Responsável: {propostaRecente.responsavel ?? oportunidade.responsavel}</li>
+                      <li>Responsável: {propostaRecente.responsavel ?? negocio.responsavel}</li>
 
-                      <li>Etapa da oportunidade: {oportunidade.etapa}</li>
+                      <li>Etapa do negócio: {negocio.etapa}</li>
 
                     </ul>
 
@@ -407,13 +444,13 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
         <ModalMarcarPerdida
 
-          oportunidade={oportunidade}
+          negocio={negocio}
 
           currentUser={currentUser}
 
           onClose={() => setShowPerdaModal(false)}
 
-          onSuccess={loadOportunidade}
+          onSuccess={loadNegocio}
 
         />
 
@@ -427,6 +464,6 @@ function OportunidadeDetails({ setScreen, oportunidadeId, initialTab = 'timeline
 
 
 
-export default OportunidadeDetails
+export default NegocioDetails
 
 

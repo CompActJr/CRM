@@ -52,7 +52,7 @@ const LeadsDemo = [
   { nome: 'Mariana Duarte', empresa: 'LegalPro', cidade: 'Curitiba', nicho: 'Jurídico' },
 ]
 
-const OportunidadesDemo = [
+const NegociosDemo = [
   { titulo: 'CRM para equipe comercial', etapa: 'Prospecção', valor: 12000, prioridade: 'Media', dias: { Prospecção: 5 } },
   { titulo: 'Automação de follow-up', etapa: 'Prospecção', valor: 8500, prioridade: 'Baixa', dias: { Prospecção: 3 } },
   { titulo: 'Integração com ERP', etapa: 'Prospecção', valor: 22000, prioridade: 'Alta', dias: { Prospecção: 7 } },
@@ -72,7 +72,7 @@ const OportunidadesDemo = [
   { titulo: 'Projeto fechado - Alpha Corp', etapa: 'Fechado', valor: 41000, prioridade: 'Alta', dias: { Prospecção: 5, Qualificação: 6, Diagnóstico: 9, Proposta: 7, Negociação: 14, Fechado: 2 } },
   { titulo: 'Contrato assinado - Beta Ltda', etapa: 'Fechado', valor: 27000, prioridade: 'Media', dias: { Prospecção: 4, Qualificação: 5, Diagnóstico: 8, Proposta: 6, Negociação: 11, Fechado: 3 } },
   { titulo: 'Deal ganho - Gamma SA', etapa: 'Fechado', valor: 33000, prioridade: 'Alta', dias: { Prospecção: 6, Qualificação: 7, Diagnóstico: 10, Proposta: 8, Negociação: 16, Fechado: 1 } },
-  { titulo: 'Oportunidade perdida - preço', etapa: 'Perdida', valor: 16000, prioridade: 'Media', motivo: 'Preço alto', dias: { Prospecção: 4, Qualificação: 6, Diagnóstico: 9, Proposta: 7, Negociação: 8, Perdida: 1 } },
+  { titulo: 'Negocio perdida - preço', etapa: 'Perdida', valor: 16000, prioridade: 'Media', motivo: 'Preço alto', dias: { Prospecção: 4, Qualificação: 6, Diagnóstico: 9, Proposta: 7, Negociação: 8, Perdida: 1 } },
   { titulo: 'Sem retorno do cliente', etapa: 'Perdida', valor: 9000, prioridade: 'Baixa', motivo: 'Sem resposta do cliente', dias: { Prospecção: 3, Qualificação: 5, Diagnóstico: 6, Proposta: 4, Perdida: 2 } },
   { titulo: 'Prazo não atendido', etapa: 'Perdida', valor: 24000, prioridade: 'Alta', motivo: 'Prazo não atendido', dias: { Prospecção: 5, Qualificação: 7, Diagnóstico: 11, Proposta: 9, Negociação: 6, Perdida: 1 } },
 ]
@@ -86,7 +86,7 @@ const daysAgo = (days) => {
 
 const addDays = (date, days) => new Date(date.getTime() + days * MS_PER_DAY)
 
-const buildHistorico = (oportunidadeId, etapas, etapaAtualNome, diasPorEtapa) => {
+const buildHistorico = (negocioId, etapas, etapaAtualNome, diasPorEtapa) => {
   const ordemAtual = etapas.find((item) => item.nome === etapaAtualNome)?.ordem ?? 1
   const etapasPercorridas = etapas.filter((item) => item.ordem <= ordemAtual)
   const totalDias = etapasPercorridas.reduce((sum, item) => sum + (diasPorEtapa[item.nome] ?? 3), 0)
@@ -100,7 +100,7 @@ const buildHistorico = (oportunidadeId, etapas, etapaAtualNome, diasPorEtapa) =>
     const saida = isAtual ? null : addDays(entrada, diasNaEtapa)
 
     registros.push({
-      oportunidadeId,
+      negocioId,
       etapaFunilId: etapa.id,
       entradaEm: entrada,
       saidaEm: saida,
@@ -116,8 +116,8 @@ const clearDatabase = async () => {
   await prisma.proposta.deleteMany()
   await prisma.tarefa.deleteMany()
   await prisma.interacao.deleteMany()
-  await prisma.oportunidadeEtapaHistorico.deleteMany()
-  await prisma.oportunidade.deleteMany()
+  await prisma.negocioEtapaHistorico.deleteMany()
+  await prisma.negocio.deleteMany()
   await prisma.lead.deleteMany()
   await prisma.motivoPerda.deleteMany()
   await prisma.cargo.deleteMany()
@@ -184,13 +184,13 @@ async function main() {
     )
   )
 
-  for (let index = 0; index < OportunidadesDemo.length; index++) {
-    const demo = OportunidadesDemo[index]
+  for (let index = 0; index < NegociosDemo.length; index++) {
+    const demo = NegociosDemo[index]
     const lead = leads[index % leads.length]
     const usuario = usuarios[index % usuarios.length]
     const motivoPerdaId = demo.motivo ? motivosPorNome[demo.motivo] : null
 
-    const oportunidade = await prisma.oportunidade.create({
+    const negocio = await prisma.negocio.create({
       data: {
         titulo: demo.titulo,
         valorEstimado: demo.valor,
@@ -205,12 +205,12 @@ async function main() {
       },
     })
 
-    const historico = buildHistorico(oportunidade.id, etapas, demo.etapa, demo.dias)
-    await prisma.oportunidadeEtapaHistorico.createMany({ data: historico })
+    const historico = buildHistorico(negocio.id, etapas, demo.etapa, demo.dias)
+    await prisma.negocioEtapaHistorico.createMany({ data: historico })
   }
 
   console.log('Seed demo concluído.')
-  console.log(`Oportunidades: ${OportunidadesDemo.length}`)
+  console.log(`Negocios: ${NegociosDemo.length}`)
   console.log(`Leads: ${leads.length}`)
   console.log(`Admin: ${SeedConfig.adminEmail} / ${SeedConfig.adminSenha}`)
   console.log('Vendedores: ana@empresa.com e bruno@empresa.com (senha 123456)')

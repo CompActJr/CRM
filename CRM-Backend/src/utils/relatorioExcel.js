@@ -116,9 +116,9 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
 
   const indicadores = [
     ['Leads no período', relatorio.leadsNoPeriodo],
-    ['Oportunidades criadas no período', relatorio.oportunidadesCriadas],
-    ['Oportunidades abertas no período', relatorio.oportunidadesAbertas],
-    ['Oportunidades fechadas no período', relatorio.oportunidadesFechadas],
+    ['Negocios criadas no período', relatorio.negociosCriadas],
+    ['Negocios abertas no período', relatorio.negociosAbertas],
+    ['Negocios fechadas no período', relatorio.negociosFechadas],
     ['Taxa de conversão', `${relatorio.taxaConversao}%`],
     ['Principal motivo de perda', relatorio.principalMotivoPerda],
   ]

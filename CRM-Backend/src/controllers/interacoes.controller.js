@@ -24,10 +24,10 @@ export const createForLead = async (request, response, next) => {
   }
 }
 
-export const listByOportunidade = async (request, response, next) => {
+export const listByNegocio = async (request, response, next) => {
   try {
-    const interacoes = await interacoesService.listInteracoesByOportunidade(
-      request.params.oportunidadeId
+    const interacoes = await interacoesService.listInteracoesByNegocio(
+      request.params.negocioId
     )
     response.json(interacoes)
   } catch (error) {
@@ -35,10 +35,10 @@ export const listByOportunidade = async (request, response, next) => {
   }
 }
 
-export const createForOportunidade = async (request, response, next) => {
+export const createForNegocio = async (request, response, next) => {
   try {
-    const interacao = await interacoesService.createInteracaoForOportunidade(
-      request.params.oportunidadeId,
+    const interacao = await interacoesService.createInteracaoForNegocio(
+      request.params.negocioId,
       request.body
     )
     response.status(201).json(interacao)

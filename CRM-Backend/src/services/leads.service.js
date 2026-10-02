@@ -88,7 +88,7 @@ const buildLeadData = async (body) => {
 const leadListInclude = {
   ...leadIncludeUsuario,
   tarefas: {
-    where: { status: 'Pendente', oportunidadeId: null },
+    where: { status: 'Pendente', negocioId: null },
     select: { dataPrazo: true },
   },
 }
@@ -241,7 +241,7 @@ export const deleteLead = async (idParam) => {
 
   const existing = await prisma.lead.findUnique({
     where: { id },
-    include: { oportunidades: { select: { id: true }, take: 1 } },
+    include: { negocios: { select: { id: true }, take: 1 } },
   })
 
   if (!existing) {
@@ -250,8 +250,8 @@ export const deleteLead = async (idParam) => {
     throw error
   }
 
-  if (existing.oportunidades.length > 0) {
-    const error = new Error(ErrorMessages.leadHasOportunidades)
+  if (existing.negocios.length > 0) {
+    const error = new Error(ErrorMessages.leadHasNegocios)
     error.statusCode = 409
     throw error
   }

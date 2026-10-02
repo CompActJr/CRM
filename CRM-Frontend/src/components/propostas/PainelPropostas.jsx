@@ -4,7 +4,7 @@ import {
   createProposta,
   deleteProposta,
   downloadPropostaPdf,
-  fetchPropostasByOportunidade,
+  fetchPropostasByNegocio,
   updateProposta,
 } from '../../services/propostasService'
 import { fetchUsuariosOpcoes } from '../../services/usuariosService'
@@ -50,7 +50,7 @@ const buildFormFromProposta = (proposta, currentUser) => ({
   observacoes: proposta.observacoes ?? '',
 })
 
-function PainelPropostas({ oportunidadeId, currentUser, onPropostasChange }) {
+function PainelPropostas({ negocioId, currentUser, onPropostasChange }) {
   const [propostas, setPropostas] = useState([])
   const [usuarios, setUsuarios] = useState([])
   const [form, setForm] = useState(buildEmptyForm(currentUser))
@@ -63,11 +63,11 @@ function PainelPropostas({ oportunidadeId, currentUser, onPropostasChange }) {
   const [error, setError] = useState('')
 
   const loadPropostas = useCallback(async () => {
-    if (!oportunidadeId) return
+    if (!negocioId) return
     setLoading(true)
     setError('')
     try {
-      const data = await fetchPropostasByOportunidade(oportunidadeId)
+      const data = await fetchPropostasByNegocio(negocioId)
       setPropostas(data)
       onPropostasChange?.(data)
     } catch (requestError) {
@@ -75,7 +75,7 @@ function PainelPropostas({ oportunidadeId, currentUser, onPropostasChange }) {
     } finally {
       setLoading(false)
     }
-  }, [oportunidadeId])
+  }, [negocioId])
 
   useEffect(() => {
     loadPropostas()
@@ -149,7 +149,7 @@ function PainelPropostas({ oportunidadeId, currentUser, onPropostasChange }) {
       if (editingId) {
         await updateProposta(editingId, payload)
       } else {
-        await createProposta(oportunidadeId, payload)
+        await createProposta(negocioId, payload)
       }
       resetForm()
       await loadPropostas()

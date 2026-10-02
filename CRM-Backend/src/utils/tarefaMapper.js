@@ -9,7 +9,7 @@ export const TarefaStatusValidos = Object.keys(TarefaStatusLabels)
 
 export const tarefaInclude = {
   usuario: { select: { id: true, nome: true } },
-  oportunidade: { select: { id: true, titulo: true } },
+  negocio: { select: { id: true, titulo: true } },
 }
 
 export const mapTarefaToResponse = (tarefa) => ({
@@ -20,8 +20,8 @@ export const mapTarefaToResponse = (tarefa) => ({
   status: TarefaStatusLabels[tarefa.status] ?? tarefa.status,
   statusDb: tarefa.status,
   leadId: tarefa.leadId,
-  oportunidadeId: tarefa.oportunidadeId,
-  oportunidadeTitulo: tarefa.oportunidade?.titulo ?? null,
+  negocioId: tarefa.negocioId,
+  negocioTitulo: tarefa.negocio?.titulo ?? null,
   usuarioId: tarefa.usuarioId,
   responsavel: tarefa.usuario?.nome ?? null,
   atrasada:

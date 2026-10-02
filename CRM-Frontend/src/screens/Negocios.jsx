@@ -3,23 +3,23 @@ import { Edit, Eye, Plus, Search, Trash2 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import FiltroResponsavel from '../components/filtros/FiltroResponsavel'
 import TarefaPendenteTag from '../components/tarefas/TarefaPendenteTag'
-import { deleteOportunidade, fetchOportunidades } from '../services/oportunidadesService'
+import { deleteNegocio, fetchNegocios } from '../services/negociosService'
 import { getPriorityClass } from '../utils/priorityClass'
 
-function Oportunidades({ setScreen, onNewOportunidade, onEditOportunidade, onViewOportunidade }) {
-  const [oportunidades, setOportunidades] = useState([])
+function Negocios({ setScreen, onNewNegocio, onEditNegocio, onViewNegocio }) {
+  const [negocios, setNegocios] = useState([])
   const [search, setSearch] = useState('')
   const [etapaFilter, setEtapaFilter] = useState('')
   const [responsavelFilter, setResponsavelFilter] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const loadOportunidades = useCallback(async () => {
+  const loadNegocios = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const data = await fetchOportunidades({ usuarioId: responsavelFilter || undefined })
-      setOportunidades(data)
+      const data = await fetchNegocios({ usuarioId: responsavelFilter || undefined })
+      setNegocios(data)
     } catch (requestError) {
       setError(requestError.message)
     } finally {
@@ -28,32 +28,32 @@ function Oportunidades({ setScreen, onNewOportunidade, onEditOportunidade, onVie
   }, [responsavelFilter])
 
   useEffect(() => {
-    loadOportunidades()
-  }, [loadOportunidades])
+    loadNegocios()
+  }, [loadNegocios])
 
   const etapas = useMemo(() => {
-    return [...new Set(oportunidades.map((item) => item.etapa).filter(Boolean))]
-  }, [oportunidades])
+    return [...new Set(negocios.map((item) => item.etapa).filter(Boolean))]
+  }, [negocios])
 
-  const filteredOportunidades = useMemo(() => {
+  const filteredNegocios = useMemo(() => {
     const term = search.trim().toLowerCase()
-    return oportunidades.filter((oportunidade) => {
+    return negocios.filter((negocio) => {
       const matchesSearch =
         !term ||
-        oportunidade.titulo?.toLowerCase().includes(term) ||
-        oportunidade.lead?.toLowerCase().includes(term) ||
-        oportunidade.responsavel?.toLowerCase().includes(term)
-      const matchesEtapa = !etapaFilter || oportunidade.etapa === etapaFilter
+        negocio.titulo?.toLowerCase().includes(term) ||
+        negocio.lead?.toLowerCase().includes(term) ||
+        negocio.responsavel?.toLowerCase().includes(term)
+      const matchesEtapa = !etapaFilter || negocio.etapa === etapaFilter
       return matchesSearch && matchesEtapa
     })
-  }, [oportunidades, search, etapaFilter])
+  }, [negocios, search, etapaFilter])
 
-  const handleDelete = async (oportunidade) => {
-    const confirmed = window.confirm(`Excluir a oportunidade "${oportunidade.titulo}"?`)
+  const handleDelete = async (negocio) => {
+    const confirmed = window.confirm(`Excluir o negócio "${negocio.titulo}"?`)
     if (!confirmed) return
     try {
-      await deleteOportunidade(oportunidade.id)
-      await loadOportunidades()
+      await deleteNegocio(negocio.id)
+      await loadNegocios()
     } catch (requestError) {
       window.alert(requestError.message)
     }
@@ -61,12 +61,12 @@ function Oportunidades({ setScreen, onNewOportunidade, onEditOportunidade, onVie
 
   return (
     <>
-      <Header title="Oportunidades" subtitle="Gestão de oportunidades vinculadas aos leads do funil comercial" />
+      <Header title="Negócios" subtitle="Gestão de negócios vinculados aos leads do funil comercial" />
       <div className="toolbar">
         <div className="searchBox">
           <Search size={18} />
           <input
-            placeholder="Buscar oportunidade..."
+            placeholder="Buscar negócio..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -80,15 +80,15 @@ function Oportunidades({ setScreen, onNewOportunidade, onEditOportunidade, onVie
             </option>
           ))}
         </select>
-        <button className="primaryBtn" onClick={onNewOportunidade}>
+        <button className="primaryBtn" onClick={onNewNegocio}>
           <Plus size={18} />
-          Nova Oportunidade
+          Novo Negócio
         </button>
       </div>
       {error && <p className="formError">{error}</p>}
       <div className="tableCard">
         {loading ? (
-          <p className="tableMessage">Carregando oportunidades...</p>
+          <p className="tableMessage">Carregando negócios...</p>
         ) : (
           <table>
             <thead>
@@ -103,38 +103,38 @@ function Oportunidades({ setScreen, onNewOportunidade, onEditOportunidade, onVie
               </tr>
             </thead>
             <tbody>
-              {filteredOportunidades.length === 0 ? (
+              {filteredNegocios.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="tableMessage">
-                    Nenhuma oportunidade encontrada.
+                    Nenhum negócio encontrado.
                   </td>
                 </tr>
               ) : (
-                filteredOportunidades.map((oportunidade) => (
-                  <tr key={oportunidade.id}>
+                filteredNegocios.map((negocio) => (
+                  <tr key={negocio.id}>
                     <td>
                       <div className="tableTitleCell">
-                        <span>{oportunidade.titulo}</span>
+                        <span>{negocio.titulo}</span>
                         <TarefaPendenteTag
-                          count={oportunidade.tarefasPendentes}
-                          prazoMaisProximo={oportunidade.prazoMaisProximo}
-                          onClick={() => onViewOportunidade(oportunidade.id, 'tarefas')}
+                          count={negocio.tarefasPendentes}
+                          prazoMaisProximo={negocio.prazoMaisProximo}
+                          onClick={() => onViewNegocio(negocio.id, 'tarefas')}
                         />
                       </div>
                     </td>
-                    <td>{oportunidade.lead}</td>
-                    <td>{oportunidade.responsavel}</td>
+                    <td>{negocio.lead}</td>
+                    <td>{negocio.responsavel}</td>
                     <td>
-                      <span className={`priority ${getPriorityClass(oportunidade.prioridade)}`}>
-                        {oportunidade.prioridade}
+                      <span className={`priority ${getPriorityClass(negocio.prioridade)}`}>
+                        {negocio.prioridade}
                       </span>
                     </td>
-                    <td>{oportunidade.etapa}</td>
-                    <td>{oportunidade.valor}</td>
+                    <td>{negocio.etapa}</td>
+                    <td>{negocio.valor}</td>
                     <td className="actions">
-                      <Eye size={16} onClick={() => onViewOportunidade(oportunidade.id)} />
-                      <Edit size={16} onClick={() => onEditOportunidade(oportunidade.id)} />
-                      <Trash2 size={16} onClick={() => handleDelete(oportunidade)} />
+                      <Eye size={16} onClick={() => onViewNegocio(negocio.id)} />
+                      <Edit size={16} onClick={() => onEditNegocio(negocio.id)} />
+                      <Trash2 size={16} onClick={() => handleDelete(negocio)} />
                     </td>
                   </tr>
                 ))
@@ -147,4 +147,4 @@ function Oportunidades({ setScreen, onNewOportunidade, onEditOportunidade, onVie
   )
 }
 
-export default Oportunidades
+export default Negocios

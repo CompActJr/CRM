@@ -27,10 +27,10 @@ const toDateTimeLocalValue = (date = new Date()) => {
 }
 
 export const buildMudancaEtapaDescricao = (etapaOrigem, etapaDestino) =>
-  `Oportunidade movida de "${etapaOrigem}" para "${etapaDestino}".`
+  `Negócio movido de "${etapaOrigem}" para "${etapaDestino}".`
 
 function ModalMudancaEtapaFunil({
-  tituloOportunidade,
+  tituloNegocio,
   etapaOrigem,
   etapaDestino,
   onClose,
@@ -76,7 +76,7 @@ function ModalMudancaEtapaFunil({
           </button>
         </div>
         <p className="modalHint">
-          A oportunidade <strong>{tituloOportunidade}</strong> será movida de{' '}
+          O negócio <strong>{tituloNegocio}</strong> será movido de{' '}
           <strong>{etapaOrigem}</strong> para <strong>{etapaDestino}</strong>. Registre a interação
           para a linha do tempo.
         </p>

@@ -57,7 +57,7 @@ model Usuario {
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   leads         Lead[]
-  oportunidades Oportunidade[]
+  negocios      Negocio[]
   interacoes    Interacao[]
   tarefas       Tarefa[]
   propostas     Proposta[]
@@ -71,7 +71,7 @@ model MotivoPerda {
   ativo         Boolean        @default(true)
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
-  oportunidades Oportunidade[]
+  negocios      Negocio[]
 
   @@map("motivo_perda")
 }
@@ -92,8 +92,8 @@ model EtapaFunil {
   ordem           Int                          @unique
   createdAt       DateTime                     @default(now()) @map("created_at")
   updatedAt       DateTime                     @updatedAt @map("updated_at")
-  oportunidades   Oportunidade[]
-  historicoEtapas OportunidadeEtapaHistorico[]
+  negocios        Negocio[]
+  historicoEtapas NegocioEtapaHistorico[]
 
   @@map("etapa_funil")
 }
@@ -113,7 +113,7 @@ model Lead {
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   usuario       Usuario        @relation(fields: [usuarioId], references: [id])
-  oportunidades Oportunidade[]
+  negocios      Negocio[]
   interacoes    Interacao[]
   tarefas       Tarefa[]
 
@@ -123,48 +123,46 @@ model Lead {
   @@map("lead")
 }
 
-model Oportunidade {
-  id              Int                          @id @default(autoincrement())
-  titulo          String                       @db.VarChar(160)
-  valorEstimado   Decimal                      @default(0) @map("valor_estimado") @db.Decimal(12, 2)
-  prioridade      Prioridade                   @default(Media)
-  motivoPerdaId   Int?                         @map("motivo_perda_id")
-  dataCriacao     DateTime                     @default(now()) @map("data_criacao")
-  usuarioId       Int                          @map("usuario_id")
-  leadId          Int                          @map("lead_id")
-  etapaFunilId    Int                          @map("etapa_funil_id")
-  createdAt       DateTime                     @default(now()) @map("created_at")
-  updatedAt       DateTime                     @updatedAt @map("updated_at")
-  usuario         Usuario                      @relation(fields: [usuarioId], references: [id])
-  lead            Lead                         @relation(fields: [leadId], references: [id])
-  etapaFunil      EtapaFunil                   @relation(fields: [etapaFunilId], references: [id])
-  motivoPerda     MotivoPerda?                 @relation(fields: [motivoPerdaId], references: [id], onDelete: SetNull)
+model Negocio {
+  id              Int                     @id @default(autoincrement())
+  titulo          String                  @db.VarChar(160)
+  valorEstimado   Decimal                 @default(0) @map("valor_estimado") @db.Decimal(12, 2)
+  prioridade      Prioridade              @default(Media)
+  motivoPerdaId   Int?                    @map("motivo_perda_id")
+  dataCriacao     DateTime                @default(now()) @map("data_criacao")
+  leadId          Int                     @map("lead_id")
+  etapaFunilId    Int                     @map("etapa_funil_id")
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+  responsaveis    Usuario[]
+  lead            Lead                    @relation(fields: [leadId], references: [id])
+  etapaFunil      EtapaFunil              @relation(fields: [etapaFunilId], references: [id])
+  motivoPerda     MotivoPerda?            @relation(fields: [motivoPerdaId], references: [id], onDelete: SetNull)
   interacoes      Interacao[]
   tarefas         Tarefa[]
   propostas       Proposta[]
-  historicoEtapas OportunidadeEtapaHistorico[]
+  historicoEtapas NegocioEtapaHistorico[]
 
-  @@index([usuarioId])
   @@index([leadId])
   @@index([etapaFunilId])
   @@index([motivoPerdaId])
-  @@map("oportunidade")
+  @@map("negocio")
 }
 
-model OportunidadeEtapaHistorico {
-  id             Int          @id @default(autoincrement())
-  oportunidadeId Int          @map("oportunidade_id")
-  etapaFunilId   Int          @map("etapa_funil_id")
-  entradaEm      DateTime     @map("entrada_em")
-  saidaEm        DateTime?    @map("saida_em")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  oportunidade   Oportunidade @relation(fields: [oportunidadeId], references: [id], onDelete: Cascade)
-  etapaFunil     EtapaFunil   @relation(fields: [etapaFunilId], references: [id])
+model NegocioEtapaHistorico {
+  id           Int        @id @default(autoincrement())
+  negocioId    Int        @map("negocio_id")
+  etapaFunilId Int        @map("etapa_funil_id")
+  entradaEm    DateTime   @map("entrada_em")
+  saidaEm      DateTime?  @map("saida_em")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  negocio      Negocio    @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+  etapaFunil   EtapaFunil @relation(fields: [etapaFunilId], references: [id])
 
-  @@index([oportunidadeId])
+  @@index([negocioId])
   @@index([etapaFunilId])
   @@index([entradaEm])
-  @@map("oportunidade_etapa_historico")
+  @@map("negocio_etapa_historico")
 }
 
 model Proposta {
@@ -174,14 +172,14 @@ model Proposta {
   status         PropostaStatus @default(Rascunho)
   dataProposta   DateTime       @map("data_proposta") @db.Date
   observacoes    String?        @db.Text
-  oportunidadeId Int            @map("oportunidade_id")
+  negocioId      Int            @map("negocio_id")
   usuarioId      Int            @map("usuario_id")
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
-  oportunidade   Oportunidade   @relation(fields: [oportunidadeId], references: [id], onDelete: Cascade)
+  negocio        Negocio        @relation(fields: [negocioId], references: [id], onDelete: Cascade)
   usuario        Usuario        @relation(fields: [usuarioId], references: [id])
 
-  @@index([oportunidadeId])
+  @@index([negocioId])
   @@index([usuarioId])
   @@index([dataProposta])
   @@map("proposta")
@@ -194,16 +192,16 @@ model Tarefa {
   dataPrazo      DateTime      @map("data_prazo") @db.Date
   status         TarefaStatus  @default(Pendente)
   leadId         Int           @map("lead_id")
-  oportunidadeId Int?          @map("oportunidade_id")
+  negocioId      Int?          @map("negocio_id")
   usuarioId      Int           @map("usuario_id")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
   lead           Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  oportunidade   Oportunidade? @relation(fields: [oportunidadeId], references: [id], onDelete: SetNull)
+  negocio        Negocio?      @relation(fields: [negocioId], references: [id], onDelete: SetNull)
   usuario        Usuario       @relation(fields: [usuarioId], references: [id])
 
   @@index([leadId])
-  @@index([oportunidadeId])
+  @@index([negocioId])
   @@index([usuarioId])
   @@index([dataPrazo])
   @@index([status])
@@ -216,16 +214,16 @@ model Interacao {
   descricao      String        @db.Text
   dataInteracao  DateTime      @map("data_interacao")
   leadId         Int           @map("lead_id")
-  oportunidadeId Int?          @map("oportunidade_id")
+  negocioId      Int?          @map("negocio_id")
   usuarioId      Int           @map("usuario_id")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
   lead           Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  oportunidade   Oportunidade? @relation(fields: [oportunidadeId], references: [id], onDelete: SetNull)
+  negocio        Negocio?      @relation(fields: [negocioId], references: [id], onDelete: SetNull)
   usuario        Usuario       @relation(fields: [usuarioId], references: [id])
 
   @@index([leadId])
-  @@index([oportunidadeId])
+  @@index([negocioId])
   @@index([usuarioId])
   @@index([dataInteracao])
   @@map("interacao")

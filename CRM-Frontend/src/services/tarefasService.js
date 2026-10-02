@@ -3,7 +3,7 @@ import { apiRequest } from './apiClient.js'
 export const fetchTarefasByLead = (leadId, params = {}) => {
   const search = new URLSearchParams()
   if (params.apenasLead) search.set('apenasLead', 'true')
-  if (params.oportunidadeId) search.set('oportunidadeId', params.oportunidadeId)
+  if (params.negocioId) search.set('negocioId', params.negocioId)
   const query = search.toString()
   const suffix = query ? `?${query}` : ''
   return apiRequest(`/leads/${leadId}/tarefas${suffix}`)
@@ -15,11 +15,11 @@ export const createTarefaForLead = (leadId, payload) =>
     body: JSON.stringify(payload),
   })
 
-export const fetchTarefasByOportunidade = (oportunidadeId) =>
-  apiRequest(`/oportunidades/${oportunidadeId}/tarefas`)
+export const fetchTarefasByNegocio = (negocioId) =>
+  apiRequest(`/negocios/${negocioId}/tarefas`)
 
-export const createTarefaForOportunidade = (oportunidadeId, payload) =>
-  apiRequest(`/oportunidades/${oportunidadeId}/tarefas`, {
+export const createTarefaForNegocio = (negocioId, payload) =>
+  apiRequest(`/negocios/${negocioId}/tarefas`, {
     method: 'POST',
     body: JSON.stringify(payload),
   })

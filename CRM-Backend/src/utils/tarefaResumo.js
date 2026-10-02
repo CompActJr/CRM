@@ -22,8 +22,8 @@ export const buildTarefaResumo = (pendingDates = []) => {
 export const collectLeadPendingDates = (lead) =>
   (lead.tarefas ?? []).map((item) => item.dataPrazo)
 
-export const collectOportunidadePendingDates = (oportunidade) =>
-  (oportunidade.tarefas ?? []).map((item) => item.dataPrazo)
+export const collectNegocioPendingDates = (negocio) =>
+  (negocio.tarefas ?? []).map((item) => item.dataPrazo)
 
 export const sortByPendingTasks = (items, getFallbackMs) =>
   [...items].sort((left, right) => {

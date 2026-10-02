@@ -1,6 +1,6 @@
 # CRM Compact.Jr
 
-CRM acadêmico desenvolvido no Projeto Integrador — gestão de leads, oportunidades, funil de vendas, tarefas, interações e propostas.
+CRM acadêmico desenvolvido no Projeto Integrador — gestão de leads, negócios, funil de vendas, tarefas, interações e propostas.
 
 **Repositório:** [github.com/PabloAntonioCorrea/CRM_Projeto-Integrador](https://github.com/PabloAntonioCorrea/CRM_Projeto-Integrador.git)
 

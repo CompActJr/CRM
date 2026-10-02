@@ -17,7 +17,7 @@ export const propostaInclude = {
 
 export const propostaPdfInclude = {
   usuario: { select: { id: true, nome: true, email: true, cargo: true } },
-  oportunidade: {
+  negocio: {
     include: {
       lead: {
         select: { nome: true, empresa: true, email: true, telefone: true, cidade: true },
@@ -37,7 +37,7 @@ export const mapPropostaToResponse = (proposta) => ({
   statusDb: proposta.status,
   dataProposta: formatDateBr(proposta.dataProposta),
   observacoes: proposta.observacoes ?? null,
-  oportunidadeId: proposta.oportunidadeId,
+  negocioId: proposta.negocioId,
   usuarioId: proposta.usuarioId,
   responsavel: proposta.usuario?.nome ?? null,
 })

@@ -39,8 +39,8 @@ const drawField = (doc, label, value) => {
 }
 
 export const buildPropostaPdfBuffer = (proposta) => {
-  const lead = proposta.oportunidade?.lead
-  const oportunidade = proposta.oportunidade
+  const lead = proposta.negocio?.lead
+  const negocio = proposta.negocio
   const statusLabel = PropostaStatusLabels[proposta.status] ?? proposta.status
   const valorFormatado = formatCurrencyBr(proposta.valor)
   const dataFormatada = formatDateBr(proposta.dataProposta)
@@ -74,11 +74,11 @@ export const buildPropostaPdfBuffer = (proposta) => {
       doc.font('Helvetica').text(proposta.observacoes.trim())
     }
 
-    drawSectionTitle(doc, 'Oportunidade')
-    drawField(doc, 'Título', oportunidade?.titulo)
-    drawField(doc, 'Etapa do funil', oportunidade?.etapaFunil?.nome)
-    drawField(doc, 'Valor estimado', formatCurrencyBr(oportunidade?.valorEstimado ?? 0))
-    drawField(doc, 'Responsável comercial', oportunidade?.usuario?.nome)
+    drawSectionTitle(doc, 'Negocio')
+    drawField(doc, 'Título', negocio?.titulo)
+    drawField(doc, 'Etapa do funil', negocio?.etapaFunil?.nome)
+    drawField(doc, 'Valor estimado', formatCurrencyBr(negocio?.valorEstimado ?? 0))
+    drawField(doc, 'Responsável comercial', negocio?.usuario?.nome)
 
     drawSectionTitle(doc, 'Cliente / Lead')
     drawField(doc, 'Nome', lead?.nome)
@@ -93,7 +93,7 @@ export const buildPropostaPdfBuffer = (proposta) => {
       .fontSize(9)
       .fillColor('#94a3b8')
       .text(
-        'Documento gerado automaticamente pelo CRM Compact.Jr. Este material resume os dados cadastrados da proposta e da oportunidade vinculada.',
+        'Documento gerado automaticamente pelo CRM Compact.Jr. Este material resume os dados cadastrados da proposta e da negocio vinculada.',
         { align: 'left' }
       )
     doc.moveDown(0.5)
