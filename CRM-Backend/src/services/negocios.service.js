@@ -1,21 +1,21 @@
 import { ErrorMessages } from '../config/constants.js'
 import prisma from '../lib/prisma.js'
 import { parseValorEstimado } from '../utils/currency.js'
-import { mapOportunidadeToResponse, oportunidadeInclude } from '../utils/oportunidadeMapper.js'
+import { mapNegocioToResponse, negocioInclude } from '../utils/negocioMapper.js'
 import { parsePrioridade } from '../utils/prioridade.js'
 import { parseUsuarioIdFilter } from '../utils/usuarioFilter.js'
 import {
   calcularTempoMedioPorEtapa,
   registrarEntradaEtapa,
   registrarMudancaEtapa,
-} from './oportunidadeEtapaHistorico.service.js'
+} from './negocioEtapaHistorico.service.js'
 import {
   buildTarefaResumo,
-  collectOportunidadePendingDates,
+  collectNegocioPendingDates,
   sortByPendingTasks,
 } from '../utils/tarefaResumo.js'
 
-const parseOportunidadeId = (id) => {
+const parseNegocioId = (id) => {
   const parsed = Number(id)
   if (!id || Number.isNaN(parsed) || parsed < 1) return null
   return parsed
@@ -27,7 +27,16 @@ const parseRelationId = (value) => {
   return parsed
 }
 
-const buildOportunidadeData = async (body) => {
+const parseRelationIds = (value) => {
+  if (!value) return []
+  const list = Array.isArray(value) ? value : [value]
+  const parsed = list
+    .map((item) => Number(item))
+    .filter((id) => !Number.isNaN(id) && id > 0)
+  return [...new Set(parsed)]
+}
+
+const buildNegocioData = async (body) => {
   const titulo = body.titulo?.trim()
   if (!titulo) {
     const error = new Error(ErrorMessages.tituloRequired)
@@ -49,9 +58,9 @@ const buildOportunidadeData = async (body) => {
     throw error
   }
 
-  const usuarioId = parseRelationId(body.usuarioId)
-  if (!usuarioId) {
-    const error = new Error(ErrorMessages.invalidUsuarioId)
+  const responsaveisIds = parseRelationIds(body.responsaveisIds ?? body.usuarioIds ?? body.usuarioId)
+  if (responsaveisIds.length === 0) {
+    const error = new Error(ErrorMessages.responsaveisRequired)
     error.statusCode = 400
     throw error
   }
@@ -70,14 +79,14 @@ const buildOportunidadeData = async (body) => {
     throw error
   }
 
-  const [usuario, lead, etapa] = await Promise.all([
-    prisma.usuario.findUnique({ where: { id: usuarioId } }),
+  const [usuariosCount, lead, etapa] = await Promise.all([
+    prisma.usuario.count({ where: { id: { in: responsaveisIds } } }),
     prisma.lead.findUnique({ where: { id: leadId } }),
     prisma.etapaFunil.findUnique({ where: { id: etapaFunilId } }),
   ])
 
-  if (!usuario) {
-    const error = new Error(ErrorMessages.usuarioNotFound)
+  if (usuariosCount !== responsaveisIds.length) {
+    const error = new Error(ErrorMessages.responsaveisNotFound)
     error.statusCode = 400
     throw error
   }
@@ -96,38 +105,44 @@ const buildOportunidadeData = async (body) => {
     titulo,
     valorEstimado,
     prioridade,
-    usuarioId,
     leadId,
     etapaFunilId,
+    responsaveisIds,
   }
 
   return data
 }
 
-const oportunidadeListInclude = {
-  ...oportunidadeInclude,
+const negocioListInclude = {
+  ...negocioInclude,
   tarefas: {
     where: { status: 'Pendente' },
     select: { dataPrazo: true },
   },
 }
 
-export const listOportunidades = async (query = {}) => {
+export const listNegocios = async (query = {}) => {
   const usuarioId = parseUsuarioIdFilter(query)
-  const where = usuarioId ? { usuarioId } : {}
+  const where = usuarioId
+    ? {
+        responsaveis: {
+          some: { id: usuarioId },
+        },
+      }
+    : {}
 
-  const oportunidades = await prisma.oportunidade.findMany({
+  const negocios = await prisma.negocio.findMany({
     where,
-    include: oportunidadeListInclude,
+    include: negocioListInclude,
     orderBy: { dataCriacao: 'desc' },
   })
 
-  const mapped = oportunidades.map((oportunidade) => {
-    const resumo = buildTarefaResumo(collectOportunidadePendingDates(oportunidade))
+  const mapped = negocios.map((negocio) => {
+    const resumo = buildTarefaResumo(collectNegocioPendingDates(negocio))
     return {
-      ...mapOportunidadeToResponse(oportunidade),
+      ...mapNegocioToResponse(negocio),
       ...resumo,
-      dataCriacaoMs: oportunidade.dataCriacao.getTime(),
+      dataCriacaoMs: negocio.dataCriacao.getTime(),
     }
   })
 
@@ -136,16 +151,22 @@ export const listOportunidades = async (query = {}) => {
   )
 }
 
-export const listOportunidadesFunil = async (query = {}) => {
+export const listNegociosFunil = async (query = {}) => {
   const usuarioId = parseUsuarioIdFilter(query)
-  const where = usuarioId ? { usuarioId } : {}
+  const where = usuarioId
+    ? {
+        responsaveis: {
+          some: { id: usuarioId },
+        },
+      }
+    : {}
 
-  const [etapas, oportunidades] = await Promise.all([
+  const [etapas, negocios] = await Promise.all([
     prisma.etapaFunil.findMany({ orderBy: { ordem: 'asc' } }),
-    prisma.oportunidade.findMany({
+    prisma.negocio.findMany({
       where,
       include: {
-        ...oportunidadeInclude,
+        ...negocioInclude,
         historicoEtapas: {
           where: { saidaEm: null },
           orderBy: { entradaEm: 'desc' },
@@ -159,8 +180,8 @@ export const listOportunidadesFunil = async (query = {}) => {
   const agora = Date.now()
   const MS_PER_DAY = 1000 * 60 * 60 * 24
 
-  const mapped = oportunidades.map((op) => {
-    const response = mapOportunidadeToResponse(op)
+  const mapped = negocios.map((op) => {
+    const response = mapNegocioToResponse(op)
     const ultimaEntrada = op.historicoEtapas?.[0]?.entradaEm || op.dataCriacao
     const diasNaEtapa = Math.floor((agora - new Date(ultimaEntrada).getTime()) / MS_PER_DAY)
     return {
@@ -178,98 +199,108 @@ export const listOportunidadesFunil = async (query = {}) => {
   return { funil }
 }
 
-export const getOportunidadeById = async (idParam) => {
-  const id = parseOportunidadeId(idParam)
+export const getNegocioById = async (idParam) => {
+  const id = parseNegocioId(idParam)
   if (!id) {
-    const error = new Error(ErrorMessages.invalidOportunidadeId)
+    const error = new Error(ErrorMessages.invalidNegocioId)
     error.statusCode = 400
     throw error
   }
 
-  const oportunidade = await prisma.oportunidade.findUnique({
+  const negocio = await prisma.negocio.findUnique({
     where: { id },
-    include: oportunidadeInclude,
+    include: negocioInclude,
   })
 
-  if (!oportunidade) {
-    const error = new Error(ErrorMessages.oportunidadeNotFound)
+  if (!negocio) {
+    const error = new Error(ErrorMessages.negocioNotFound)
     error.statusCode = 404
     throw error
   }
 
-  return mapOportunidadeToResponse(oportunidade)
+  return mapNegocioToResponse(negocio)
 }
 
-export const createOportunidade = async (body) => {
-  const data = await buildOportunidadeData(body)
+export const createNegocio = async (body) => {
+  const { responsaveisIds, ...rest } = await buildNegocioData(body)
 
-  const oportunidade = await prisma.$transaction(async (tx) => {
-    const created = await tx.oportunidade.create({
-      data,
-      include: oportunidadeInclude,
+  const negocio = await prisma.$transaction(async (tx) => {
+    const created = await tx.negocio.create({
+      data: {
+        ...rest,
+        responsaveis: {
+          connect: responsaveisIds.map((id) => ({ id })),
+        },
+      },
+      include: negocioInclude,
     })
     await registrarEntradaEtapa(tx, created.id, created.etapaFunilId, created.dataCriacao)
     return created
   })
 
-  return mapOportunidadeToResponse(oportunidade)
+  return mapNegocioToResponse(negocio)
 }
 
-export const updateOportunidade = async (idParam, body) => {
-  const id = parseOportunidadeId(idParam)
+export const updateNegocio = async (idParam, body) => {
+  const id = parseNegocioId(idParam)
   if (!id) {
-    const error = new Error(ErrorMessages.invalidOportunidadeId)
+    const error = new Error(ErrorMessages.invalidNegocioId)
     error.statusCode = 400
     throw error
   }
 
-  const existing = await prisma.oportunidade.findUnique({ where: { id } })
+  const existing = await prisma.negocio.findUnique({ where: { id } })
   if (!existing) {
-    const error = new Error(ErrorMessages.oportunidadeNotFound)
+    const error = new Error(ErrorMessages.negocioNotFound)
     error.statusCode = 404
     throw error
   }
 
-  const data = await buildOportunidadeData(body)
-  const etapaAlterada = data.etapaFunilId !== existing.etapaFunilId
+  const { responsaveisIds, ...rest } = await buildNegocioData(body)
+  const etapaAlterada = rest.etapaFunilId !== existing.etapaFunilId
 
-  const oportunidade = await prisma.$transaction(async (tx) => {
+  const negocio = await prisma.$transaction(async (tx) => {
     if (etapaAlterada) {
-      await registrarMudancaEtapa(tx, id, data.etapaFunilId)
+      await registrarMudancaEtapa(tx, id, rest.etapaFunilId)
     }
 
-    return tx.oportunidade.update({
+    return tx.negocio.update({
       where: { id },
-      data,
-      include: oportunidadeInclude,
+      data: {
+        ...rest,
+        responsaveis: {
+          set: responsaveisIds.map((id) => ({ id })),
+        },
+      },
+      include: negocioInclude,
     })
   })
 
-  return mapOportunidadeToResponse(oportunidade)
+  return mapNegocioToResponse(negocio)
 }
 
-export const deleteOportunidade = async (idParam) => {
-  const id = parseOportunidadeId(idParam)
+export const deleteNegocio = async (idParam) => {
+  const id = parseNegocioId(idParam)
   if (!id) {
-    const error = new Error(ErrorMessages.invalidOportunidadeId)
+    const error = new Error(ErrorMessages.invalidNegocioId)
     error.statusCode = 400
     throw error
   }
 
-  const existing = await prisma.oportunidade.findUnique({ where: { id } })
+  const existing = await prisma.negocio.findUnique({ where: { id } })
   if (!existing) {
-    const error = new Error(ErrorMessages.oportunidadeNotFound)
+    const error = new Error(ErrorMessages.negocioNotFound)
     error.statusCode = 404
     throw error
   }
 
-  await prisma.oportunidade.delete({ where: { id } })
+  await prisma.negocio.delete({ where: { id } })
 }
 
-export const marcarOportunidadeComoPerdida = async (idParam, body) => {
-  const id = parseOportunidadeId(idParam)
+export const marcarNegocioComoPerdida = async (idParam, body) => {
+  const id = parseNegocioId(idParam)
   if (!id) {
-    const error = new Error(ErrorMessages.invalidOportunidadeId)
+    const error = new Error(ErrorMessages.invalidNegocioId)
     error.statusCode = 400
     throw error
   }
@@ -281,15 +312,18 @@ export const marcarOportunidadeComoPerdida = async (idParam, body) => {
     throw error
   }
 
-  const existing = await prisma.oportunidade.findUnique({ where: { id } })
+  const existing = await prisma.negocio.findUnique({
+    where: { id },
+    include: { responsaveis: { select: { id: true }, take: 1 } },
+  })
   if (!existing) {
-    const error = new Error(ErrorMessages.oportunidadeNotFound)
+    const error = new Error(ErrorMessages.negocioNotFound)
     error.statusCode = 404
     throw error
   }
 
   if (existing.motivoPerdaId) {
-    const error = new Error(ErrorMessages.oportunidadeJaPerdida)
+    const error = new Error(ErrorMessages.negocioJaPerdida)
     error.statusCode = 400
     throw error
   }
@@ -311,33 +345,35 @@ export const marcarOportunidadeComoPerdida = async (idParam, body) => {
     throw error
   }
 
-  const usuarioId = parseRelationId(body.usuarioId) ?? existing.usuarioId
+  const usuarioId = parseRelationId(body.usuarioId) ?? existing.responsaveis?.[0]?.id ?? null
 
-  const oportunidade = await prisma.$transaction(async (tx) => {
+  const negocio = await prisma.$transaction(async (tx) => {
     await registrarMudancaEtapa(tx, id, etapaPerdida.id)
 
-    const updated = await tx.oportunidade.update({
+    const updated = await tx.negocio.update({
       where: { id },
       data: {
         motivoPerdaId,
         etapaFunilId: etapaPerdida.id,
       },
-      include: oportunidadeInclude,
+      include: negocioInclude,
     })
 
-    await tx.interacao.create({
-      data: {
-        tipo: 'Registro',
-        descricao: `Oportunidade marcada como perdida. Motivo: ${motivo.nome}`,
-        dataInteracao: new Date(),
-        leadId: existing.leadId,
-        oportunidadeId: id,
-        usuarioId,
-      },
-    })
+    if (usuarioId) {
+      await tx.interacao.create({
+        data: {
+          tipo: 'Registro',
+          descricao: `Negocio marcada como perdida. Motivo: ${motivo.nome}`,
+          dataInteracao: new Date(),
+          leadId: existing.leadId,
+          negocioId: id,
+          usuarioId,
+        },
+      })
+    }
 
     return updated
   })
 
-  return mapOportunidadeToResponse(oportunidade)
+  return mapNegocioToResponse(negocio)
 }

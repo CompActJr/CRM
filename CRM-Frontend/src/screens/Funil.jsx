@@ -12,11 +12,11 @@ import { Plus } from 'lucide-react'
 import Header from '../components/layout/Header'
 import FiltroResponsavel from '../components/filtros/FiltroResponsavel'
 import FunilColuna from '../components/funil/FunilColuna'
-import ModalMarcarPerdida from '../components/oportunidades/ModalMarcarPerdida'
-import ModalMudancaEtapaFunil from '../components/oportunidades/ModalMudancaEtapaFunil'
+import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
+import ModalMudancaEtapaFunil from '../components/negocios/ModalMudancaEtapaFunil'
 import { fetchEtapasFunil } from '../services/etapasService'
-import { fetchOportunidadesFunil, updateOportunidade } from '../services/oportunidadesService'
-import { createInteracaoForOportunidade } from '../services/interacoesService'
+import { fetchNegociosFunil, updateNegocio } from '../services/negociosService'
+import { createInteracaoForNegocio } from '../services/interacoesService'
 import {
   ETAPA_PERDIDA,
   buildUpdatePayload,
@@ -27,50 +27,49 @@ import { getPriorityClass } from '../utils/priorityClass'
 
 const etapasSemTempoMedio = new Set(['Fechado', 'Perdida'])
 
-function FunilOverlayCard({ oportunidade }) {
+function FunilOverlayCard({ negocio }) {
   return (
     <div className="opCard opCardOverlay">
-      
+
       {/* Etiqueta de Tempo na Etapa */}
-      {oportunidade.diasNaEtapa !== undefined && (
+      {negocio.diasNaEtapa !== undefined && (
         <div
-          className={`stageTimeTag ${
-            oportunidade.diasNaEtapa >= 7
-              ? 'frio'
-              : oportunidade.diasNaEtapa >= 5
+          className={`stageTimeTag ${negocio.diasNaEtapa >= 7
+            ? 'frio'
+            : negocio.diasNaEtapa >= 5
               ? 'morno'
               : 'quente'
-          }`}
+            }`}
           style={{ marginBottom: '8px' }}
         >
-          {oportunidade.diasNaEtapa >= 7
-            ? `Frio ${oportunidade.diasNaEtapa >= 1 ? `(${oportunidade.diasNaEtapa} dias)` : ''}`
-            : oportunidade.diasNaEtapa >= 5
-            ? `Morno ${oportunidade.diasNaEtapa >= 1 ? `(${oportunidade.diasNaEtapa} dias)` : ''}`
-            : `Quente ${oportunidade.diasNaEtapa >= 1 ? `(${oportunidade.diasNaEtapa} dias)` : ''}`}
+          {negocio.diasNaEtapa >= 7
+            ? `Frio ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`
+            : negocio.diasNaEtapa >= 5
+              ? `Morno ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`
+              : `Quente ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`}
         </div>
       )}
 
-      {/* Informações da Oportunidade */}
-      <h3>{oportunidade.titulo}</h3>
-      <p>{oportunidade.lead}</p>
-      
+      {/* Informações do Negócio */}
+      <h3>{negocio.titulo}</h3>
+      <p>{negocio.lead}</p>
+
       {/* Meta e Prioridade */}
       <div className="cardMeta">
-        <span>{oportunidade.responsavel}</span>
-        <span className={`priority ${getPriorityClass(oportunidade.prioridade)}`}>
-          {oportunidade.prioridade}
+        <span>{negocio.responsavel}</span>
+        <span className={`priority ${getPriorityClass(negocio.prioridade)}`}>
+          {negocio.prioridade}
         </span>
       </div>
 
       {/* Valor */}
-      <strong>{oportunidade.valor}</strong>
-      
+      <strong>{negocio.valor}</strong>
+
     </div>
   );
 }
 
-function Funil({ onNewOportunidade, onViewOportunidade, onEditOportunidade, currentUser }) {
+function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
   const [funil, setFunil] = useState({})
   const [tempoMedioPorEtapa, setTempoMedioPorEtapa] = useState({})
   const [etapas, setEtapas] = useState([])
@@ -91,7 +90,7 @@ function Funil({ onNewOportunidade, onViewOportunidade, onEditOportunidade, curr
     setError('')
     try {
       const [funilResponse, etapasData] = await Promise.all([
-        fetchOportunidadesFunil({ usuarioId: responsavelFilter || undefined }),
+        fetchNegociosFunil({ usuarioId: responsavelFilter || undefined }),
         fetchEtapasFunil(),
       ])
       setFunil(funilResponse.funil ?? funilResponse)
@@ -131,10 +130,10 @@ function Funil({ onNewOportunidade, onViewOportunidade, onEditOportunidade, curr
     )
   }, [etapasAtivas, tempoMedioPorEtapa])
 
-  const findOportunidade = useCallback(
-    (oportunidadeId) => {
+  const findNegocio = useCallback(
+    (negocioId) => {
       for (const etapa of etapasAtivas) {
-        const item = (funil[etapa] ?? []).find((o) => String(o.id) === String(oportunidadeId))
+        const item = (funil[etapa] ?? []).find((o) => String(o.id) === String(negocioId))
         if (item) return item
       }
       return null
@@ -143,7 +142,7 @@ function Funil({ onNewOportunidade, onViewOportunidade, onEditOportunidade, curr
   )
 
   const aplicarMudancaEtapa = useCallback(
-    async (oportunidade, etapaOrigem, etapaDestino) => {
+    async (negocio, etapaOrigem, etapaDestino) => {
       const etapaFunilId = etapaIdPorNome[etapaDestino]
       if (!etapaFunilId) {
         setError('Etapa de destino não encontrada')
@@ -151,7 +150,7 @@ function Funil({ onNewOportunidade, onViewOportunidade, onEditOportunidade, curr
       }
 
       setMudancaEtapaModal({
-        oportunidade,
+        negocio,
         etapaOrigem,
         etapaDestino,
         etapaFunilId,
@@ -166,8 +165,8 @@ function Funil({ onNewOportunidade, onViewOportunidade, onEditOportunidade, curr
   }
 
   const handleDragStart = (event) => {
-    const oportunidade = event.active.data.current?.oportunidade ?? findOportunidade(event.active.id)
-    setActiveCard(oportunidade ?? null)
+    const negocio = event.active.data.current?.negocio ?? findNegocio(event.active.id)
+    setActiveCard(negocio ?? null)
   }
 
   const handleDragEnd = async (event) => {
@@ -179,15 +178,15 @@ function Funil({ onNewOportunidade, onViewOportunidade, onEditOportunidade, curr
     const etapaOrigem = findEtapaOrigem(active.id, funil, etapasAtivas)
     if (!etapaDestino || !etapaOrigem || etapaDestino === etapaOrigem) return
 
-    const oportunidade = active.data.current?.oportunidade ?? findOportunidade(active.id)
-    if (!oportunidade) return
+    const negocio = active.data.current?.negocio ?? findNegocio(active.id)
+    if (!negocio) return
 
     if (etapaDestino === ETAPA_PERDIDA) {
-      setPerdidaModal({ oportunidade, etapaOrigem })
+      setPerdidaModal({ negocio, etapaOrigem })
       return
     }
 
-    await aplicarMudancaEtapa(oportunidade, etapaOrigem, etapaDestino)
+    await aplicarMudancaEtapa(negocio, etapaOrigem, etapaDestino)
   }
 
   const handlePerdidaSuccess = async () => {
@@ -197,12 +196,12 @@ function Funil({ onNewOportunidade, onViewOportunidade, onEditOportunidade, curr
 
   return (
     <>
-      <Header title="Funil de Vendas" subtitle="Arraste as oportunidades entre as etapas" />
+      <Header title="Funil de Vendas" subtitle="Arraste os negócios entre as etapas" />
       <div className="toolbar">
         <FiltroResponsavel value={responsavelFilter} onChange={setResponsavelFilter} />
-        <button type="button" className="primaryBtn" onClick={onNewOportunidade}>
+        <button type="button" className="primaryBtn" onClick={onNewNegocio}>
           <Plus size={18} />
-          Nova Oportunidade
+          Novo Negócio
         </button>
       </div>
       {error && <p className="formError">{error}</p>}
@@ -230,26 +229,26 @@ function Funil({ onNewOportunidade, onViewOportunidade, onEditOportunidade, curr
                   <FunilColuna
                     key={etapa}
                     etapa={etapa}
-                    oportunidades={funil[etapa] ?? []}
+                    negocios={funil[etapa] ?? []}
                     isBottleneck={isBottleneck}
                     isPerdida={isPerdida}
                     diasMedios={diasMedios}
                     showTempoMedio={!etapasSemTempoMedio.has(etapa)}
-                    onViewOportunidade={onViewOportunidade}
-                    onEditOportunidade={onEditOportunidade}
+                    onViewNegocio={onViewNegocio}
+                    onEditNegocio={onEditNegocio}
                   />
                 )
               })}
             </section>
           </div>
           <DragOverlay dropAnimation={null}>
-            {activeCard ? <FunilOverlayCard oportunidade={activeCard} /> : null}
+            {activeCard ? <FunilOverlayCard negocio={activeCard} /> : null}
           </DragOverlay>
         </DndContext>
       )}
       {perdidaModal && (
         <ModalMarcarPerdida
-          oportunidade={perdidaModal.oportunidade}
+          negocio={perdidaModal.negocio}
           currentUser={currentUser}
           onClose={() => setPerdidaModal(null)}
           onSuccess={handlePerdidaSuccess}
@@ -257,17 +256,17 @@ function Funil({ onNewOportunidade, onViewOportunidade, onEditOportunidade, curr
       )}
       {mudancaEtapaModal && (
         <ModalMudancaEtapaFunil
-          tituloOportunidade={mudancaEtapaModal.oportunidade.titulo}
+          tituloNegocio={mudancaEtapaModal.negocio.titulo}
           etapaOrigem={mudancaEtapaModal.etapaOrigem}
           etapaDestino={mudancaEtapaModal.etapaDestino}
           onClose={() => setMudancaEtapaModal(null)}
           onConfirm={async (interacao) => {
-            const { oportunidade, etapaFunilId } = mudancaEtapaModal
-            await updateOportunidade(
-              oportunidade.id,
-              buildUpdatePayload(oportunidade, etapaFunilId)
+            const { negocio, etapaFunilId } = mudancaEtapaModal
+            await updateNegocio(
+              negocio.id,
+              buildUpdatePayload(negocio, etapaFunilId)
             )
-            await createInteracaoForOportunidade(oportunidade.id, {
+            await createInteracaoForNegocio(negocio.id, {
               ...interacao,
               usuarioId: currentUser?.id,
             })

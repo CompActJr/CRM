@@ -14,7 +14,7 @@ const PeriodoOptions = [
 function Dashboard() {
   const [stats, setStats] = useState(null)
   const [meses, setMeses] = useState(6)
-  
+
   // Inicializamos as datas padrão direto no useState para evitar o loop infinito
   const [dataInicio, setDataInicio] = useState(() => {
     return new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -113,15 +113,15 @@ function Dashboard() {
       <section className="cardsGrid">
         <Metric title="Total de Leads" value={String(stats.totalLeads)} change={`${stats.leadsAtivos} ativos`} />
         <Metric
-          title="Oportunidades em Aberto"
-          value={String(stats.oportunidadesAbertas)}
+          title="Negócios em Aberto"
+          value={String(stats.negociosAbertas)}
           change={`${stats.emNegociacao} em negociação`}
         />
-        <Metric title="Taxa de Conversão" value={`${stats.taxaConversao}%`} change="Oportunidades fechadas" />
+        <Metric title="Taxa de Conversão" value={`${stats.taxaConversao}%`} change="Negócios fechados" />
         <Metric
           title="Valor total de negócios em andamento"
           value={stats.negociosEmAndamento?.valor ?? 'R$ 0,00'}
-          change={`${stats.negociosEmAndamento?.quantidade ?? 0} oportunidades ativas`}
+          change={`${stats.negociosEmAndamento?.quantidade ?? 0} negócios em andamento`}
         />
       </section>
       <section className="gridTwo">

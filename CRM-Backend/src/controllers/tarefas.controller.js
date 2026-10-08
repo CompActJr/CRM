@@ -18,19 +18,19 @@ export const createForLead = async (request, response, next) => {
   }
 }
 
-export const listByOportunidade = async (request, response, next) => {
+export const listByNegocio = async (request, response, next) => {
   try {
-    const tarefas = await tarefasService.listTarefasByOportunidade(request.params.oportunidadeId)
+    const tarefas = await tarefasService.listTarefasByNegocio(request.params.negocioId)
     response.json(tarefas)
   } catch (error) {
     next(error)
   }
 }
 
-export const createForOportunidade = async (request, response, next) => {
+export const createForNegocio = async (request, response, next) => {
   try {
-    const tarefa = await tarefasService.createTarefaForOportunidade(
-      request.params.oportunidadeId,
+    const tarefa = await tarefasService.createTarefaForNegocio(
+      request.params.negocioId,
       request.body
     )
     response.status(201).json(tarefa)

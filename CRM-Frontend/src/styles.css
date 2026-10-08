@@ -1870,3 +1870,277 @@ th {
   display: block;
   border: 1px solid #e2e8f0;
 }
+
+/* =========================================================
+   SEARCHABLE SELECT / MULTI-SELECT DROPDOWN
+   ========================================================= */
+.searchableSelectContainer {
+  position: relative;
+  user-select: none;
+}
+
+.searchableSelectLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 2px;
+}
+
+.searchableSelectTrigger {
+  border: 1px solid #dbe3ef;
+  background: #ffffff;
+  border-radius: 6px;
+  min-height: 44px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.searchableSelectTrigger:hover {
+  border-color: #94a3b8;
+}
+
+.searchableSelectTrigger.focused {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  outline: none;
+}
+
+.searchableSelectTrigger.disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.searchableSelectValueArea {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.searchableSelectPlaceholder {
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.searchableSelectSingleValue {
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.searchableSelectChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.searchableSelectChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 14px;
+  transition: background 0.15s ease;
+}
+
+.searchableSelectChip:hover {
+  background: #dbeafe;
+}
+
+.chipText {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipRemoveBtn {
+  border: none;
+  background: transparent;
+  color: #3b82f6;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.chipRemoveBtn:hover {
+  color: #1e40af;
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.searchableSelectControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+}
+
+.searchableSelectClearBtn {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.searchableSelectClearBtn:hover {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.searchableSelectArrow {
+  transition: transform 0.2s ease;
+}
+
+.searchableSelectArrow.open {
+  transform: rotate(180deg);
+}
+
+.searchableSelectDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.searchableSelectSearchWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.searchableSelectSearchWrapper .searchIcon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.searchableSelectSearchInput {
+  border: none !important;
+  background: transparent !important;
+  padding: 4px 0 !important;
+  font-size: 13px !important;
+  color: #0f172a !important;
+  width: 100% !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.searchableSelectClearSearch {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+}
+
+.searchableSelectClearSearch:hover {
+  color: #334155;
+}
+
+.searchableSelectList {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.searchableSelectOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  font-size: 13px;
+  color: #334155;
+}
+
+.searchableSelectOption:hover {
+  background: #f1f5f9;
+}
+
+.searchableSelectOption.selected {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.optionTextCol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.optionLabel {
+  font-size: 13px;
+}
+
+.optionSubtitle {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.searchableSelectOption.selected .optionSubtitle {
+  color: #3b82f6;
+}
+
+.optionCheckIcon {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.searchableSelectNoResults {
+  padding: 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+

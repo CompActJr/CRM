@@ -11,8 +11,8 @@ export const resolveEtapaDestino = (overId, funil, etapasAtivas) => {
   return null
 }
 
-export const findEtapaOrigem = (oportunidadeId, funil, etapasAtivas) => {
-  const idKey = String(oportunidadeId)
+export const findEtapaOrigem = (negocioId, funil, etapasAtivas) => {
+  const idKey = String(negocioId)
   for (const etapa of etapasAtivas) {
     const found = (funil[etapa] ?? []).some((item) => String(item.id) === idKey)
     if (found) return etapa
@@ -20,8 +20,8 @@ export const findEtapaOrigem = (oportunidadeId, funil, etapasAtivas) => {
   return null
 }
 
-export const moveOportunidadeNoFunil = (funil, oportunidadeId, etapaOrigem, etapaDestino) => {
-  const idKey = String(oportunidadeId)
+export const moveNegocioNoFunil = (funil, negocioId, etapaOrigem, etapaDestino) => {
+  const idKey = String(negocioId)
   const origemLista = [...(funil[etapaOrigem] ?? [])]
   const indice = origemLista.findIndex((item) => String(item.id) === idKey)
   if (indice < 0) return funil
@@ -34,11 +34,14 @@ export const moveOportunidadeNoFunil = (funil, oportunidadeId, etapaOrigem, etap
   }
 }
 
-export const buildUpdatePayload = (oportunidade, etapaFunilId) => ({
-  titulo: oportunidade.titulo,
-  valorEstimado: oportunidade.valorEstimado,
-  prioridade: oportunidade.prioridadeDb,
-  usuarioId: oportunidade.usuarioId,
-  leadId: oportunidade.leadId,
+export const buildUpdatePayload = (negocio, etapaFunilId) => ({
+  titulo: negocio.titulo,
+  valorEstimado: negocio.valorEstimado,
+  prioridade: negocio.prioridadeDb,
+  responsaveisIds:
+    negocio.responsaveisIds ??
+    (negocio.responsaveis ? negocio.responsaveis.map((r) => r.id) : [negocio.usuarioId].filter(Boolean)),
+  usuarioId: negocio.usuarioId,
+  leadId: negocio.leadId,
   etapaFunilId,
 })

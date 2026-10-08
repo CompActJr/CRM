@@ -19,7 +19,7 @@ const parseUsuarioId = (usuarioId) => {
   return parsed
 }
 
-const buildInteracaoData = async (body, leadId, fixedOportunidadeId = null) => {
+const buildInteracaoData = async (body, leadId, fixedNegocioId = null) => {
   const tipo = body.tipo?.trim()
   if (!tipo) {
     const error = new Error(ErrorMessages.interacaoTipoRequired)
@@ -66,28 +66,28 @@ const buildInteracaoData = async (body, leadId, fixedOportunidadeId = null) => {
     throw error
   }
 
-  let oportunidadeId = fixedOportunidadeId
-  if (!oportunidadeId && body.oportunidadeId) {
-    oportunidadeId = parseId(body.oportunidadeId)
-    if (!oportunidadeId) {
-      const error = new Error(ErrorMessages.interacaoOportunidadeInvalid)
+  let negocioId = fixedNegocioId
+  if (!negocioId && body.negocioId) {
+    negocioId = parseId(body.negocioId)
+    if (!negocioId) {
+      const error = new Error(ErrorMessages.interacaoNegocioInvalid)
       error.statusCode = 400
       throw error
     }
   }
 
-  if (oportunidadeId) {
-    const oportunidade = await prisma.oportunidade.findUnique({
-      where: { id: oportunidadeId },
+  if (negocioId) {
+    const negocio = await prisma.negocio.findUnique({
+      where: { id: negocioId },
       select: { id: true, leadId: true },
     })
-    if (!oportunidade) {
-      const error = new Error(ErrorMessages.interacaoOportunidadeNotFound)
+    if (!negocio) {
+      const error = new Error(ErrorMessages.interacaoNegocioNotFound)
       error.statusCode = 400
       throw error
     }
-    if (oportunidade.leadId !== leadId) {
-      const error = new Error(ErrorMessages.interacaoOportunidadeLeadMismatch)
+    if (negocio.leadId !== leadId) {
+      const error = new Error(ErrorMessages.interacaoNegocioLeadMismatch)
       error.statusCode = 400
       throw error
     }
@@ -98,7 +98,7 @@ const buildInteracaoData = async (body, leadId, fixedOportunidadeId = null) => {
     descricao,
     dataInteracao,
     leadId,
-    oportunidadeId: oportunidadeId ?? null,
+    negocioId: negocioId ?? null,
     usuarioId,
   }
 }
@@ -122,10 +122,10 @@ export const listInteracoesByLead = async (leadIdParam, query = {}) => {
 
   await assertLeadExists(leadId)
 
-  const oportunidadeId = query.oportunidadeId ? parseId(query.oportunidadeId) : null
+  const negocioId = query.negocioId ? parseId(query.negocioId) : null
   const where = { leadId }
-  if (oportunidadeId) {
-    where.oportunidadeId = oportunidadeId
+  if (negocioId) {
+    where.negocioId = negocioId
   }
 
   const interacoes = await prisma.interacao.findMany({
@@ -137,27 +137,27 @@ export const listInteracoesByLead = async (leadIdParam, query = {}) => {
   return interacoes.map(mapInteracaoToResponse)
 }
 
-export const listInteracoesByOportunidade = async (oportunidadeIdParam) => {
-  const oportunidadeId = parseId(oportunidadeIdParam)
-  if (!oportunidadeId) {
-    const error = new Error(ErrorMessages.invalidOportunidadeId)
+export const listInteracoesByNegocio = async (negocioIdParam) => {
+  const negocioId = parseId(negocioIdParam)
+  if (!negocioId) {
+    const error = new Error(ErrorMessages.invalidNegocioId)
     error.statusCode = 400
     throw error
   }
 
-  const oportunidade = await prisma.oportunidade.findUnique({
-    where: { id: oportunidadeId },
+  const negocio = await prisma.negocio.findUnique({
+    where: { id: negocioId },
     select: { id: true, leadId: true },
   })
 
-  if (!oportunidade) {
-    const error = new Error(ErrorMessages.oportunidadeNotFound)
+  if (!negocio) {
+    const error = new Error(ErrorMessages.negocioNotFound)
     error.statusCode = 404
     throw error
   }
 
   const interacoes = await prisma.interacao.findMany({
-    where: { oportunidadeId },
+    where: { negocioId },
     include: interacaoInclude,
     orderBy: { dataInteracao: 'desc' },
   })
@@ -184,26 +184,26 @@ export const createInteracaoForLead = async (leadIdParam, body) => {
   return mapInteracaoToResponse(interacao)
 }
 
-export const createInteracaoForOportunidade = async (oportunidadeIdParam, body) => {
-  const oportunidadeId = parseId(oportunidadeIdParam)
-  if (!oportunidadeId) {
-    const error = new Error(ErrorMessages.invalidOportunidadeId)
+export const createInteracaoForNegocio = async (negocioIdParam, body) => {
+  const negocioId = parseId(negocioIdParam)
+  if (!negocioId) {
+    const error = new Error(ErrorMessages.invalidNegocioId)
     error.statusCode = 400
     throw error
   }
 
-  const oportunidade = await prisma.oportunidade.findUnique({
-    where: { id: oportunidadeId },
+  const negocio = await prisma.negocio.findUnique({
+    where: { id: negocioId },
     select: { id: true, leadId: true },
   })
 
-  if (!oportunidade) {
-    const error = new Error(ErrorMessages.oportunidadeNotFound)
+  if (!negocio) {
+    const error = new Error(ErrorMessages.negocioNotFound)
     error.statusCode = 404
     throw error
   }
 
-  const data = await buildInteracaoData(body, oportunidade.leadId, oportunidadeId)
+  const data = await buildInteracaoData(body, negocio.leadId, negocioId)
 
   const interacao = await prisma.interacao.create({
     data,
@@ -228,7 +228,7 @@ export const updateInteracao = async (idParam, body) => {
     throw error
   }
 
-  const data = await buildInteracaoData(body, existing.leadId, existing.oportunidadeId)
+  const data = await buildInteracaoData(body, existing.leadId, existing.negocioId)
 
   const interacao = await prisma.interacao.update({
     where: { id },

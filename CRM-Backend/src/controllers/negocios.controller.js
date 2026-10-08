@@ -1,9 +1,9 @@
-import * as oportunidadesService from '../services/oportunidades.service.js'
+import * as negociosService from '../services/negocios.service.js'
 
 export const list = async (request, response, next) => {
   try {
-    const oportunidades = await oportunidadesService.listOportunidades(request.query)
-    response.json(oportunidades)
+    const negocios = await negociosService.listNegocios(request.query)
+    response.json(negocios)
   } catch (error) {
     next(error)
   }
@@ -11,7 +11,7 @@ export const list = async (request, response, next) => {
 
 export const listFunil = async (request, response, next) => {
   try {
-    const funil = await oportunidadesService.listOportunidadesFunil(request.query)
+    const funil = await negociosService.listNegociosFunil(request.query)
     response.json(funil)
   } catch (error) {
     next(error)
@@ -20,8 +20,8 @@ export const listFunil = async (request, response, next) => {
 
 export const getById = async (request, response, next) => {
   try {
-    const oportunidade = await oportunidadesService.getOportunidadeById(request.params.id)
-    response.json(oportunidade)
+    const negocio = await negociosService.getNegocioById(request.params.id)
+    response.json(negocio)
   } catch (error) {
     next(error)
   }
@@ -29,8 +29,8 @@ export const getById = async (request, response, next) => {
 
 export const create = async (request, response, next) => {
   try {
-    const oportunidade = await oportunidadesService.createOportunidade(request.body)
-    response.status(201).json(oportunidade)
+    const negocio = await negociosService.createNegocio(request.body)
+    response.status(201).json(negocio)
   } catch (error) {
     next(error)
   }
@@ -38,8 +38,8 @@ export const create = async (request, response, next) => {
 
 export const update = async (request, response, next) => {
   try {
-    const oportunidade = await oportunidadesService.updateOportunidade(request.params.id, request.body)
-    response.json(oportunidade)
+    const negocio = await negociosService.updateNegocio(request.params.id, request.body)
+    response.json(negocio)
   } catch (error) {
     next(error)
   }
@@ -47,7 +47,7 @@ export const update = async (request, response, next) => {
 
 export const remove = async (request, response, next) => {
   try {
-    await oportunidadesService.deleteOportunidade(request.params.id)
+    await negociosService.deleteNegocio(request.params.id)
     response.status(204).send()
   } catch (error) {
     next(error)
@@ -56,11 +56,11 @@ export const remove = async (request, response, next) => {
 
 export const marcarPerdida = async (request, response, next) => {
   try {
-    const oportunidade = await oportunidadesService.marcarOportunidadeComoPerdida(
+    const negocio = await negociosService.marcarNegocioComoPerdida(
       request.params.id,
       request.body
     )
-    response.json(oportunidade)
+    response.json(negocio)
   } catch (error) {
     next(error)
   }

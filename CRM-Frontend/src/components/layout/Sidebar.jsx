@@ -6,7 +6,7 @@ const navItems = [
   ['dashboard', LayoutDashboard, 'Dashboard'],
   ['leads', Users, 'Leads'],
   ['funil', KanbanSquare, 'Funil'],
-  ['oportunidade', BriefcaseBusiness, 'Oportunidade'],
+  ['negocios', BriefcaseBusiness, 'Negócios'],
   ['relatorios', BarChart3, 'Relatórios'],
   ['usuarios', UserCog, 'Usuários', true],
 ]

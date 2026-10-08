@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { Edit, MessageSquarePlus, Trash2, X } from 'lucide-react'
 import {
   createInteracaoForLead,
-  createInteracaoForOportunidade,
+  createInteracaoForNegocio,
   deleteInteracao,
   fetchInteracoesByLead,
-  fetchInteracoesByOportunidade,
+  fetchInteracoesByNegocio,
   updateInteracao,
 } from '../../services/interacoesService'
 import { fetchUsuariosOpcoes } from '../../services/usuariosService'
@@ -33,26 +33,26 @@ const brDateTimeToInput = (brDateTime) => {
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${time}`
 }
 
-const buildEmptyForm = (currentUser, oportunidadeId) => ({
+const buildEmptyForm = (currentUser, negocioId) => ({
   tipo: 'Ligacao',
   descricao: '',
   dataInteracao: toDateTimeLocalValue(),
   usuarioId: currentUser?.id ? String(currentUser.id) : '',
-  oportunidadeId: oportunidadeId ? String(oportunidadeId) : '',
+  negocioId: negocioId ? String(negocioId) : '',
 })
 
-const buildFormFromInteracao = (interacao, currentUser, oportunidadeId) => ({
+const buildFormFromInteracao = (interacao, currentUser, negocioId) => ({
   tipo: interacao.tipoDb ?? 'Ligacao',
   descricao: interacao.descricao ?? '',
   dataInteracao: brDateTimeToInput(interacao.dataInteracao),
   usuarioId: String(interacao.usuarioId ?? currentUser?.id ?? ''),
-  oportunidadeId: String(interacao.oportunidadeId ?? oportunidadeId ?? ''),
+  negocioId: String(interacao.negocioId ?? negocioId ?? ''),
 })
 
-function PainelInteracoes({ leadId, oportunidadeId, oportunidades = [], currentUser }) {
+function PainelInteracoes({ leadId, negocioId, negocios = [], currentUser }) {
   const [interacoes, setInteracoes] = useState([])
   const [usuarios, setUsuarios] = useState([])
-  const [form, setForm] = useState(buildEmptyForm(currentUser, oportunidadeId))
+  const [form, setForm] = useState(buildEmptyForm(currentUser, negocioId))
   const [editingId, setEditingId] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -60,12 +60,12 @@ function PainelInteracoes({ leadId, oportunidadeId, oportunidades = [], currentU
   const [error, setError] = useState('')
 
   const loadInteracoes = useCallback(async () => {
-    if (!leadId && !oportunidadeId) return
+    if (!leadId && !negocioId) return
     setLoading(true)
     setError('')
     try {
-      const data = oportunidadeId
-        ? await fetchInteracoesByOportunidade(oportunidadeId)
+      const data = negocioId
+        ? await fetchInteracoesByNegocio(negocioId)
         : await fetchInteracoesByLead(leadId)
       setInteracoes(data)
     } catch (requestError) {
@@ -73,7 +73,7 @@ function PainelInteracoes({ leadId, oportunidadeId, oportunidades = [], currentU
     } finally {
       setLoading(false)
     }
-  }, [leadId, oportunidadeId])
+  }, [leadId, negocioId])
 
   useEffect(() => {
     loadInteracoes()
@@ -93,12 +93,12 @@ function PainelInteracoes({ leadId, oportunidadeId, oportunidades = [], currentU
 
   useEffect(() => {
     if (!editingId) {
-      setForm(buildEmptyForm(currentUser, oportunidadeId))
+      setForm(buildEmptyForm(currentUser, negocioId))
     }
-  }, [currentUser, oportunidadeId, editingId])
+  }, [currentUser, negocioId, editingId])
 
   const resetForm = () => {
-    setForm(buildEmptyForm(currentUser, oportunidadeId))
+    setForm(buildEmptyForm(currentUser, negocioId))
     setEditingId(null)
     setShowForm(false)
   }
@@ -109,13 +109,13 @@ function PainelInteracoes({ leadId, oportunidadeId, oportunidades = [], currentU
       return
     }
     setEditingId(null)
-    setForm(buildEmptyForm(currentUser, oportunidadeId))
+    setForm(buildEmptyForm(currentUser, negocioId))
     setShowForm(true)
   }
 
   const openEditForm = (interacao) => {
     setEditingId(interacao.id)
-    setForm(buildFormFromInteracao(interacao, currentUser, oportunidadeId))
+    setForm(buildFormFromInteracao(interacao, currentUser, negocioId))
     setShowForm(true)
   }
 
@@ -135,13 +135,13 @@ function PainelInteracoes({ leadId, oportunidadeId, oportunidades = [], currentU
         dataInteracao: form.dataInteracao,
         usuarioId: Number(form.usuarioId),
       }
-      if (!oportunidadeId && form.oportunidadeId) {
-        payload.oportunidadeId = Number(form.oportunidadeId)
+      if (!negocioId && form.negocioId) {
+        payload.negocioId = Number(form.negocioId)
       }
       if (editingId) {
         await updateInteracao(editingId, payload)
-      } else if (oportunidadeId) {
-        await createInteracaoForOportunidade(oportunidadeId, payload)
+      } else if (negocioId) {
+        await createInteracaoForNegocio(negocioId, payload)
       } else {
         await createInteracaoForLead(leadId, payload)
       }
@@ -211,12 +211,12 @@ function PainelInteracoes({ leadId, oportunidadeId, oportunidades = [], currentU
               ))}
             </select>
           </label>
-          {!oportunidadeId && oportunidades.length > 0 && (
+          {!negocioId && negocios.length > 0 && (
             <label className="inputGroup">
-              <span>Oportunidade (opcional)</span>
-              <select name="oportunidadeId" value={form.oportunidadeId} onChange={handleChange}>
+              <span>Negocio (opcional)</span>
+              <select name="negocioId" value={form.negocioId} onChange={handleChange}>
                 <option value="">Nenhuma</option>
-                {oportunidades.map((item) => (
+                {negocios.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.titulo}
                   </option>
@@ -266,7 +266,7 @@ function PainelInteracoes({ leadId, oportunidadeId, oportunidades = [], currentU
               <div className="timelineMeta timelineCardFooter">
                 <span>
                   {item.responsavel}
-                  {item.oportunidadeTitulo && ` · ${item.oportunidadeTitulo}`}
+                  {item.negocioTitulo && ` · ${item.negocioTitulo}`}
                 </span>
                 <div className="timelineCardActions">
                   <button

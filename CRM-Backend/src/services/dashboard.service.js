@@ -45,7 +45,7 @@ export const getDashboardStats = async (query = {}) => {
     dataCadastro: { gte: dataInicio, lte: dataFim },
   }
 
-  const oportunidadeWhere = {
+  const negocioWhere = {
     dataCriacao: { gte: dataInicio, lte: dataFim },
   }
 
@@ -54,19 +54,19 @@ export const getDashboardStats = async (query = {}) => {
   const [
     totalLeads,
     leadsAtivos,
-    totalOportunidades,
-    oportunidadesFechadas,
+    totalNegocios,
+    negociosFechadas,
     leads,
-    oportunidadesAbertas,
+    negociosAbertas,
     emNegociacao,
-    oportunidadesEmAndamento,
+    negociosEmAndamento,
   ] = await Promise.all([
     prisma.lead.count({ where: leadWhere }),
     prisma.lead.count({ where: { ...leadWhere, status: 'Ativo' } }),
-    prisma.oportunidade.count({ where: oportunidadeWhere }),
-    prisma.oportunidade.findMany({
+    prisma.negocio.count({ where: negocioWhere }),
+    prisma.negocio.findMany({
       where: {
-        ...oportunidadeWhere,
+        ...negocioWhere,
         etapaFunil: { nome: 'Fechado' },
       },
       select: { valorEstimado: true },
@@ -77,50 +77,50 @@ export const getDashboardStats = async (query = {}) => {
       orderBy: { dataCadastro: 'desc' },
     }),
     etapaFechado
-      ? prisma.oportunidade.count({
-          where: {
-            ...oportunidadeWhere,
-            etapaFunilId: { not: etapaFechado.id },
-          },
-        })
-      : prisma.oportunidade.count({ where: oportunidadeWhere }),
-    prisma.oportunidade.count({
+      ? prisma.negocio.count({
+        where: {
+          ...negocioWhere,
+          etapaFunilId: { not: etapaFechado.id },
+        },
+      })
+      : prisma.negocio.count({ where: negocioWhere }),
+    prisma.negocio.count({
       where: {
-        ...oportunidadeWhere,
+        ...negocioWhere,
         etapaFunil: { nome: 'Negociação' },
       },
     }),
     etapaFechado
-      ? prisma.oportunidade.findMany({
-          where: {
-            ...oportunidadeWhere,
-            etapaFunilId: { not: etapaFechado.id },
-          },
-          select: { valorEstimado: true },
-        })
-      : prisma.oportunidade.findMany({
-          where: oportunidadeWhere,
-          select: { valorEstimado: true },
-        }),
+      ? prisma.negocio.findMany({
+        where: {
+          ...negocioWhere,
+          etapaFunilId: { not: etapaFechado.id },
+        },
+        select: { valorEstimado: true },
+      })
+      : prisma.negocio.findMany({
+        where: negocioWhere,
+        select: { valorEstimado: true },
+      }),
   ])
 
   const leadsInativos = totalLeads - leadsAtivos
   const ativosPercentual = totalLeads > 0 ? Math.round((leadsAtivos / totalLeads) * 100) : 0
   const passivosPercentual = totalLeads > 0 ? 100 - ativosPercentual : 0
 
-  const valorVendasFechadas = oportunidadesFechadas.reduce(
+  const valorVendasFechadas = negociosFechadas.reduce(
     (acc, item) => acc + Number(item.valorEstimado || 0),
     0
   )
 
-  const valorEmAndamento = oportunidadesEmAndamento.reduce(
+  const valorEmAndamento = negociosEmAndamento.reduce(
     (acc, item) => acc + Number(item.valorEstimado || 0),
     0
   )
 
   const taxaConversao =
-    totalOportunidades > 0
-      ? Math.round((oportunidadesFechadas.length / totalOportunidades) * 100)
+    totalNegocios > 0
+      ? Math.round((negociosFechadas.length / totalNegocios) * 100)
       : 0
 
   const leadsPorMes = buildLeadsChartData(leads, periodInfo)
@@ -128,8 +128,8 @@ export const getDashboardStats = async (query = {}) => {
   const responseMeses = periodInfo.type === 'custom'
     ? 'custom'
     : periodInfo.type === 'week'
-    ? 0.25
-    : periodInfo.numMeses
+      ? 0.25
+      : periodInfo.numMeses
 
   return {
     meses: responseMeses,
@@ -138,15 +138,15 @@ export const getDashboardStats = async (query = {}) => {
     leadsInativos,
     ativosPercentual,
     passivosPercentual,
-    oportunidadesAbertas,
+    negociosAbertas,
     emNegociacao,
     taxaConversao,
     vendasFechadas: {
-      quantidade: oportunidadesFechadas.length,
+      quantidade: negociosFechadas.length,
       valor: formatCurrencyBr(valorVendasFechadas),
     },
     negociosEmAndamento: {
-      quantidade: oportunidadesEmAndamento.length,
+      quantidade: negociosEmAndamento.length,
       valor: formatCurrencyBr(valorEmAndamento),
     },
     leadsPorMes,

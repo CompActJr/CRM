@@ -17,7 +17,7 @@ import cargosRoutes from './routes/cargos.routes.js'
 import dashboardRoutes from './routes/dashboard.routes.js'
 import etapasRoutes from './routes/etapas.routes.js'
 import leadsRoutes from './routes/leads.routes.js'
-import oportunidadesRoutes from './routes/oportunidades.routes.js'
+import negociosRoutes from './routes/negocios.routes.js'
 import motivosPerdaRoutes from './routes/motivosPerda.routes.js'
 import relatoriosRoutes from './routes/relatorios.routes.js'
 import tarefasRoutes from './routes/tarefas.routes.js'
@@ -38,22 +38,22 @@ app.get('/', (_request, response) => {
       leads: '/leads',
       leadsImport: 'POST /leads/import',
       leadsImportTemplate: '/leads/import/template',
-      oportunidades: '/oportunidades',
-      oportunidadesFunil: '/oportunidades/funil',
+      negocios: '/negocios',
+      negociosFunil: '/negocios/funil',
       etapasFunil: '/etapas-funil',
       dashboard: '/dashboard',
       relatorios: '/relatorios',
       relatoriosExport: '/relatorios/export',
       usuarios: '/usuarios',
       leadInteracoes: '/leads/:leadId/interacoes',
-      oportunidadeInteracoes: '/oportunidades/:oportunidadeId/interacoes',
-      oportunidadePerder: 'POST /oportunidades/:id/perder',
+      negocioInteracoes: '/negocios/:negocioId/interacoes',
+      negocioPerder: 'POST /negocios/:id/perder',
       motivosPerda: '/motivos-perda',
       cargos: '/cargos',
       leadTarefas: '/leads/:leadId/tarefas',
-      oportunidadeTarefas: '/oportunidades/:oportunidadeId/tarefas',
+      negocioTarefas: '/negocios/:negocioId/tarefas',
       tarefas: '/tarefas',
-      oportunidadePropostas: '/oportunidades/:oportunidadeId/propostas',
+      negocioPropostas: '/negocios/:negocioId/propostas',
       propostas: '/propostas',
     },
   })
@@ -66,7 +66,7 @@ app.get('/health', (_request, response) => {
 app.use('/auth', authRoutes)
 app.use('/dashboard', dashboardRoutes)
 app.use('/leads', leadsRoutes)
-app.use('/oportunidades', oportunidadesRoutes)
+app.use('/negocios', negociosRoutes)
 app.use('/etapas-funil', etapasRoutes)
 app.use('/motivos-perda', motivosPerdaRoutes)
 app.use('/cargos', cargosRoutes)

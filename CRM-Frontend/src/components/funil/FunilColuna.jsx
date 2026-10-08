@@ -3,13 +3,13 @@ import FunilCardArrastavel from './FunilCardArrastavel'
 
 function FunilColuna({
   etapa,
-  oportunidades,
+  negocios,
   isBottleneck,
   isPerdida,
   diasMedios,
   showTempoMedio,
-  onViewOportunidade,
-  onEditOportunidade,
+  onViewNegocio,
+  onEditNegocio,
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: etapa,
@@ -23,15 +23,15 @@ function FunilColuna({
     >
       <div className="kanbanHeader">
         <strong>{etapa}</strong>
-        <span>{oportunidades.length}</span>
+        <span>{negocios.length}</span>
       </div>
 
-      {oportunidades.map((oportunidade) => (
+      {negocios.map((negocio) => (
         <FunilCardArrastavel
-          key={oportunidade.id}
-          oportunidade={oportunidade}
-          onViewOportunidade={onViewOportunidade}
-          onEditOportunidade={onEditOportunidade}
+          key={negocio.id}
+          negocio={negocio}
+          onViewNegocio={onViewNegocio}
+          onEditNegocio={onEditNegocio}
         />
       ))}
     </div>

@@ -8,9 +8,9 @@ import LeadDetails from './screens/LeadDetails'
 import LeadForm from './screens/LeadForm'
 import Leads from './screens/Leads'
 import Login from './screens/Login'
-import OportunidadeDetails from './screens/OportunidadeDetails'
-import OportunidadeForm from './screens/OportunidadeForm'
-import Oportunidades from './screens/Oportunidades'
+import NegocioDetails from './screens/NegocioDetails'
+import NegocioForm from './screens/NegocioForm'
+import Negocios from './screens/Negocios'
 import Relatorios from './screens/Relatorios'
 import UsuarioForm from './screens/UsuarioForm'
 import Usuarios from './screens/Usuarios'
@@ -31,8 +31,8 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
     screen,
     editingLeadId,
     viewingLeadId,
-    editingOportunidadeId,
-    viewingOportunidadeId,
+    editingNegocioId,
+    viewingNegocioId,
     editingUsuarioId,
     activeTab,
   } = navigation
@@ -85,7 +85,7 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
     })
   }
 
-  const openViewLead = (leadId, tab = 'oportunidades') => {
+  const openViewLead = (leadId, tab = 'negocios') => {
     pushNavigation({
       ...createScreenNavigation('leadDetails'),
       viewingLeadId: leadId,
@@ -93,21 +93,21 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
     })
   }
 
-  const openNewOportunidade = () => {
-    pushNavigation(createScreenNavigation('oportunidadeForm'))
+  const openNewNegocio = () => {
+    pushNavigation(createScreenNavigation('negocioForm'))
   }
 
-  const openEditOportunidade = (oportunidadeId) => {
+  const openEditNegocio = (negocioId) => {
     pushNavigation({
-      ...createScreenNavigation('oportunidadeForm'),
-      editingOportunidadeId: oportunidadeId,
+      ...createScreenNavigation('negocioForm'),
+      editingNegocioId: negocioId,
     })
   }
 
-  const openViewOportunidade = (oportunidadeId, tab = 'timeline') => {
+  const openViewNegocio = (negocioId, tab = 'timeline') => {
     pushNavigation({
-      ...createScreenNavigation('oportunidadeDetails'),
-      viewingOportunidadeId: oportunidadeId,
+      ...createScreenNavigation('negocioDetails'),
+      viewingNegocioId: negocioId,
       activeTab: tab,
     })
   }
@@ -144,35 +144,35 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
       <LeadDetails
         setScreen={setScreen}
         leadId={viewingLeadId}
-        initialTab={activeTab ?? 'oportunidades'}
+        initialTab={activeTab ?? 'negocios'}
         onEditLead={openEditLead}
-        onViewOportunidade={openViewOportunidade}
+        onViewNegocio={openViewNegocio}
         currentUser={currentUser}
       />
     ),
     funil: (
       <Funil
-        onNewOportunidade={openNewOportunidade}
-        onViewOportunidade={openViewOportunidade}
-        onEditOportunidade={openEditOportunidade}
+        onNewNegocio={openNewNegocio}
+        onViewNegocio={openViewNegocio}
+        onEditNegocio={openEditNegocio}
         currentUser={currentUser}
       />
     ),
-    oportunidade: (
-      <Oportunidades
+    negocios: (
+      <Negocios
         setScreen={setScreen}
-        onNewOportunidade={openNewOportunidade}
-        onEditOportunidade={openEditOportunidade}
-        onViewOportunidade={openViewOportunidade}
+        onNewNegocio={openNewNegocio}
+        onEditNegocio={openEditNegocio}
+        onViewNegocio={openViewNegocio}
       />
     ),
-    oportunidadeForm: (
-      <OportunidadeForm setScreen={setScreen} oportunidadeId={editingOportunidadeId} />
+    negocioForm: (
+      <NegocioForm setScreen={setScreen} negocioId={editingNegocioId} />
     ),
-    oportunidadeDetails: (
-      <OportunidadeDetails
+    negocioDetails: (
+      <NegocioDetails
         setScreen={setScreen}
-        oportunidadeId={viewingOportunidadeId}
+        negocioId={viewingNegocioId}
         initialTab={activeTab ?? 'timeline'}
         currentUser={currentUser}
       />

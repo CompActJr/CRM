@@ -2,7 +2,7 @@ import { ErrorMessages } from '../config/constants.js'
 import prisma from '../lib/prisma.js'
 import { parseDateInput } from '../utils/date.js'
 import { buildRelatorioExcelBuffer } from '../utils/relatorioExcel.js'
-import { calcularTempoMedioPorEtapa } from './oportunidadeEtapaHistorico.service.js'
+import { calcularTempoMedioPorEtapa } from './negocioEtapaHistorico.service.js'
 
 const formatDateQuery = (date) => date.toISOString().slice(0, 10)
 
@@ -67,19 +67,19 @@ const buildLeadWhere = (filters) => ({
   ...(filters.usuarioId ? { usuarioId: filters.usuarioId } : {}),
 })
 
-const buildOportunidadeWhere = (filters) => ({
+const buildNegocioWhere = (filters) => ({
   dataCriacao: {
     gte: filters.dataInicio,
     lte: filters.dataFim,
   },
-  ...(filters.usuarioId ? { usuarioId: filters.usuarioId } : {}),
+  ...(filters.usuarioId ? { responsaveis: { some: { id: filters.usuarioId } } } : {}),
 })
 
-const getPrincipalMotivoPerda = (oportunidades) => {
+const getPrincipalMotivoPerda = (negocios) => {
   const counts = new Map()
 
-  for (const oportunidade of oportunidades) {
-    const motivo = oportunidade.motivoPerda?.nome
+  for (const negocio of negocios) {
+    const motivo = negocio.motivoPerda?.nome
     if (!motivo) continue
     const key = motivo.trim()
     counts.set(key, (counts.get(key) ?? 0) + 1)
@@ -116,7 +116,7 @@ const buildTempoMedioPorEtapa = async (filters, excludedEtapaIds = []) => {
 export const gerarRelatorio = async (query) => {
   const filters = parseRelatorioFilters(query)
   const leadWhere = buildLeadWhere(filters)
-  const oportunidadeWhere = buildOportunidadeWhere(filters)
+  const negocioWhere = buildNegocioWhere(filters)
 
   const [etapaFechado, etapaPerdida] = await Promise.all([
     prisma.etapaFunil.findFirst({ where: { nome: 'Fechado' } }),
@@ -127,42 +127,42 @@ export const gerarRelatorio = async (query) => {
 
   const [
     leadsNoPeriodo,
-    oportunidadesNoPeriodo,
-    oportunidadesAbertas,
-    oportunidadesFechadas,
+    negociosNoPeriodo,
+    negociosAbertas,
+    negociosFechadas,
     tempoMedioPorEtapa,
   ] = await Promise.all([
     prisma.lead.count({ where: leadWhere }),
-    prisma.oportunidade.findMany({
-      where: oportunidadeWhere,
+    prisma.negocio.findMany({
+      where: negocioWhere,
       select: {
         id: true,
         etapaFunilId: true,
         motivoPerda: { select: { nome: true } },
       },
     }),
-    prisma.oportunidade.count({
+    prisma.negocio.count({
       where: {
-        ...oportunidadeWhere,
+        ...negocioWhere,
         ...(excludedEtapaIds.length > 0 ? { etapaFunilId: { notIn: excludedEtapaIds } } : {}),
       },
     }),
     etapaFechado
-      ? prisma.oportunidade.count({
-          where: {
-            ...oportunidadeWhere,
-            etapaFunilId: etapaFechado.id,
-          },
-        })
+      ? prisma.negocio.count({
+        where: {
+          ...negocioWhere,
+          etapaFunilId: etapaFechado.id,
+        },
+      })
       : Promise.resolve(0),
     buildTempoMedioPorEtapa(filters, excludedEtapaIds),
   ])
 
-  const totalOportunidades = oportunidadesNoPeriodo.length
+  const totalNegocios = negociosNoPeriodo.length
   const taxaConversao =
-    totalOportunidades > 0 ? Math.round((oportunidadesFechadas / totalOportunidades) * 100) : 0
+    totalNegocios > 0 ? Math.round((negociosFechadas / totalNegocios) * 100) : 0
 
-  const principalMotivoPerda = getPrincipalMotivoPerda(oportunidadesNoPeriodo)
+  const principalMotivoPerda = getPrincipalMotivoPerda(negociosNoPeriodo)
   const responsavel = await resolveResponsavelLabel(filters.usuarioId)
 
   return {
@@ -173,9 +173,9 @@ export const gerarRelatorio = async (query) => {
     responsavel,
     usuarioId: filters.usuarioId,
     leadsNoPeriodo,
-    oportunidadesAbertas,
-    oportunidadesCriadas: totalOportunidades,
-    oportunidadesFechadas,
+    negociosAbertas,
+    negociosCriadas: totalNegocios,
+    negociosFechadas,
     taxaConversao,
     principalMotivoPerda: principalMotivoPerda ?? 'Nenhum registro no período',
     tempoMedioPorEtapa,

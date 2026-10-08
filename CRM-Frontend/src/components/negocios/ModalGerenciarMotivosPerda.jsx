@@ -88,7 +88,7 @@ function ModalGerenciarMotivosPerda({ onClose, onUpdated }) {
         </div>
         <p className="modalHint">
           Cadastre os motivos padronizados. Somente motivos <strong>ativos</strong> aparecem no
-          dropdown ao marcar a oportunidade como perdida.
+          dropdown ao marcar o negócio como perdido.
         </p>
 
         <form className="motivoInlineForm" onSubmit={handleCreate}>

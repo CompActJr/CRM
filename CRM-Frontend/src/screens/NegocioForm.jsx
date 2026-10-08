@@ -1,18 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Save, X } from 'lucide-react'
 import Field from '../components/common/Field'
+import SearchableSelect from '../components/common/SearchableSelect'
 import Header from '../components/layout/Header'
-import ModalMudancaEtapaFunil from '../components/oportunidades/ModalMudancaEtapaFunil'
-import ModalMarcarPerdida from '../components/oportunidades/ModalMarcarPerdida'
+import ModalMudancaEtapaFunil from '../components/negocios/ModalMudancaEtapaFunil'
+import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
 import { useSession } from '../context/SessionContext'
-import { createInteracaoForOportunidade } from '../services/interacoesService'
+import { createInteracaoForNegocio } from '../services/interacoesService'
 import { fetchEtapasFunil } from '../services/etapasService'
 import { fetchLeads } from '../services/leadsService'
 import {
-  createOportunidade,
-  fetchOportunidadeById,
-  updateOportunidade,
-} from '../services/oportunidadesService'
+  createNegocio,
+  fetchNegocioById,
+  updateNegocio,
+} from '../services/negociosService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
 import { ETAPA_PERDIDA } from '../utils/funilDrag'
 import { formatValorFromAmount, maskValorInput, parseValorInputToAmount } from '../utils/currencyInput'
@@ -20,13 +21,13 @@ import { formatValorFromAmount, maskValorInput, parseValorInputToAmount } from '
 const EmptyForm = {
   leadId: '',
   titulo: '',
-  usuarioId: '',
+  responsaveisIds: [],
   valorEstimado: '',
   prioridade: 'Média',
   etapaFunilId: '',
 }
 
-function OportunidadeForm({ setScreen, oportunidadeId }) {
+function NegocioForm({ setScreen, negocioId }) {
   const currentUser = useSession()
   const [form, setForm] = useState(EmptyForm)
   const [leads, setLeads] = useState([])
@@ -36,10 +37,10 @@ function OportunidadeForm({ setScreen, oportunidadeId }) {
   const [mudancaEtapaModal, setMudancaEtapaModal] = useState(null)
   const [perdidaModal, setPerdidaModal] = useState(false)
   const [pendingPayload, setPendingPayload] = useState(null)
-  const [loading, setLoading] = useState(Boolean(oportunidadeId))
+  const [loading, setLoading] = useState(Boolean(negocioId))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const isEditing = Boolean(oportunidadeId)
+  const isEditing = Boolean(negocioId)
 
   useEffect(() => {
     const loadFormData = async () => {
@@ -54,21 +55,30 @@ function OportunidadeForm({ setScreen, oportunidadeId }) {
         setUsuarios(usuariosData)
         setEtapas(etapasData)
 
-        if (!oportunidadeId) {
-          setForm({ ...EmptyForm })
+        if (!negocioId) {
+          const initialUserIds = currentUser?.id ? [Number(currentUser.id)] : []
+          setForm({ ...EmptyForm, responsaveisIds: initialUserIds })
           setLoading(false)
           return
         }
 
-        const oportunidade = await fetchOportunidadeById(oportunidadeId)
-        const etapaId = String(oportunidade.etapaFunilId ?? '')
+        const negocio = await fetchNegocioById(negocioId)
+        const etapaId = String(negocio.etapaFunilId ?? '')
         setEtapaOriginalId(etapaId)
+
+        const initialResponsaveis =
+          negocio.responsaveisIds && negocio.responsaveisIds.length > 0
+            ? negocio.responsaveisIds.map(Number)
+            : negocio.usuarioId
+              ? [Number(negocio.usuarioId)]
+              : []
+
         setForm({
-          leadId: String(oportunidade.leadId ?? ''),
-          titulo: oportunidade.titulo ?? '',
-          usuarioId: String(oportunidade.usuarioId ?? ''),
-          valorEstimado: formatValorFromAmount(oportunidade.valorEstimado),
-          prioridade: oportunidade.prioridade ?? 'Média',
+          leadId: String(negocio.leadId ?? ''),
+          titulo: negocio.titulo ?? '',
+          responsaveisIds: initialResponsaveis,
+          valorEstimado: formatValorFromAmount(negocio.valorEstimado),
+          prioridade: negocio.prioridade ?? 'Média',
           etapaFunilId: etapaId,
         })
       } catch (requestError) {
@@ -78,7 +88,7 @@ function OportunidadeForm({ setScreen, oportunidadeId }) {
       }
     }
     loadFormData()
-  }, [oportunidadeId])
+  }, [negocioId, currentUser])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -90,26 +100,53 @@ function OportunidadeForm({ setScreen, oportunidadeId }) {
     setForm((current) => ({ ...current, valorEstimado: masked }))
   }
 
+  const leadOptions = useMemo(() => {
+    return leads.map((lead) => ({
+      value: String(lead.id),
+      label: lead.empresa || lead.nome,
+      subtitle: lead.empresa ? lead.nome : lead.email || '',
+    }))
+  }, [leads])
+
+  const usuarioOptions = useMemo(() => {
+    return usuarios.map((usuario) => ({
+      value: usuario.id,
+      label: usuario.nome,
+      subtitle: usuario.cargo || usuario.email || '',
+    }))
+  }, [usuarios])
+
   const getEtapaNome = (etapaId) =>
     etapas.find((etapa) => String(etapa.id) === String(etapaId))?.nome ?? ''
 
-  const salvarOportunidade = async (payload) => {
+  const salvarNegocio = async (payload) => {
     if (isEditing) {
-      await updateOportunidade(oportunidadeId, payload)
+      await updateNegocio(negocioId, payload)
     } else {
-      await createOportunidade(payload)
+      await createNegocio(payload)
     }
-    setScreen('oportunidade')
+    setScreen('negocio')
   }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
 
+    if (!form.leadId) {
+      setError('Selecione um lead.')
+      return
+    }
+
+    if (!form.responsaveisIds || form.responsaveisIds.length === 0) {
+      setError('Selecione pelo menos um responsável.')
+      return
+    }
+
     const payload = {
       leadId: Number(form.leadId),
       titulo: form.titulo,
-      usuarioId: Number(form.usuarioId),
+      responsaveisIds: form.responsaveisIds,
+      usuarioId: form.responsaveisIds[0],
       etapaFunilId: Number(form.etapaFunilId),
       prioridade: form.prioridade,
       valorEstimado: parseValorInputToAmount(form.valorEstimado),
@@ -132,7 +169,7 @@ function OportunidadeForm({ setScreen, oportunidadeId }) {
 
     setSaving(true)
     try {
-      await salvarOportunidade(payload)
+      await salvarNegocio(payload)
     } catch (requestError) {
       setError(requestError.message)
     } finally {
@@ -145,14 +182,14 @@ function OportunidadeForm({ setScreen, oportunidadeId }) {
     setSaving(true)
     setError('')
     try {
-      await updateOportunidade(oportunidadeId, pendingPayload)
-      await createInteracaoForOportunidade(oportunidadeId, {
+      await updateNegocio(negocioId, pendingPayload)
+      await createInteracaoForNegocio(negocioId, {
         ...interacao,
         usuarioId: currentUser?.id,
       })
       setMudancaEtapaModal(null)
       setPendingPayload(null)
-      setScreen('oportunidade')
+      setScreen('negocio')
     } catch (requestError) {
       setError(requestError.message)
       throw requestError
@@ -173,17 +210,17 @@ function OportunidadeForm({ setScreen, oportunidadeId }) {
 
   const handlePerdidaSuccess = async () => {
     if (!pendingPayload) {
-      setScreen('oportunidade')
+      setScreen('negocio')
       return
     }
     setSaving(true)
     setError('')
     try {
       const { etapaFunilId: _etapa, ...resto } = pendingPayload
-      await updateOportunidade(oportunidadeId, resto)
+      await updateNegocio(negocioId, resto)
       setPerdidaModal(false)
       setPendingPayload(null)
-      setScreen('oportunidade')
+      setScreen('negocio')
     } catch (requestError) {
       setError(requestError.message)
     } finally {
@@ -195,7 +232,7 @@ function OportunidadeForm({ setScreen, oportunidadeId }) {
     return (
       <>
         <Header
-          title={isEditing ? 'Editar Oportunidade' : 'Cadastro de Oportunidade'}
+          title={isEditing ? 'Editar Negócio' : 'Cadastro de Negócio'}
           subtitle="Carregando dados do formulário"
         />
         <p className="tableMessage">Carregando...</p>
@@ -206,42 +243,43 @@ function OportunidadeForm({ setScreen, oportunidadeId }) {
   return (
     <>
       <Header
-        title={isEditing ? 'Editar Oportunidade' : 'Cadastro de Oportunidade'}
-        subtitle="Crie ou edite uma oportunidade de venda"
+        title={isEditing ? 'Editar Negócio' : 'Cadastro de Negócio'}
+        subtitle="Crie ou edite um negócio de venda"
       />
       <section className="formPanel">
         <form onSubmit={handleSubmit}>
           <div className="formGrid">
-            <label className="inputGroup">
-              <span>Lead</span>
-              <select name="leadId" value={form.leadId} onChange={handleChange} required>
-                <option value="">Selecione</option>
-                {leads.map((lead) => (
-                  <option key={lead.id} value={lead.id}>
-                    {lead.empresa || lead.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SearchableSelect
+              label="Lead"
+              placeholder="Selecione um lead"
+              searchPlaceholder="Buscar por empresa ou nome..."
+              options={leadOptions}
+              value={form.leadId}
+              onChange={(nextLeadId) =>
+                setForm((current) => ({ ...current, leadId: nextLeadId }))
+              }
+              required
+            />
             <Field
-              label="Título da oportunidade"
+              label="Título do negócio"
               name="titulo"
               placeholder="Ex: Projeto CRM Simplificado"
               value={form.titulo}
               onChange={handleChange}
               required
             />
-            <label className="inputGroup">
-              <span>Responsável</span>
-              <select name="usuarioId" value={form.usuarioId} onChange={handleChange} required>
-                <option value="">Selecione</option>
-                {usuarios.map((usuario) => (
-                  <option key={usuario.id} value={usuario.id}>
-                    {usuario.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SearchableSelect
+              label="Responsáveis"
+              placeholder="Selecione os responsáveis"
+              searchPlaceholder="Buscar responsável por nome..."
+              options={usuarioOptions}
+              value={form.responsaveisIds}
+              onChange={(nextResponsaveis) =>
+                setForm((current) => ({ ...current, responsaveisIds: nextResponsaveis }))
+              }
+              multiple
+              required
+            />
             <label className="inputGroup">
               <span>Valor estimado</span>
               <input
@@ -276,20 +314,20 @@ function OportunidadeForm({ setScreen, oportunidadeId }) {
           </div>
           {error && <p className="formError">{error}</p>}
           <div className="formActions">
-            <button type="button" className="secondaryBtn" onClick={() => setScreen('oportunidade')}>
+            <button type="button" className="secondaryBtn" onClick={() => setScreen('negocio')}>
               <X size={18} />
               Cancelar
             </button>
             <button type="submit" className="primaryBtn" disabled={saving}>
               <Save size={18} />
-              {saving ? 'Salvando...' : 'Salvar Oportunidade'}
+              {saving ? 'Salvando...' : 'Salvar Negócio'}
             </button>
           </div>
         </form>
       </section>
       {mudancaEtapaModal && (
         <ModalMudancaEtapaFunil
-          tituloOportunidade={form.titulo}
+          tituloNegocio={form.titulo}
           etapaOrigem={mudancaEtapaModal.etapaOrigem}
           etapaDestino={mudancaEtapaModal.etapaDestino}
           onClose={handleMudancaEtapaClose}
@@ -298,7 +336,7 @@ function OportunidadeForm({ setScreen, oportunidadeId }) {
       )}
       {perdidaModal && (
         <ModalMarcarPerdida
-          oportunidade={{ id: oportunidadeId, titulo: form.titulo }}
+          negocio={{ id: negocioId, titulo: form.titulo }}
           currentUser={currentUser}
           onClose={handlePerdidaClose}
           onSuccess={handlePerdidaSuccess}
@@ -308,4 +346,4 @@ function OportunidadeForm({ setScreen, oportunidadeId }) {
   )
 }
 
-export default OportunidadeForm
+export default NegocioForm

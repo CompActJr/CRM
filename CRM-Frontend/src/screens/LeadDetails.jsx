@@ -5,7 +5,7 @@ import Header from '../components/layout/Header'
 import { fetchLeadById } from '../services/leadsService'
 import { getPriorityClass } from '../utils/priorityClass'
 
-function LeadDetails({ setScreen, leadId, initialTab = 'oportunidades', onViewOportunidade, onEditLead, currentUser }) {
+function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio, onEditLead, currentUser }) {
   const [activeTab, setActiveTab] = useState(initialTab)
   const [lead, setLead] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -36,7 +36,7 @@ function LeadDetails({ setScreen, leadId, initialTab = 'oportunidades', onViewOp
   }, [leadId, initialTab])
 
   const tabs = [
-    { id: 'oportunidades', label: 'Oportunidades' },
+    { id: 'negocios', label: 'Negocios' },
     { id: 'timeline', label: 'Linha do tempo' },
     { id: 'tarefas', label: 'Tarefas' },
     { id: 'contact', label: 'Contato' },
@@ -66,7 +66,7 @@ function LeadDetails({ setScreen, leadId, initialTab = 'oportunidades', onViewOp
 
   return (
     <>
-      <Header title="Detalhes do Lead" subtitle="Acompanhe dados comerciais e oportunidades vinculadas" />
+      <Header title="Detalhes do Lead" subtitle="Acompanhe dados comerciais e negócios vinculados" />
       <div className="leadDetailsLayout">
         <aside className="leadSummaryCard">
           <h2>{lead.empresa || lead.nome}</h2>
@@ -125,10 +125,10 @@ function LeadDetails({ setScreen, leadId, initialTab = 'oportunidades', onViewOp
             ))}
           </div>
 
-          {activeTab === 'oportunidades' && (
+          {activeTab === 'negocios' && (
             <div className="leadTabContent">
-              {lead.oportunidades?.length === 0 ? (
-                <p className="tableMessage">Nenhuma oportunidade vinculada a este lead.</p>
+              {lead.negocios?.length === 0 ? (
+                <p className="tableMessage">Nenhum negócio vinculado a este lead.</p>
               ) : (
                 <div className="tableCard">
                   <table>
@@ -142,21 +142,21 @@ function LeadDetails({ setScreen, leadId, initialTab = 'oportunidades', onViewOp
                       </tr>
                     </thead>
                     <tbody>
-                      {lead.oportunidades.map((oportunidade) => (
-                        <tr key={oportunidade.id}>
-                          <td>{oportunidade.titulo}</td>
-                          <td>{oportunidade.etapa}</td>
+                      {lead.negocios.map((negocio) => (
+                        <tr key={negocio.id}>
+                          <td>{negocio.titulo}</td>
+                          <td>{negocio.etapa}</td>
                           <td>
-                            <span className={`priority ${getPriorityClass(oportunidade.prioridade)}`}>
-                              {oportunidade.prioridade}
+                            <span className={`priority ${getPriorityClass(negocio.prioridade)}`}>
+                              {negocio.prioridade}
                             </span>
                           </td>
-                          <td>{oportunidade.valor}</td>
+                          <td>{negocio.valor}</td>
                           <td>
                             <button
                               type="button"
                               className="secondaryBtn"
-                              onClick={() => onViewOportunidade(oportunidade.id)}
+                              onClick={() => onViewNegocio(negocio.id)}
                             >
                               Ver
                             </button>
@@ -173,7 +173,7 @@ function LeadDetails({ setScreen, leadId, initialTab = 'oportunidades', onViewOp
           {activeTab === 'timeline' && (
             <PainelInteracoes
               leadId={lead.id}
-              oportunidades={lead.oportunidades ?? []}
+              negocios={lead.negocios ?? []}
               currentUser={currentUser}
             />
           )}

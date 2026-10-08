@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { Check, Edit, Plus, Trash2, X } from 'lucide-react'
 import {
   createTarefaForLead,
-  createTarefaForOportunidade,
+  createTarefaForNegocio,
   deleteTarefa,
   fetchTarefasByLead,
-  fetchTarefasByOportunidade,
+  fetchTarefasByNegocio,
   toggleTarefaStatus,
   updateTarefa,
 } from '../../services/tarefasService'
@@ -38,7 +38,7 @@ const buildFormFromTarefa = (tarefa, currentUser) => ({
   usuarioId: String(tarefa.usuarioId ?? currentUser?.id ?? ''),
 })
 
-function PainelTarefas({ leadId, oportunidadeId, currentUser }) {
+function PainelTarefas({ leadId, negocioId, currentUser }) {
   const [tarefas, setTarefas] = useState([])
   const [usuarios, setUsuarios] = useState([])
   const [form, setForm] = useState(buildEmptyForm(currentUser))
@@ -49,12 +49,12 @@ function PainelTarefas({ leadId, oportunidadeId, currentUser }) {
   const [error, setError] = useState('')
 
   const loadTarefas = useCallback(async () => {
-    if (!leadId && !oportunidadeId) return
+    if (!leadId && !negocioId) return
     setLoading(true)
     setError('')
     try {
-      const data = oportunidadeId
-        ? await fetchTarefasByOportunidade(oportunidadeId)
+      const data = negocioId
+        ? await fetchTarefasByNegocio(negocioId)
         : await fetchTarefasByLead(leadId, { apenasLead: true })
       setTarefas(data)
     } catch (requestError) {
@@ -62,7 +62,7 @@ function PainelTarefas({ leadId, oportunidadeId, currentUser }) {
     } finally {
       setLoading(false)
     }
-  }, [leadId, oportunidadeId])
+  }, [leadId, negocioId])
 
   useEffect(() => {
     loadTarefas()
@@ -126,8 +126,8 @@ function PainelTarefas({ leadId, oportunidadeId, currentUser }) {
       }
       if (editingId) {
         await updateTarefa(editingId, payload)
-      } else if (oportunidadeId) {
-        await createTarefaForOportunidade(oportunidadeId, payload)
+      } else if (negocioId) {
+        await createTarefaForNegocio(negocioId, payload)
       } else {
         await createTarefaForLead(leadId, payload)
       }
@@ -193,7 +193,7 @@ function PainelTarefas({ leadId, oportunidadeId, currentUser }) {
         <div className="tarefaListMeta">
           <span>Prazo: {tarefa.dataPrazo}</span>
           <span> · {tarefa.responsavel}</span>
-          {tarefa.oportunidadeTitulo && <span> · {tarefa.oportunidadeTitulo}</span>}
+          {tarefa.negocioTitulo && <span> · {tarefa.negocioTitulo}</span>}
         </div>
       </div>
       <button
@@ -251,7 +251,7 @@ function PainelTarefas({ leadId, oportunidadeId, currentUser }) {
               ))}
             </select>
           </label>
-          <label className={`inputGroup ${oportunidadeId ? '' : 'fullLine'}`}>
+          <label className={`inputGroup ${negocioId ? '' : 'fullLine'}`}>
             <span>Descrição (opcional)</span>
             <textarea name="descricao" value={form.descricao} onChange={handleChange} rows={3} />
           </label>

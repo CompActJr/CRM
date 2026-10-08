@@ -27,7 +27,7 @@ const parseStatus = (value) => {
   return null
 }
 
-const buildTarefaData = async (body, leadId, fixedOportunidadeId = null) => {
+const buildTarefaData = async (body, leadId, fixedNegocioId = null) => {
   const titulo = body.titulo?.trim()
   if (!titulo) {
     const error = new Error(ErrorMessages.tarefaTituloRequired)
@@ -73,28 +73,28 @@ const buildTarefaData = async (body, leadId, fixedOportunidadeId = null) => {
     status = parsedStatus
   }
 
-  let oportunidadeId = fixedOportunidadeId
-  if (!oportunidadeId && body.oportunidadeId) {
-    oportunidadeId = parseId(body.oportunidadeId)
-    if (!oportunidadeId) {
-      const error = new Error(ErrorMessages.tarefaOportunidadeInvalid)
+  let negocioId = fixedNegocioId
+  if (!negocioId && body.negocioId) {
+    negocioId = parseId(body.negocioId)
+    if (!negocioId) {
+      const error = new Error(ErrorMessages.tarefaNegocioInvalid)
       error.statusCode = 400
       throw error
     }
   }
 
-  if (oportunidadeId) {
-    const oportunidade = await prisma.oportunidade.findUnique({
-      where: { id: oportunidadeId },
+  if (negocioId) {
+    const negocio = await prisma.negocio.findUnique({
+      where: { id: negocioId },
       select: { id: true, leadId: true },
     })
-    if (!oportunidade) {
-      const error = new Error(ErrorMessages.tarefaOportunidadeNotFound)
+    if (!negocio) {
+      const error = new Error(ErrorMessages.tarefaNegocioNotFound)
       error.statusCode = 400
       throw error
     }
-    if (oportunidade.leadId !== leadId) {
-      const error = new Error(ErrorMessages.tarefaOportunidadeLeadMismatch)
+    if (negocio.leadId !== leadId) {
+      const error = new Error(ErrorMessages.tarefaNegocioLeadMismatch)
       error.statusCode = 400
       throw error
     }
@@ -106,7 +106,7 @@ const buildTarefaData = async (body, leadId, fixedOportunidadeId = null) => {
     dataPrazo,
     status,
     leadId,
-    oportunidadeId: oportunidadeId ?? null,
+    negocioId: negocioId ?? null,
     usuarioId,
   }
 }
@@ -138,14 +138,14 @@ export const listTarefasByLead = async (leadIdParam, query = {}) => {
 
   await assertLeadExists(leadId)
 
-  const oportunidadeId = query.oportunidadeId ? parseId(query.oportunidadeId) : null
+  const negocioId = query.negocioId ? parseId(query.negocioId) : null
   const apenasLead = query.apenasLead === 'true' || query.apenasLead === '1'
   const where = { leadId }
 
-  if (oportunidadeId) {
-    where.oportunidadeId = oportunidadeId
+  if (negocioId) {
+    where.negocioId = negocioId
   } else if (apenasLead) {
-    where.oportunidadeId = null
+    where.negocioId = null
   }
 
   const tarefas = await prisma.tarefa.findMany({
@@ -156,27 +156,27 @@ export const listTarefasByLead = async (leadIdParam, query = {}) => {
   return sortTarefas(tarefas).map(mapTarefaToResponse)
 }
 
-export const listTarefasByOportunidade = async (oportunidadeIdParam) => {
-  const oportunidadeId = parseId(oportunidadeIdParam)
-  if (!oportunidadeId) {
-    const error = new Error(ErrorMessages.invalidOportunidadeId)
+export const listTarefasByNegocio = async (negocioIdParam) => {
+  const negocioId = parseId(negocioIdParam)
+  if (!negocioId) {
+    const error = new Error(ErrorMessages.invalidNegocioId)
     error.statusCode = 400
     throw error
   }
 
-  const oportunidade = await prisma.oportunidade.findUnique({
-    where: { id: oportunidadeId },
+  const negocio = await prisma.negocio.findUnique({
+    where: { id: negocioId },
     select: { id: true },
   })
 
-  if (!oportunidade) {
-    const error = new Error(ErrorMessages.oportunidadeNotFound)
+  if (!negocio) {
+    const error = new Error(ErrorMessages.negocioNotFound)
     error.statusCode = 404
     throw error
   }
 
   const tarefas = await prisma.tarefa.findMany({
-    where: { oportunidadeId },
+    where: { negocioId },
     include: tarefaInclude,
   })
 
@@ -192,7 +192,7 @@ export const createTarefaForLead = async (leadIdParam, body) => {
   }
 
   await assertLeadExists(leadId)
-  const { oportunidadeId: _ignored, ...leadBody } = body
+  const { negocioId: _ignored, ...leadBody } = body
   const data = await buildTarefaData(leadBody, leadId)
 
   const tarefa = await prisma.tarefa.create({
@@ -203,26 +203,26 @@ export const createTarefaForLead = async (leadIdParam, body) => {
   return mapTarefaToResponse(tarefa)
 }
 
-export const createTarefaForOportunidade = async (oportunidadeIdParam, body) => {
-  const oportunidadeId = parseId(oportunidadeIdParam)
-  if (!oportunidadeId) {
-    const error = new Error(ErrorMessages.invalidOportunidadeId)
+export const createTarefaForNegocio = async (negocioIdParam, body) => {
+  const negocioId = parseId(negocioIdParam)
+  if (!negocioId) {
+    const error = new Error(ErrorMessages.invalidNegocioId)
     error.statusCode = 400
     throw error
   }
 
-  const oportunidade = await prisma.oportunidade.findUnique({
-    where: { id: oportunidadeId },
+  const negocio = await prisma.negocio.findUnique({
+    where: { id: negocioId },
     select: { id: true, leadId: true },
   })
 
-  if (!oportunidade) {
-    const error = new Error(ErrorMessages.oportunidadeNotFound)
+  if (!negocio) {
+    const error = new Error(ErrorMessages.negocioNotFound)
     error.statusCode = 404
     throw error
   }
 
-  const data = await buildTarefaData(body, oportunidade.leadId, oportunidadeId)
+  const data = await buildTarefaData(body, negocio.leadId, negocioId)
 
   const tarefa = await prisma.tarefa.create({
     data,
@@ -247,7 +247,7 @@ export const updateTarefa = async (idParam, body) => {
     throw error
   }
 
-  const data = await buildTarefaData(body, existing.leadId, existing.oportunidadeId)
+  const data = await buildTarefaData(body, existing.leadId, existing.negocioId)
 
   const tarefa = await prisma.tarefa.update({
     where: { id },

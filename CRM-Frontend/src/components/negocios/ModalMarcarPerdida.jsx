@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { Settings2, X } from 'lucide-react'
 import ModalGerenciarMotivosPerda from './ModalGerenciarMotivosPerda'
 import { fetchMotivosPerda } from '../../services/motivosPerdaService'
-import { marcarOportunidadePerdida } from '../../services/oportunidadesService'
+import { marcarNegocioPerdida } from '../../services/negociosService'
 
-function ModalMarcarPerdida({ oportunidade, currentUser, onClose, onSuccess }) {
+function ModalMarcarPerdida({ negocio, currentUser, onClose, onSuccess }) {
   const [motivos, setMotivos] = useState([])
   const [motivoPerdaId, setMotivoPerdaId] = useState('')
   const [loading, setLoading] = useState(true)
@@ -44,7 +44,7 @@ function ModalMarcarPerdida({ oportunidade, currentUser, onClose, onSuccess }) {
     setSaving(true)
     setError('')
     try {
-      await marcarOportunidadePerdida(oportunidade.id, {
+      await marcarNegocioPerdida(negocio.id, {
         motivoPerdaId: Number(motivoPerdaId),
         usuarioId: currentUser?.id,
       })
@@ -62,13 +62,13 @@ function ModalMarcarPerdida({ oportunidade, currentUser, onClose, onSuccess }) {
       <div className="modalOverlay" onClick={onClose}>
         <div className="modalCard" onClick={(event) => event.stopPropagation()}>
           <div className="modalHeader">
-            <h3>Marcar oportunidade como perdida</h3>
+            <h3>Marcar negócio como perdido</h3>
             <button type="button" className="iconBtn" onClick={onClose} aria-label="Fechar">
               <X size={20} />
             </button>
           </div>
           <p className="modalHint">
-            A oportunidade <strong>{oportunidade.titulo}</strong> será movida para a etapa Perdida.
+            O negócio <strong>{negocio.titulo}</strong> será movido para a etapa Perdida.
           </p>
           <form onSubmit={handleSubmit}>
             <label className="inputGroup fullLine">

@@ -71,7 +71,7 @@ function Relatorios() {
 
   return (
     <>
-      <Header title="Relatórios" subtitle="Análise de leads, oportunidades e desempenho comercial" />
+      <Header title="Relatórios" subtitle="Análise de leads, negócios e desempenho comercial" />
       <section className="filtersPanel">
         <label>
           <span>Data inicial</span>
@@ -116,11 +116,11 @@ function Relatorios() {
                 </li>
                 <li>
                   <CheckCircle2 size={18} />
-                  Oportunidades abertas no período: <strong>{relatorio.oportunidadesAbertas}</strong>
+                  Negócios abertos no período: <strong>{relatorio.negociosAbertas}</strong>
                 </li>
                 <li>
                   <CheckCircle2 size={18} />
-                  Oportunidades fechadas no período: <strong>{relatorio.oportunidadesFechadas}</strong>
+                  Negócios fechados no período: <strong>{relatorio.negociosFechadas}</strong>
                 </li>
                 <li>
                   <CheckCircle2 size={18} />

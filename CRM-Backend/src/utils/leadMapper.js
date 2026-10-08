@@ -1,5 +1,5 @@
 import { formatDateBr } from './date.js'
-import { mapOportunidadeToResponse } from './oportunidadeMapper.js'
+import { mapNegocioToResponse } from './negocioMapper.js'
 
 export const mapLeadToResponse = (lead) => ({
   id: lead.id,
@@ -22,9 +22,9 @@ export const leadIncludeUsuario = {
 
 export const leadIncludeDetail = {
   usuario: { select: { id: true, nome: true } },
-  oportunidades: {
+  negocios: {
     include: {
-      usuario: { select: { id: true, nome: true } },
+      responsaveis: { select: { id: true, nome: true, avatarUrl: true } },
       lead: { select: { id: true, nome: true, empresa: true } },
       etapaFunil: { select: { id: true, nome: true, ordem: true } },
     },
@@ -34,5 +34,5 @@ export const leadIncludeDetail = {
 
 export const mapLeadDetailToResponse = (lead) => ({
   ...mapLeadToResponse(lead),
-  oportunidades: (lead.oportunidades ?? []).map(mapOportunidadeToResponse),
+  negocios: (lead.negocios ?? []).map(mapNegocioToResponse),
 })

@@ -10,7 +10,7 @@ const InteracaoTipoLabels = {
 
 export const interacaoInclude = {
   usuario: { select: { id: true, nome: true } },
-  oportunidade: { select: { id: true, titulo: true } },
+  negocio: { select: { id: true, titulo: true } },
 }
 
 export const mapInteracaoToResponse = (interacao) => ({
@@ -20,8 +20,8 @@ export const mapInteracaoToResponse = (interacao) => ({
   descricao: interacao.descricao,
   dataInteracao: formatDateTimeBr(interacao.dataInteracao),
   leadId: interacao.leadId,
-  oportunidadeId: interacao.oportunidadeId,
-  oportunidadeTitulo: interacao.oportunidade?.titulo ?? null,
+  negocioId: interacao.negocioId,
+  negocioTitulo: interacao.negocio?.titulo ?? null,
   usuarioId: interacao.usuarioId,
   responsavel: interacao.usuario?.nome ?? null,
 })

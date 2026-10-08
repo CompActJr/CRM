@@ -114,7 +114,7 @@ export const deleteMotivoPerda = async (idParam) => {
     throw error
   }
 
-  const inUse = await prisma.oportunidade.count({ where: { motivoPerdaId: id } })
+  const inUse = await prisma.negocio.count({ where: { motivoPerdaId: id } })
   if (inUse > 0) {
     const error = new Error(ErrorMessages.motivoPerdaInUse)
     error.statusCode = 400
