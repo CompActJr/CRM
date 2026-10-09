@@ -94,13 +94,13 @@ irm http://localhost:3333/auth/login -Method POST -Body $body -ContentType 'appl
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| POST | `/auth/login` | Login |
-| GET | `/leads` | Listar leads |
-| GET | `/leads/:id` | Buscar lead |
-| POST | `/leads` | Criar lead |
-| PUT | `/leads/:id` | Atualizar lead |
-| DELETE | `/leads/:id` | Excluir lead |
-| GET | `/usuarios` | Listar usuários |
+| POST | `/auth/login` | [Autenticar usuário](docs/endpoints/auth-login/README.md) |
+| GET | `/leads` | [Listar leads](docs/endpoints/leads-list/README.md) |
+| GET | `/leads/:id` | [Buscar lead](docs/endpoints/leads-get-by-id/README.md) |
+| POST | `/leads` | [Criar lead](docs/endpoints/leads-create/README.md) |
+| PUT | `/leads/:id` | [Atualizar lead](docs/endpoints/leads-update/README.md) |
+| DELETE | `/leads/:id` | [Excluir lead](docs/endpoints/leads-delete/README.md) |
+| GET | `/usuarios` | [Listar usuários](docs/endpoints/usuarios-list/README.md) |
 
 ## Comandos úteis
 

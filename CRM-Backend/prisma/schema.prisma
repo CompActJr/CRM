@@ -59,7 +59,7 @@ model Usuario {
   interacoes    Interacao[]
   tarefas       Tarefa[]
   propostas     Proposta[]
-  avatar_url    String
+  avatar_url    String?
 
   @@map("usuario")
 }

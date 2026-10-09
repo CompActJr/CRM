@@ -1,0 +1,60 @@
+{
+  "base_url": "http://localhost:3333",
+
+  "tests": [
+    {
+      "name": "Health Check",
+      "method": "GET",
+      "path": "/health"
+    },
+    {
+      "name": "Login",
+      "method": "POST",
+      "path": "/auth/login",
+      "body": {
+        "email": "admin@empresa.com",
+        "senha": "123456"
+      }
+    },
+    {
+      "name": "Listar Leads",
+      "method": "GET",
+      "path": "/leads"
+    },
+    {
+      "name": "Criar Leads",
+      "type": "create_leads",
+      "method": "POST",
+      "path": "/leads",
+      "usuarioId": 2
+    },
+    {
+      "name": "Listar Oportunidades",
+      "method": "GET",
+      "path": "/oportunidades"
+    },
+    {
+      "name": "Dashboard",
+      "method": "GET",
+      "path": "/dashboard"
+    }
+  ],
+
+  "load_profiles": [
+    {
+      "name": "Baixa",
+      "requests": 50,
+      "concurrency": 5
+    },
+    {
+      "name": "Média",
+      "requests": 100,
+      "concurrency": 10
+    },
+    {
+      "name": "Alta",
+      "requests": 1000,
+      "concurrency": 100
+    }
+  ]
+}
