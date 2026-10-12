@@ -60,6 +60,7 @@ model Usuario {
   tarefas       Tarefa[]
   propostas     Proposta[]
   avatar_url    String?
+  ativo         Boolean        @default(true)
 
   @@map("usuario")
 }
