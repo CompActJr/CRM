@@ -3,6 +3,7 @@ import { mapNegocioToResponse } from './negocioMapper.js'
 
 export const mapLeadToResponse = (lead) => ({
   id: lead.id,
+  cnpj: lead.cnpj,
   nome: lead.nome,
   email: lead.email,
   telefone: lead.telefone,

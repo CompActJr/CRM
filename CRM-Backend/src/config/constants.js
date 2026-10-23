@@ -14,6 +14,7 @@ export const EtapasFunilDefault = [
 export const ErrorMessages = {
   invalidLeadId: 'ID do lead inválido',
   leadNotFound: 'Lead não encontrado',
+  cnpjInUse: 'CNPJ já cadastrado para outro lead',
   invalidUsuarioId: 'ID do usuário responsável inválido',
   usuarioNotFound: 'Usuário responsável não encontrado',
   responsaveisRequired: 'Pelo menos um responsável deve ser informado',

@@ -6,6 +6,7 @@ import { createLead, fetchLeadById, updateLead } from '../services/leadsService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
 
 const EmptyForm = {
+  cnpj: '',
   nome: '',
   email: '',
   telefone: '',
@@ -48,6 +49,7 @@ function LeadForm({ setScreen, leadId }) {
         }
         const lead = await fetchLeadById(leadId)
         setForm({
+          cnpj: lead.cnpj ?? '',
           nome: lead.nome ?? '',
           email: lead.email ?? '',
           telefone: lead.telefone ?? '',
@@ -71,6 +73,16 @@ function LeadForm({ setScreen, leadId }) {
   const handleChange = (event) => {
     const { name, value } = event.target
     setForm((current) => ({ ...current, [name]: value }))
+  }
+
+  const handleCnpjChange = (event) => {
+    const digits = event.target.value.replace(/\D/g, '').slice(0, 14)
+    const formatted = digits
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/(\.\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+    setForm((current) => ({ ...current, cnpj: formatted }))
   }
 
   const handleSubmit = async (event) => {
@@ -123,6 +135,13 @@ function LeadForm({ setScreen, leadId }) {
               value={form.nome}
               onChange={handleChange}
               required
+            />
+            <Field
+              label="CNPJ"
+              name="cnpj"
+              placeholder="00.000.000/0000-00"
+              value={form.cnpj}
+              onChange={handleCnpjChange}
             />
             <Field
               label="Email"

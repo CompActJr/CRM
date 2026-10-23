@@ -38,7 +38,7 @@ const normalizeString = (string) => {
   return normalized || null
 }
 
-const buildLeadData = async (body) => {
+const buildLeadData = async (body, excludeId = null) => {
   const nome = body.nome?.trim().toLowerCase()
   if (!nome) {
     const error = new Error(ErrorMessages.nomeRequired)
@@ -71,8 +71,22 @@ const buildLeadData = async (body) => {
 
   const status = body.status === 'Inativo' ? 'Inativo' : 'Ativo'
 
+  // Valida CNPJ duplicado
+  const cnpj = body.cnpj?.trim() || null
+  if (cnpj) {
+    const where = { cnpj }
+    if (excludeId) where.NOT = { id: excludeId }
+    const existing = await prisma.lead.findFirst({ where })
+    if (existing) {
+      const error = new Error(ErrorMessages.cnpjInUse)
+      error.statusCode = 409
+      throw error
+    }
+  }
+
   return {
     nome,
+    cnpj,
     email: body.email?.trim() || null,
     telefone: body.telefone?.trim() || null,
     empresa: body.empresa?.trim().toLowerCase() || null,
@@ -97,6 +111,7 @@ export const listLeads = async (query = {}) => {
   const usuarioId = parseUsuarioIdFilter(query)
   const status = parseStatusFilter(query)
   const nome = normalizeString(query.nome)
+  const cnpj = normalizeString(query.cnpj)
   const empresa = normalizeString(query.empresa)
   const cidade = normalizeString(query.cidade)
   const nicho = normalizeString(query.nicho)
@@ -125,24 +140,26 @@ export const listLeads = async (query = {}) => {
   }
 
   if (nome) {
-    where.nome = nome
+    where.nome = { contains: nome, mode: 'insensitive' }
+  }
+
+  if (cnpj) {
+    where.cnpj = { contains: cnpj, mode: 'insensitive' }
   }
 
   if (empresa) {
-    where.empresa = empresa
+    where.empresa = { contains: empresa, mode: 'insensitive' }
   }
 
   if (cidade) {
-    where.cidade = cidade
+    where.cidade = { contains: cidade, mode: 'insensitive' }
   }
 
   if (dataInicio || dataFim) {
     where.dataCadastro = {}
-
     if (dataInicio) {
       where.dataCadastro.gte = dataInicio
     }
-
     if (dataFim) {
       where.dataCadastro.lte = dataFim
     }
@@ -153,7 +170,7 @@ export const listLeads = async (query = {}) => {
   }
 
   if (nicho) {
-    where.nicho = nicho
+    where.nicho = { contains: nicho, mode: 'insensitive' }
   }
 
   const leads = await prisma.lead.findMany({
@@ -222,7 +239,7 @@ export const updateLead = async (idParam, body) => {
     throw error
   }
 
-  const data = await buildLeadData(body)
+  const data = await buildLeadData(body, id)
   const lead = await prisma.lead.update({
     where: { id },
     data,
