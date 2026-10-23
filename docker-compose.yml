@@ -13,6 +13,8 @@ services:
       PORT: 3333
     ports:
       - "3333:3333"
+    #depends_on:
+    #  - postgres
 
   frontend:
     build:
@@ -25,3 +27,17 @@ services:
       - api
     ports:
       - "8080:80"
+
+#   postgres:
+#     image: postgres:17
+#     container_name: crm-compact-postgres
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_DB: crm_local
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+
+# volumes:
+#   postgres_data:

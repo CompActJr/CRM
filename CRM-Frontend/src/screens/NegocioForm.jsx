@@ -244,7 +244,7 @@ function NegocioForm({ setScreen, negocioId }) {
     <>
       <Header
         title={isEditing ? 'Editar Negócio' : 'Cadastro de Negócio'}
-        subtitle="Crie ou edite um negócio de venda"
+        subtitle="Crie ou edite um negócio"
       />
       <section className="formPanel">
         <form onSubmit={handleSubmit}>
@@ -263,7 +263,7 @@ function NegocioForm({ setScreen, negocioId }) {
             <Field
               label="Título do negócio"
               name="titulo"
-              placeholder="Ex: Projeto CRM Simplificado"
+              placeholder="Ex: Venda de Consultoria"
               value={form.titulo}
               onChange={handleChange}
               required
@@ -292,25 +292,38 @@ function NegocioForm({ setScreen, negocioId }) {
                 required
               />
             </label>
-            <label className="inputGroup">
-              <span>Prioridade</span>
-              <select name="prioridade" value={form.prioridade} onChange={handleChange}>
-                <option value="Baixa">Baixa</option>
-                <option value="Média">Média</option>
-                <option value="Alta">Alta</option>
-              </select>
-            </label>
-            <label className="inputGroup">
-              <span>Etapa do funil</span>
-              <select name="etapaFunilId" value={form.etapaFunilId} onChange={handleChange} required>
-                <option value="">Selecione</option>
-                {etapas.map((etapa) => (
-                  <option key={etapa.id} value={etapa.id}>
-                    {etapa.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
+
+            <SearchableSelect
+              label="Prioridade"
+              placeholder="Selecione uma prioridade"
+              searchPlaceholder="Buscar prioridade..."
+              options={[
+                { value: 'Baixa', label: 'Baixa' },
+                { value: 'Média', label: 'Média' },
+                { value: 'Alta', label: 'Alta' },
+              ]}
+              value={form.prioridade}
+              onChange={(nextPrioridade) =>
+                setForm((current) => ({ ...current, prioridade: nextPrioridade }))
+              }
+              required
+            />
+
+            <SearchableSelect
+              label="Etapa do funil"
+              placeholder="Selecione uma etapa"
+              searchPlaceholder="Buscar etapa..."
+              options={etapas.map((etapa) => ({
+                value: etapa.id,
+                label: etapa.nome,
+              }))}
+              value={form.etapaFunilId}
+              onChange={(nextEtapaId) =>
+                setForm((current) => ({ ...current, etapaFunilId: nextEtapaId }))
+              }
+              required
+            />
+
           </div>
           {error && <p className="formError">{error}</p>}
           <div className="formActions">

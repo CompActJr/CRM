@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Download, Edit, Eye, Plus, Search, Trash2, Upload, ArrowDown, ArrowUp } from 'lucide-react'
 import Header from '../components/layout/Header'
-import FiltroResponsavel from '../components/filtros/FiltroResponsavel'
 import TarefaPendenteTag from '../components/tarefas/TarefaPendenteTag'
 import {
   deleteLead,
@@ -9,6 +8,8 @@ import {
   fetchLeads,
   importLeads,
 } from '../services/leadsService'
+import SearchableSelect from '../components/common/SearchableSelect'
+import { fetchUsuariosOpcoes } from '../services/usuariosService'
 
 const ImportRules = {
   upsert: 'upsert',
@@ -21,6 +22,7 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState({
     nome: '',
+    cnpj: '',
     empresa: '',
     usuarioId: '',
     cidade: '',
@@ -39,6 +41,7 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
   const [importError, setImportError] = useState('')
   const [importSummary, setImportSummary] = useState(null)
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
+  const [users, setUsers] = useState([])
 
   const loadLeads = useCallback(async () => {
     setLoading(true)
@@ -55,6 +58,7 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
 
   useEffect(() => {
     loadLeads()
+    fetchUsuariosOpcoes().then(setUsers).catch(() => {})
   }, [loadLeads])
 
   const filteredLeads = useMemo(() => {
@@ -127,7 +131,7 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
 
   return (
     <>
-      <Header title="Leads" subtitle="Cadastro e acompanhamento de clientes potenciais" />
+      <Header title="Leads" subtitle="Cadastro e acompanhamento de potenciais clientes" />
       <div className="toolbar">
         <div className="searchBox">
           <Search size={18} />
@@ -165,6 +169,20 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
                 }
               />
             </label>
+
+            <label className="inputGroup">
+              <span>CNPJ</span>
+              <input
+                value={filters.cnpj}
+                onChange={(event) =>
+                  setFilters({
+                    ...filters,
+                    cnpj: event.target.value,
+                  })
+                }
+              />
+            </label>
+
             <label className="inputGroup">
               <span>Empresa</span>
               <input
@@ -179,15 +197,19 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
             </label>
             <label className="inputGroup">
               <span>Responsável</span>
-              <FiltroResponsavel
+              
+              <SearchableSelect
+                options={users.map((user) => ({ value: user.id.toString(), label: user.nome }))}
                 value={filters.usuarioId}
                 onChange={(value) =>
-                  setFilters ({
+                  setFilters({
                     ...filters,
                     usuarioId: value,
                   })
                 }
+                placeholder="Selecione o responsável"
               />
+
             </label>
             <label className="inputGroup">
               <span>Cidade</span>
@@ -241,19 +263,21 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
             </label>
             <label className="inputGroup">
               <span>Status</span>
-              <select
+              <SearchableSelect   
+                options={[
+                  { value: '', label: 'Todos' },
+                  { value: 'Ativo', label: 'Ativo' },
+                  { value: 'Inativo', label: 'Inativo' },
+                ]}
                 value={filters.status}
-                onChange={(event) =>
+                onChange={(value) =>
                   setFilters({
                     ...filters,
-                    status: event.target.value,
+                    status: value,
                   })
                 }
-              >
-                <option value="">Todos</option>
-                <option value="Ativo">Ativo</option>
-                <option value="Inativo">Inativo</option>
-              </select>
+                placeholder="Selecione o status"
+              />
             </label>
             <button onClick={applyFilters} className="primaryBtn fullLine">
               Filtrar
@@ -369,6 +393,7 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
             <thead>
               <tr>
                 <th>Nome</th>
+                <th>CNPJ</th>
                 <th>Empresa</th>
                 <th>Responsável</th>
                 <th>Cidade</th>

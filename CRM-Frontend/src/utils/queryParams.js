@@ -6,6 +6,7 @@ export const buildLeadFilterQuery = (params = {}) => {
   const query = new URLSearchParams()
 
   if (params.nome) query.set('nome', params.nome)
+  if (params.cnpj) query.set('cnpj', params.cnpj)
   if (params.empresa) query.set('empresa', params.empresa)
   if (params.usuarioId) query.set('usuarioId', params.usuarioId)
   if (params.cidade) query.set('cidade', params.cidade)

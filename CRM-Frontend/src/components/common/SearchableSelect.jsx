@@ -26,6 +26,7 @@ function SearchableSelect({
   searchPlaceholder = 'Pesquisar...',
   required = false,
   disabled = false,
+  className = '',
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -98,7 +99,7 @@ function SearchableSelect({
   const selectedItems = getSelectedLabels()
 
   return (
-    <div className="inputGroup searchableSelectContainer" ref={containerRef}>
+    <div className={`inputGroup searchableSelectContainer${className ? ` ${className}` : ''}`} ref={containerRef}>
       {label && (
         <span className="searchableSelectLabel">
           {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
