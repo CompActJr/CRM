@@ -102,6 +102,7 @@ model Lead {
   id            Int            @id @default(autoincrement())
   nome          String         @db.VarChar(120)
   email         String?        @db.VarChar(180)
+  cnpj          String?        @db.VarChar(18)
   telefone      String?        @db.VarChar(30)
   empresa       String?        @db.VarChar(120)
   cidade        String?        @db.VarChar(80)

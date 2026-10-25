@@ -37,7 +37,22 @@ export const registrarMudancaEtapa = async (
 
 export const calcularTempoMedioPorEtapa = async (query = {}) => {
   const usuarioId = parseUsuarioIdFilter(query)
-  const filtroOportunidade = usuarioId ? { oportunidade: { usuarioId } } : {}
+  const filtroOportunidade = {}
+  const oportunidadeWhere = {
+    ...(usuarioId ? { usuarioId } : {}),
+    ...(query.lead ? { lead: query.lead } : {}),
+    ...(query.dataInicio || query.dataFim
+      ? {
+          dataCriacao: {
+            ...(query.dataInicio ? { gte: query.dataInicio } : {}),
+            ...(query.dataFim ? { lte: query.dataFim } : {}),
+          },
+        }
+      : {}),
+  }
+  if (Object.keys(oportunidadeWhere).length > 0) {
+    filtroOportunidade.oportunidade = { is: oportunidadeWhere }
+  }
 
   const [etapas, registros] = await Promise.all([
     prisma.etapaFunil.findMany({ orderBy: { ordem: 'asc' } }),

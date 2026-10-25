@@ -1114,6 +1114,190 @@ th {
   color: #475569;
 }
 
+.reportFilters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 20px;
+}
+
+.reportFiltersHeading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.reportFiltersHeading h2,
+.reportFiltersHeading p,
+.reportLossPanel h2,
+.reportLossPanel p {
+  margin: 0;
+}
+
+.reportFiltersHeading h2,
+.reportLossPanel h2 {
+  font-size: 15px;
+}
+
+.reportFiltersHeading p {
+  color: #64748b;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.reportFilters label {
+  gap: 6px;
+  color: #475569;
+  font-size: 12px;
+}
+
+.reportFilters input,
+.reportFilters select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #fff;
+  color: #1e293b;
+  padding: 11px 12px;
+  font-size: 13px;
+}
+
+.reportFilters .primaryBtn {
+  white-space: nowrap;
+}
+
+.reportGenerateBtn {
+  grid-column: 4;
+  justify-self: end;
+}
+
+.reportSectionIcon,
+.reportMetricIcon,
+.reportEmptyIcon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.reportSectionIcon.warning {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.reportEmptyState {
+  text-align: center;
+  padding: 54px 24px;
+}
+
+.reportEmptyIcon {
+  margin: 0 auto 14px;
+  width: 52px;
+  height: 52px;
+}
+
+.reportEmptyState h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.reportEmptyState p {
+  margin: 0;
+  color: #64748b;
+}
+
+.reportResultsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 28px 0 16px;
+}
+
+.reportResultsHeader h2 {
+  margin: 5px 0;
+  font-size: 22px;
+}
+
+.reportResultsHeader p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.reportResultsHeader .reportAppliedFilters {
+  margin-top: 5px;
+  color: #475569;
+}
+
+.reportExportButtons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.reportEyebrow {
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.reportMetricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.reportMetric {
+  padding: 18px;
+  min-width: 0;
+}
+
+.reportMetricIcon {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 14px;
+}
+
+.reportMetricIcon.violet { background: #f5f3ff; color: #7c3aed; }
+.reportMetricIcon.amber { background: #fffbeb; color: #b45309; }
+.reportMetricIcon.green { background: #f0fdf4; color: #15803d; }
+.reportMetric span { display: block; min-height: 34px; color: #64748b; font-size: 12px; }
+.reportMetric strong { display: block; margin: 4px 0; color: #0f172a; font-size: 28px; }
+.reportMetric small { color: #94a3b8; font-size: 11px; font-weight: 500; }
+
+.reportDetailsGrid {
+  margin-bottom: 24px;
+}
+
+.reportLossPanel {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.reportLossPanel p {
+  color: #475569;
+  margin-top: 9px;
+}
+
+.reportSpinner {
+  animation: reportSpin 1s linear infinite;
+}
+
+@keyframes reportSpin {
+  to { transform: rotate(360deg); }
+}
+
 .leadStatusList {
   display: flex;
   flex-direction: column;
@@ -1455,4 +1639,48 @@ th {
   font-size: 0.85rem;
   color: #64748b;
   line-height: 1.4;
+}
+
+@media (max-width: 1100px) {
+  .reportFilters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reportFiltersHeading {
+    grid-column: 1 / -1;
+  }
+
+  .reportGenerateBtn {
+    grid-column: auto;
+    justify-self: stretch;
+  }
+}
+
+@media (max-width: 640px) {
+  .reportFilters {
+    grid-template-columns: 1fr;
+  }
+
+  .reportFiltersHeading {
+    grid-column: auto;
+  }
+
+  .reportResultsHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .reportExportButtons {
+    width: 100%;
+    justify-content: stretch;
+    flex-direction: column;
+  }
+
+  .reportExportButtons button {
+    width: 100%;
+  }
+
+  .reportMetricsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
