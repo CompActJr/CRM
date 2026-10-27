@@ -1,6 +1,6 @@
 import { formatDateTimeBr } from './date.js'
 
-const InteracaoTipoLabels = {
+export const InteracaoTipoLabels = {
   Ligacao: 'Ligação',
   Email: 'E-mail',
   Reuniao: 'Reunião',

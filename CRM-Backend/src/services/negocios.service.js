@@ -1,5 +1,6 @@
 import { ErrorMessages } from '../config/constants.js'
 import prisma from '../lib/prisma.js'
+import { TransactionOptions } from '../lib/transaction.js'
 import { parseValorEstimado } from '../utils/currency.js'
 import { mapNegocioToResponse, negocioInclude } from '../utils/negocioMapper.js'
 import { parsePrioridade } from '../utils/prioridade.js'
@@ -9,6 +10,10 @@ import {
   registrarEntradaEtapa,
   registrarMudancaEtapa,
 } from './negocioEtapaHistorico.service.js'
+import {
+  registrarResponsaveisNegocio,
+  sincronizarResponsaveisNegocio,
+} from './responsavelHistorico.service.js'
 import {
   buildTarefaResumo,
   collectNegocioPendingDates,
@@ -235,8 +240,9 @@ export const createNegocio = async (body) => {
       include: negocioInclude,
     })
     await registrarEntradaEtapa(tx, created.id, created.etapaFunilId, created.dataCriacao)
+    await registrarResponsaveisNegocio(tx, created.id, responsaveisIds, created.dataCriacao)
     return created
-  })
+  }, TransactionOptions)
 
   return mapNegocioToResponse(negocio)
 }
@@ -264,6 +270,8 @@ export const updateNegocio = async (idParam, body) => {
       await registrarMudancaEtapa(tx, id, rest.etapaFunilId)
     }
 
+    await sincronizarResponsaveisNegocio(tx, id, responsaveisIds)
+
     return tx.negocio.update({
       where: { id },
       data: {
@@ -274,7 +282,7 @@ export const updateNegocio = async (idParam, body) => {
       },
       include: negocioInclude,
     })
-  })
+  }, TransactionOptions)
 
   return mapNegocioToResponse(negocio)
 }
@@ -373,7 +381,7 @@ export const marcarNegocioComoPerdida = async (idParam, body) => {
     }
 
     return updated
-  })
+  }, TransactionOptions)
 
   return mapNegocioToResponse(negocio)
 }

@@ -1722,6 +1722,24 @@ th {
   gap: 10px;
 }
 
+.timelineFilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.timelineFilters select {
+  padding: 9px 12px;
+}
+
+.timelineFiltersCount {
+  color: #64748b;
+  font-size: 13px;
+  margin-left: auto;
+}
+
 .timelineCard,
 .taskCard {
   background: #f8fafc;
@@ -1756,6 +1774,74 @@ th {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
+}
+
+.timelineBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.timelineBadge-interacao {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.timelineBadge-tarefa {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.timelineBadge-etapa {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.timelineBadge-proposta {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.timelineBadge-negocio {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.timelineBadge-responsavel {
+  background: #ffe4e6;
+  color: #be123c;
+}
+
+.timelineResponsaveis {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.timelineEventoTitulo {
+  display: block;
+  margin-top: 8px;
+  color: #1e293b;
+}
+
+.timelineMeta .timelineNegocioTag {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-size: 12px;
+  color: #475569;
 }
 
 .taskCard {

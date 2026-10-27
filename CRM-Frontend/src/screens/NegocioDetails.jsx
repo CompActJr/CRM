@@ -3,6 +3,7 @@ import { Download, FileText, XCircle } from 'lucide-react'
 import PainelInteracoes from '../components/interacoes/PainelInteracoes'
 import PainelPropostas from '../components/propostas/PainelPropostas'
 import PainelTarefas from '../components/tarefas/PainelTarefas'
+import PainelTimeline from '../components/timeline/PainelTimeline'
 import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
 import Header from '../components/layout/Header'
 import { fetchPropostasByNegocio, downloadPropostaPdf } from '../services/propostasService'
@@ -215,7 +216,13 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
 
             <button className={activeTab === 'timeline' ? 'leadTab active' : 'leadTab'} onClick={() => setActiveTab('timeline')}>
 
-              Linha do tempo
+              Histórico
+
+            </button>
+
+            <button className={activeTab === 'interacoes' ? 'leadTab active' : 'leadTab'} onClick={() => setActiveTab('interacoes')}>
+
+              Interações
 
             </button>
 
@@ -242,6 +249,14 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
 
 
           {activeTab === 'timeline' && (
+
+            <PainelTimeline negocioId={negocio.id} />
+
+          )}
+
+
+
+          {activeTab === 'interacoes' && (
 
             <PainelInteracoes
 

@@ -1,6 +1,7 @@
 import { ErrorMessages } from '../config/constants.js'
 import prisma from '../lib/prisma.js'
-import { parseDateInput } from '../utils/date.js'
+import { TransactionOptions } from '../lib/transaction.js'
+import { parseDateInput, toDateOnlyInstant } from '../utils/date.js'
 import { parseUsuarioIdFilter } from '../utils/usuarioFilter.js'
 import {
   leadIncludeDetail,
@@ -13,6 +14,10 @@ import {
   collectLeadPendingDates,
   sortByPendingTasks,
 } from '../utils/tarefaResumo.js'
+import {
+  registrarResponsavelLead,
+  sincronizarResponsavelLead,
+} from './responsavelHistorico.service.js'
 
 const parseLeadId = (id) => {
   const parsed = Number(id)
@@ -217,10 +222,19 @@ export const getLeadById = async (idParam) => {
 
 export const createLead = async (body) => {
   const data = await buildLeadData(body)
-  const lead = await prisma.lead.create({
-    data,
-    include: leadIncludeUsuario,
-  })
+  const lead = await prisma.$transaction(async (tx) => {
+    const created = await tx.lead.create({
+      data,
+      include: leadIncludeUsuario,
+    })
+    await registrarResponsavelLead(
+      tx,
+      created.id,
+      created.usuarioId,
+      toDateOnlyInstant(created.dataCadastro)
+    )
+    return created
+  }, TransactionOptions)
   return mapLeadToResponse(lead)
 }
 
@@ -240,11 +254,17 @@ export const updateLead = async (idParam, body) => {
   }
 
   const data = await buildLeadData(body, id)
-  const lead = await prisma.lead.update({
-    where: { id },
-    data,
-    include: leadIncludeUsuario,
-  })
+  const lead = await prisma.$transaction(async (tx) => {
+    const updated = await tx.lead.update({
+      where: { id },
+      data,
+      include: leadIncludeUsuario,
+    })
+    if (updated.usuarioId !== existing.usuarioId) {
+      await sincronizarResponsavelLead(tx, id, updated.usuarioId)
+    }
+    return updated
+  }, TransactionOptions)
   return mapLeadToResponse(lead)
 }
 

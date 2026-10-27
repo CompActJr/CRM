@@ -55,6 +55,8 @@ app.get('/', (_request, response) => {
       tarefas: '/tarefas',
       negocioPropostas: '/negocios/:negocioId/propostas',
       propostas: '/propostas',
+      leadTimeline: '/leads/:leadId/timeline',
+      negocioTimeline: '/negocios/:negocioId/timeline',
     },
   })
 })

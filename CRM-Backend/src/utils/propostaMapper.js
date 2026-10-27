@@ -1,7 +1,7 @@
 import { formatCurrencyBr } from './currency.js'
 import { formatDateBr } from './date.js'
 
-const PropostaStatusLabels = {
+export const PropostaStatusLabels = {
   Rascunho: 'Rascunho',
   Enviada: 'Enviada',
   EmNegociacao: 'Em negociação',
