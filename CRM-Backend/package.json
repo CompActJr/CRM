@@ -12,7 +12,8 @@
     "db:reset": "prisma migrate reset --force",
     "db:bootstrap-motivos": "node prisma/bootstrapMotivosPerda.js",
     "db:studio": "prisma studio",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "db:fix-interacao-tz": "node prisma/fixInteracaoTimezone.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

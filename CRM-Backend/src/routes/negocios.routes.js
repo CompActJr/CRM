@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import * as interacoesController from '../controllers/interacoes.controller.js'
 import * as tarefasController from '../controllers/tarefas.controller.js'
+import * as timelineController from '../controllers/timeline.controller.js'
 import * as negociosController from '../controllers/negocios.controller.js'
 import * as propostasController from '../controllers/propostas.controller.js'
 
@@ -13,6 +14,7 @@ negociosRoutes.get('/:negocioId/interacoes', interacoesController.listByNegocio)
 negociosRoutes.post('/:negocioId/interacoes', interacoesController.createForNegocio)
 negociosRoutes.get('/:negocioId/tarefas', tarefasController.listByNegocio)
 negociosRoutes.post('/:negocioId/tarefas', tarefasController.createForNegocio)
+negociosRoutes.get('/:negocioId/timeline', timelineController.listByNegocio)
 negociosRoutes.get('/:negocioId/propostas', propostasController.listByNegocio)
 negociosRoutes.post('/:negocioId/propostas', propostasController.create)
 negociosRoutes.get('/:id', negociosController.getById)

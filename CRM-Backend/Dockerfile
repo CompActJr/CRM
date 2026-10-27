@@ -1,5 +1,9 @@
 FROM node:20-alpine
 
+# O CRM opera em horário de Brasília; sem TZ o container assume UTC e todo
+# cálculo com data local (relatórios, prazos, PDF) sai 3h deslocado.
+ENV TZ=America/Sao_Paulo
+
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -12,4 +16,4 @@ COPY . .
 
 EXPOSE 3333
 
-CMD ["sh", "-c", "npx prisma db push && node prisma/ensureSeed.js && exec npm start"]
+CMD ["sh", "docker-entrypoint.sh"]

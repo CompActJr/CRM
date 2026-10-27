@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import PainelInteracoes from '../components/interacoes/PainelInteracoes'
 import PainelTarefas from '../components/tarefas/PainelTarefas'
+import PainelTimeline from '../components/timeline/PainelTimeline'
 import Header from '../components/layout/Header'
 import { fetchLeadById } from '../services/leadsService'
 import { getPriorityClass } from '../utils/priorityClass'
@@ -37,7 +38,8 @@ function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio
 
   const tabs = [
     { id: 'negocios', label: 'Negocios' },
-    { id: 'timeline', label: 'Linha do tempo' },
+    { id: 'timeline', label: 'Histórico' },
+    { id: 'interacoes', label: 'Interações' },
     { id: 'tarefas', label: 'Tarefas' },
     { id: 'contact', label: 'Contato' },
     { id: 'notes', label: 'Observações' },
@@ -170,7 +172,9 @@ function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio
             </div>
           )}
 
-          {activeTab === 'timeline' && (
+          {activeTab === 'timeline' && <PainelTimeline leadId={lead.id} />}
+
+          {activeTab === 'interacoes' && (
             <PainelInteracoes
               leadId={lead.id}
               negocios={lead.negocios ?? []}

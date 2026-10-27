@@ -1,6 +1,6 @@
 import { formatDateBr } from './date.js'
 
-const TarefaStatusLabels = {
+export const TarefaStatusLabels = {
   Pendente: 'Pendente',
   Concluida: 'Concluída',
 }

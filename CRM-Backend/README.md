@@ -37,6 +37,20 @@ npm install
 | `prisma/migrations/` | Histórico de alterações (fonte oficial do schema) |
 | `prisma/seed.js` | Dados iniciais de desenvolvimento |
 
+### Histórico de responsáveis
+
+Leads e negócios guardam quem foi responsável ao longo do tempo, para que a linha
+do tempo mostre os responsáveis válidos em cada evento:
+
+| Tabela | Conteúdo |
+|--------|----------|
+| `lead_responsavel_historico` | Períodos (`entrada_em`/`saida_em`) em que cada usuário foi responsável pelo lead |
+| `negocio_responsavel_historico` | Períodos em que cada usuário foi responsável pelo negócio |
+
+Os registros são criados automaticamente ao criar/editar leads e negócios
+(`src/services/responsavelHistorico.service.js`). A migration inicial preencheu o
+histórico com o responsável vigente de cada registro já existente.
+
 ## Criar tabelas (migration)
 
 No terminal do VS Code, dentro de `CRM-Backend`:
@@ -97,6 +111,8 @@ irm http://localhost:3333/auth/login -Method POST -Body $body -ContentType 'appl
 | POST | `/auth/login` | Login |
 | GET | `/leads` | Listar leads |
 | GET | `/leads/:id` | Buscar lead |
+| GET | `/leads/:leadId/timeline` | Histórico cronológico unificado do lead |
+| GET | `/negocios/:negocioId/timeline` | Histórico cronológico unificado do negócio |
 | POST | `/leads` | Criar lead |
 | PUT | `/leads/:id` | Atualizar lead |
 | DELETE | `/leads/:id` | Excluir lead |
@@ -109,4 +125,5 @@ irm http://localhost:3333/auth/login -Method POST -Body $body -ContentType 'appl
 | `npm run db:migrate` | Aplica migrations (cria/altera tabelas) |
 | `npm run db:seed` | Insere dados iniciais |
 | `npm run db:studio` | Interface visual do Prisma |
+| `npm run db:fix-interacao-tz` | Reposiciona interações de mudança de etapa gravadas com desvio de fuso (use `--apply` para gravar) |
 | `npm run dev` | API em modo desenvolvimento |
