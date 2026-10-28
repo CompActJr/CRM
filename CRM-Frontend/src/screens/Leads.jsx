@@ -423,6 +423,7 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
                         />
                       </div>
                     </td>
+                    <td>{lead.cnpj}</td>
                     <td>{formatText(lead.empresa)}</td>
                     <td>{(lead.responsavel)}</td>
                     <td>{formatText(lead.cidade)}</td>
