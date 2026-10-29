@@ -90,9 +90,30 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
   )
   sheet.getRow(3).height = 24
 
-  sheet.getRow(4).height = 8
+  const filtros = relatorio.filtros ?? {}
+  const filtrosAtivos = [
+    filtros.nomeLead ? `Lead: ${filtros.nomeLead}` : null,
+    filtros.empresa ? `Empresa: ${filtros.empresa}` : null,
+    filtros.cidade ? `Cidade: ${filtros.cidade}` : null,
+    filtros.nicho ? `Nicho: ${filtros.nicho}` : null,
+    filtros.status ? `Status: ${filtros.status}` : null,
+  ].filter(Boolean)
+  mergeAndStyleRow(
+    sheet,
+    4,
+    1,
+    3,
+    `Filtros adicionais: ${filtrosAtivos.length > 0 ? filtrosAtivos.join(' | ') : 'Nenhum'}`,
+    (cell) => {
+      cell.font = { name: Styles.fontName, size: 10, color: { argb: Styles.sectionFont } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.subtitleFill } }
+      cell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true }
+    }
+  )
+  sheet.getRow(4).height = filtrosAtivos.length > 2 ? 36 : 24
+  sheet.getRow(5).height = 8
 
-  let currentRow = 5
+  let currentRow = 6
 
   mergeAndStyleRow(sheet, currentRow, 1, 3, 'Indicadores do período', (cell) => {
     cell.font = { name: Styles.fontName, bold: true, size: 12, color: { argb: Styles.sectionFont } }
@@ -120,7 +141,6 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
     ['Negocios abertas no período', relatorio.negociosAbertas],
     ['Negocios fechadas no período', relatorio.negociosFechadas],
     ['Taxa de conversão', `${relatorio.taxaConversao}%`],
-    ['Principal motivo de perda', relatorio.principalMotivoPerda],
   ]
 
   indicadores.forEach(([label, value], index) => {

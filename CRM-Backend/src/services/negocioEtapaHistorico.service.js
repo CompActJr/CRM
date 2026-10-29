@@ -37,8 +37,23 @@ export const registrarMudancaEtapa = async (
 
 export const calcularTempoMedioPorEtapa = async (query = {}) => {
   const usuarioId = parseUsuarioIdFilter(query)
-  const filtroNegocio = usuarioId ? { negocio: { responsaveis: { some: { id: usuarioId } } } } : {}
+  const filtroNegocio = {}
+  const negocioWhere = {
+    ...(usuarioId ? { responsaveis: { some: { id: usuarioId } } } : {}),
+    ...(query.lead ? { lead: query.lead } : {}),
+    ...(query.dataInicio || query.dataFim
+      ? {
+          dataCriacao: {
+            ...(query.dataInicio ? { gte: query.dataInicio } : {}),
+            ...(query.dataFim ? { lte: query.dataFim } : {}),
+          },
+        }
+      : {}),
+  }
 
+  if (Object.keys(negocioWhere).length > 0) {
+    filtroNegocio.negocio = { is: negocioWhere }
+  }
   const [etapas, registros] = await Promise.all([
     prisma.etapaFunil.findMany({ orderBy: { ordem: 'asc' } }),
     prisma.negocioEtapaHistorico.findMany({

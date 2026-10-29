@@ -10,16 +10,36 @@ export const gerar = async (request, response, next) => {
   }
 }
 
-export const exportar = async (request, response, next) => {
+export const opcoes = async (request, response, next) => {
   try {
-    const buffer = await relatoriosService.exportarRelatorioExcel(request.query)
+    response.setHeader('Cache-Control', 'no-store')
+    response.json(await relatoriosService.obterOpcoesRelatorio())
+  } catch (error) {
+    next(error)
+  }
+}
+
+const sendExport = async (request, response, next, format) => {
+  try {
+    const isExcel = format === 'excel'
+    const buffer = isExcel
+      ? await relatoriosService.exportarRelatorioExcel(request.query)
+      : await relatoriosService.exportarRelatorioPdf(request.query)
     response.setHeader(
       'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      isExcel
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'application/pdf'
     )
-    response.setHeader('Content-Disposition', 'attachment; filename="relatorio-crm.xlsx"')
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="relatorio-crm.${isExcel ? 'xlsx' : 'pdf'}"`
+    )
     response.send(Buffer.from(buffer))
   } catch (error) {
     next(error)
   }
 }
+
+export const exportar = (request, response, next) => sendExport(request, response, next, 'pdf')
+export const exportarExcel = (request, response, next) => sendExport(request, response, next, 'excel')

@@ -2,6 +2,7 @@ import { ErrorMessages } from '../config/constants.js'
 import prisma from '../lib/prisma.js'
 import { parseDateInput } from '../utils/date.js'
 import { buildRelatorioExcelBuffer } from '../utils/relatorioExcel.js'
+import { buildRelatorioPdfBuffer } from '../utils/relatorioPdf.js'
 import { calcularTempoMedioPorEtapa } from './negocioEtapaHistorico.service.js'
 
 const formatDateQuery = (date) => date.toISOString().slice(0, 10)
@@ -43,7 +44,16 @@ const parseRelatorioFilters = (query) => {
     }
   }
 
-  return { dataInicio, dataFim: fimDoDia, usuarioId }
+  return {
+    dataInicio,
+    dataFim: fimDoDia,
+    usuarioId,
+    nomeLead: query.nomeLead?.trim() || null,
+    empresa: query.empresa?.trim() || null,
+    cidade: query.cidade?.trim() || null,
+    nicho: query.nicho?.trim() || null,
+    status: ['Ativo', 'Inativo'].includes(query.status) ? query.status : null,
+  }
 }
 
 const resolveResponsavelLabel = async (usuarioId) => {
@@ -65,6 +75,15 @@ const buildLeadWhere = (filters) => ({
     lte: filters.dataFim,
   },
   ...(filters.usuarioId ? { usuarioId: filters.usuarioId } : {}),
+  ...buildLeadAttributeWhere(filters),
+})
+
+const buildLeadAttributeWhere = (filters) => ({
+  ...(filters.nomeLead ? { nome: { contains: filters.nomeLead, mode: 'insensitive' } } : {}),
+  ...(filters.empresa ? { empresa: filters.empresa } : {}),
+  ...(filters.cidade ? { cidade: filters.cidade } : {}),
+  ...(filters.nicho ? { nicho: filters.nicho } : {}),
+  ...(filters.status ? { status: filters.status } : {}),
 })
 
 const buildNegocioWhere = (filters) => ({
@@ -73,33 +92,20 @@ const buildNegocioWhere = (filters) => ({
     lte: filters.dataFim,
   },
   ...(filters.usuarioId ? { responsaveis: { some: { id: filters.usuarioId } } } : {}),
+  ...(Object.keys(buildLeadAttributeWhere(filters)).length > 0
+    ? { lead: { is: buildLeadAttributeWhere(filters) } }
+    : {}),
 })
 
-const getPrincipalMotivoPerda = (negocios) => {
-  const counts = new Map()
-
-  for (const negocio of negocios) {
-    const motivo = negocio.motivoPerda?.nome
-    if (!motivo) continue
-    const key = motivo.trim()
-    counts.set(key, (counts.get(key) ?? 0) + 1)
-  }
-
-  let principal = null
-  let max = 0
-
-  for (const [motivo, total] of counts.entries()) {
-    if (total > max) {
-      max = total
-      principal = motivo
-    }
-  }
-
-  return principal
-}
-
 const buildTempoMedioPorEtapa = async (filters, excludedEtapaIds = []) => {
-  const query = filters.usuarioId ? { usuarioId: String(filters.usuarioId) } : {}
+  const query = {
+    dataInicio: filters.dataInicio,
+    dataFim: filters.dataFim,
+    ...(filters.usuarioId ? { usuarioId: String(filters.usuarioId) } : {}),
+    ...(Object.keys(buildLeadAttributeWhere(filters)).length > 0
+      ? { lead: { is: buildLeadAttributeWhere(filters) } }
+      : {}),
+  }
   const tempoMedioMap = await calcularTempoMedioPorEtapa(query)
 
   const etapas = await prisma.etapaFunil.findMany({
@@ -138,7 +144,6 @@ export const gerarRelatorio = async (query) => {
       select: {
         id: true,
         etapaFunilId: true,
-        motivoPerda: { select: { nome: true } },
       },
     }),
     prisma.negocio.count({
@@ -162,7 +167,6 @@ export const gerarRelatorio = async (query) => {
   const taxaConversao =
     totalNegocios > 0 ? Math.round((negociosFechadas / totalNegocios) * 100) : 0
 
-  const principalMotivoPerda = getPrincipalMotivoPerda(negociosNoPeriodo)
   const responsavel = await resolveResponsavelLabel(filters.usuarioId)
 
   return {
@@ -172,17 +176,46 @@ export const gerarRelatorio = async (query) => {
     },
     responsavel,
     usuarioId: filters.usuarioId,
+    filtros: {
+      nomeLead: filters.nomeLead,
+      empresa: filters.empresa,
+      cidade: filters.cidade,
+      nicho: filters.nicho,
+      status: filters.status,
+    },
     leadsNoPeriodo,
     negociosAbertas,
     negociosCriadas: totalNegocios,
     negociosFechadas,
+    oportunidadesCriadas: totalNegocios,
+    oportunidadesAbertas: negociosAbertas,
+    oportunidadesFechadas: negociosFechadas,
     taxaConversao,
-    principalMotivoPerda: principalMotivoPerda ?? 'Nenhum registro no período',
     tempoMedioPorEtapa,
   }
+}
+
+export const exportarRelatorioPdf = async (query) => {
+  const relatorio = await gerarRelatorio(query)
+  return buildRelatorioPdfBuffer(relatorio)
 }
 
 export const exportarRelatorioExcel = async (query) => {
   const relatorio = await gerarRelatorio(query)
   return buildRelatorioExcelBuffer(relatorio)
+}
+
+export const obterOpcoesRelatorio = async () => {
+  const [empresas, cidades, nichos] = await Promise.all([
+    prisma.lead.findMany({ where: { empresa: { not: null } }, select: { empresa: true }, distinct: ['empresa'], orderBy: { empresa: 'asc' } }),
+    prisma.lead.findMany({ where: { cidade: { not: null } }, select: { cidade: true }, distinct: ['cidade'], orderBy: { cidade: 'asc' } }),
+    prisma.lead.findMany({ where: { nicho: { not: null } }, select: { nicho: true }, distinct: ['nicho'], orderBy: { nicho: 'asc' } }),
+  ])
+
+  return {
+    empresas: empresas.map(({ empresa }) => empresa).filter(Boolean),
+    cidades: cidades.map(({ cidade }) => cidade).filter(Boolean),
+    nichos: nichos.map(({ nicho }) => nicho).filter(Boolean),
+    status: ['Ativo', 'Inativo'],
+  }
 }
