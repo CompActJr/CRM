@@ -8,7 +8,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { Plus } from 'lucide-react'
+import { ArrowUp, ArrowDown, Plus } from 'lucide-react'
 import Header from '../components/layout/Header'
 import FiltroResponsavel from '../components/filtros/FiltroResponsavel'
 import FunilColuna from '../components/funil/FunilColuna'
@@ -24,6 +24,8 @@ import {
   resolveEtapaDestino,
 } from '../utils/funilDrag'
 import { getPriorityClass } from '../utils/priorityClass'
+import SearchableSelect from "../components/common/SearchableSelect";
+import {fetchUsuariosOpcoes} from "../services/usuariosService";
 
 const etapasSemTempoMedio = new Set(['Fechado', 'Perdida'])
 
@@ -73,12 +75,21 @@ function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
   const [funil, setFunil] = useState({})
   const [tempoMedioPorEtapa, setTempoMedioPorEtapa] = useState({})
   const [etapas, setEtapas] = useState([])
-  const [responsavelFilter, setResponsavelFilter] = useState('')
+  const [filters, setFilters] = useState({
+    nome: '',
+    cnpj: '',
+    empresa: '',
+    temperatura: '',
+    usuarioId: ''
+  })
+  const [responsavelFilter, setResponsavelFilter] = useState({})
+  const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeCard, setActiveCard] = useState(null)
   const [perdidaModal, setPerdidaModal] = useState(null)
   const [mudancaEtapaModal, setMudancaEtapaModal] = useState(null)
+  const [users, setUsers] = useState([])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -105,6 +116,7 @@ function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
 
   useEffect(() => {
     loadFunil()
+    fetchUsuariosOpcoes().then(setUsers).catch(() => {})
   }, [loadFunil])
 
   const etapasAtivas = useMemo(() => {
@@ -117,6 +129,14 @@ function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
     const map = {}
     for (const etapa of etapas) {
       map[etapa.nome] = etapa.id
+    }
+    return map
+  }, [etapas])
+
+  const etapaOrdemPorNome = useMemo(() => {
+    const map = {}
+    for (const etapa of etapas) {
+      map[etapa.nome] = etapa.ordem
     }
     return map
   }, [etapas])
@@ -176,7 +196,7 @@ function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
 
     const etapaDestino = resolveEtapaDestino(over.id, funil, etapasAtivas)
     const etapaOrigem = findEtapaOrigem(active.id, funil, etapasAtivas)
-    if (!etapaDestino || !etapaOrigem || etapaDestino === etapaOrigem) return
+    if (!podeMudarEtapa(etapaOrigem, etapaDestino)) return
 
     const negocio = active.data.current?.negocio ?? findNegocio(active.id)
     if (!negocio) return
@@ -194,16 +214,124 @@ function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
     await loadFunil()
   }
 
+  const podeMudarEtapa = (etapaOrigem, etapaDestino) => {
+    const ordemOrigem = etapaOrdemPorNome[etapaOrigem]
+    const ordemDestino = etapaOrdemPorNome[etapaDestino]
+    if (!etapaDestino || !etapaOrigem) return false
+    if (etapaDestino === etapaOrigem) return false
+    if (ordemDestino === ordemOrigem + 1 || ordemDestino < ordemOrigem) return true
+  }
+
+  const applyFilters = async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      const data = await fetchNegociosFunil({
+        ...filters,
+        usuarioId: filters.usuarioId || undefined,
+      })
+
+      setFunil(data.funil ?? data)
+    } catch (requestError) {
+      setError(requestError.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <>
       <Header title="Funil de Vendas" subtitle="Arraste os negócios entre as etapas" />
       <div className="toolbar">
-        <FiltroResponsavel value={responsavelFilter} onChange={setResponsavelFilter} />
+        <button onClick={() => setIsAdvancedFiltersOpen((value) => !value)} className="secondaryBtn">
+          {!isAdvancedFiltersOpen ? <ArrowDown size={18} /> : <ArrowUp size={18} /> }
+          Filtros avançados
+        </button>
         <button type="button" className="primaryBtn" onClick={onNewNegocio}>
           <Plus size={18} />
           Novo Negócio
         </button>
       </div>
+      {isAdvancedFiltersOpen && (
+      <section className="filtersPanel">
+        <div className="formGrid">
+          <label className="inputGroup">
+            <span>Nome</span>
+            <input
+                value={filters.nome}
+                onChange={(event) =>
+                    setFilters({
+                      ...filters,
+                      nome: event.target.value,
+                    })
+                }
+            />
+          </label>
+          <label className="inputGroup">
+            <span>CNPJ</span>
+            <input
+                value={filters.cnpj}
+                onChange={(event) =>
+                    setFilters({
+                      ...filters,
+                      cnpj: event.target.value,
+                    })
+                }
+            />
+          </label>
+          <label className="inputGroup">
+            <span>Empresa</span>
+            <input
+                value={filters.empresa}
+                onChange={(event) =>
+                    setFilters({
+                      ...filters,
+                      empresa: event.target.value,
+                    })
+                }
+            />
+          </label>
+          <label className="inputGroup">
+            <span>Temperatura</span>
+            <SearchableSelect
+                options={[
+                  { value: 'Quente', label: 'Quente' },
+                  { value: 'Morno', label: 'Morno' },
+                  { value: 'Frio', label: 'Frio' },
+                ]}
+                value={filters.temperatura}
+                onChange={(value) =>
+                    setFilters({
+                      ...filters,
+                      temperatura: value,
+                    })
+                }
+                placeholder="Selecione a temperatura"
+            />
+          </label>
+          <label className="inputGroup">
+            <span>Responsável</span>
+
+            <SearchableSelect
+                options={users.map((user) => ({ value: user.id.toString(), label: user.nome }))}
+                value={filters.usuarioId}
+                onChange={(value) =>
+                    setFilters({
+                      ...filters,
+                      usuarioId: value,
+                    })
+                }
+                placeholder="Selecione o responsável"
+            />
+
+          </label>
+          <button onClick={applyFilters} className="primaryBtn fullLine">
+            Filtrar
+          </button>
+        </div>
+      </section>
+      )}
       {error && <p className="formError">{error}</p>}
       {loading ? (
         <p className="tableMessage">Carregando funil...</p>

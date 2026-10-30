@@ -19,6 +19,8 @@ import {
   collectNegocioPendingDates,
   sortByPendingTasks,
 } from '../utils/tarefaResumo.js'
+import {normalizeString} from "../utils/stringNormalize.js";
+import {parseTemperaturaRange} from "../utils/temperatura.js";
 
 const parseNegocioId = (id) => {
   const parsed = Number(id)
@@ -156,18 +158,52 @@ export const listNegocios = async (query = {}) => {
   )
 }
 
+
 export const listNegociosFunil = async (query = {}) => {
-  const usuarioId = parseUsuarioIdFilter(query)
-  const where = usuarioId
-    ? {
-        responsaveis: {
-          some: { id: usuarioId },
-        },
+  const usuarioId = parseUsuarioIdFilter(query.usuarioId)
+  const nome = normalizeString(query.nome)
+  const cnpj = normalizeString(query.cnpj)
+  const empresa = normalizeString(query.empresa)
+  const temperatura = query.temperatura
+
+  const where = {}
+
+  if (usuarioId) {
+    where.responsaveis = {
+      some: { id: usuarioId },
+    }
+  }
+
+  if (nome || cnpj || empresa) {
+    where.lead = {}
+
+    if (nome) {
+      where.lead.nome = {
+        contains: nome,
+        mode: 'insensitive',
       }
-    : {}
+    }
+
+    if (cnpj) {
+      where.lead.cnpj = {
+        contains: cnpj,
+        mode: 'insensitive',
+      }
+    }
+
+    if (empresa) {
+      where.lead.empresa = {
+        contains: empresa,
+        mode: 'insensitive',
+      }
+    }
+  }
 
   const [etapas, negocios] = await Promise.all([
-    prisma.etapaFunil.findMany({ orderBy: { ordem: 'asc' } }),
+    prisma.etapaFunil.findMany({
+      orderBy: { ordem: 'asc' },
+    }),
+
     prisma.negocio.findMany({
       where,
       include: {
@@ -188,21 +224,32 @@ export const listNegociosFunil = async (query = {}) => {
   const mapped = negocios.map((op) => {
     const response = mapNegocioToResponse(op)
     const ultimaEntrada = op.historicoEtapas?.[0]?.entradaEm || op.dataCriacao
-    const diasNaEtapa = Math.floor((agora - new Date(ultimaEntrada).getTime()) / MS_PER_DAY)
+
+    const diasNaEtapa = Math.floor(
+        (agora - new Date(ultimaEntrada).getTime()) / MS_PER_DAY,
+    )
+
     return {
       ...response,
       diasNaEtapa: Math.max(0, diasNaEtapa),
     }
   })
+  const range = parseTemperaturaRange(temperatura)
+  const filtrados = range
+      ? mapped.filter((negocio) => negocio.diasNaEtapa >= range.min && negocio.diasNaEtapa <= range.max)
+      : mapped
 
   const funil = {}
 
   for (const etapa of etapas) {
-    funil[etapa.nome] = mapped.filter((item) => item.etapaFunilId === etapa.id)
+    funil[etapa.nome] = filtrados.filter(
+        (item) => item.etapaFunilId === etapa.id,
+    )
   }
 
   return { funil }
 }
+
 
 export const getNegocioById = async (idParam) => {
   const id = parseNegocioId(idParam)

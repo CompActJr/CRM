@@ -1,5 +1,5 @@
 import { apiRequest } from './apiClient.js'
-import { buildUsuarioFilterQuery } from '../utils/queryParams.js'
+import {buildFunilFilterQuery, buildUsuarioFilterQuery} from '../utils/queryParams.js'
 
 export const fetchNegocios = (params) =>
   apiRequest(`/negocios${buildUsuarioFilterQuery(params?.usuarioId)}`)
@@ -7,7 +7,7 @@ export const fetchNegocios = (params) =>
 export const fetchNegocioById = (id) => apiRequest(`/negocios/${id}`)
 
 export const fetchNegociosFunil = (params) =>
-  apiRequest(`/negocios/funil${buildUsuarioFilterQuery(params?.usuarioId)}`)
+  apiRequest(`/negocios/funil${buildFunilFilterQuery(params)}`)
 
 export const createNegocio = (payload) =>
   apiRequest('/negocios', {
