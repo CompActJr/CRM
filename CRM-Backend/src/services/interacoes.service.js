@@ -7,6 +7,8 @@ import {
   mapInteracaoToResponse,
 } from '../utils/interacaoMapper.js'
 
+const NEGOCIO_EXCLUIDO_PREFIX = '__CRM_NEGOCIO_EXCLUIDO__'
+
 const parseId = (value) => {
   const parsed = Number(value)
   if (!value || Number.isNaN(parsed) || parsed < 1) return null
@@ -123,7 +125,10 @@ export const listInteracoesByLead = async (leadIdParam, query = {}) => {
   await assertLeadExists(leadId)
 
   const negocioId = query.negocioId ? parseId(query.negocioId) : null
-  const where = { leadId }
+  const where = {
+    leadId,
+    NOT: { tipo: 'Registro', descricao: { startsWith: NEGOCIO_EXCLUIDO_PREFIX } },
+  }
   if (negocioId) {
     where.negocioId = negocioId
   }

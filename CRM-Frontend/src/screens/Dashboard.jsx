@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Header from '../components/layout/Header'
 import Metric from '../components/common/Metric'
-import { fetchDashboardStats } from '../services/dashboardService'
+import { fetchDashboardAtividades, fetchDashboardStats } from '../services/dashboardService'
 
 const PeriodoOptions = [
   { value: 0.25, label: 'Última semana' },
@@ -11,8 +11,9 @@ const PeriodoOptions = [
   { value: 'custom', label: 'Personalizado' },
 ]
 
-function Dashboard() {
+function Dashboard({ onViewLead, onViewNegocio }) {
   const [stats, setStats] = useState(null)
+  const [atividades, setAtividades] = useState([])
   const [meses, setMeses] = useState(6)
 
   // Inicializamos as datas padrão direto no useState para evitar o loop infinito
@@ -39,9 +40,21 @@ function Dashboard() {
     }
   }, [meses, dataInicio, dataFim])
 
+  const loadAtividades = useCallback(async () => {
+    try {
+      setAtividades(await fetchDashboardAtividades())
+    } catch {
+      setAtividades([])
+    }
+  }, [])
+
   useEffect(() => {
     loadStats()
   }, [loadStats])
+
+  useEffect(() => {
+    loadAtividades()
+  }, [loadAtividades])
 
   const renderChartTitle = () => {
     if (!stats) return ''
@@ -168,6 +181,51 @@ function Dashboard() {
             </div>
           </div>
         </div>
+      </section>
+      <section className="panel dashboardActivityPanel">
+        <div className="dashboardActivityHeader">
+          <div>
+            <h2>Atividades recentes</h2>
+            <p>Alterações nos seus leads e negócios nos últimos 30 dias</p>
+          </div>
+          <span>{atividades.length} atividades</span>
+        </div>
+        {atividades.length === 0 ? (
+          <p className="tableMessage">Nenhuma atividade recente nos seus leads e negócios.</p>
+        ) : (
+          <ul className="dashboardActivityList">
+            {atividades.map((atividade) => (
+              <li key={atividade.id}>
+                <span className={`dashboardActivityDot dashboardActivityDot-${atividade.tipo}`} />
+                <div className="dashboardActivityContent">
+                  <strong>{atividade.evento}</strong>
+                  <span>{atividade.leadNome}{atividade.negocioTitulo ? ` · ${atividade.negocioTitulo}` : ''}</span>
+                  {atividade.descricao && atividade.descricao !== atividade.negocioTitulo && <p>{atividade.descricao}</p>}
+                  {atividade.detalhe && <small>{atividade.detalhe}</small>}
+                </div>
+                <time dateTime={atividade.data}>
+                  {new Date(atividade.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                </time>
+                <a
+                  className="dashboardActivityLink"
+                  href={atividade.negocioId
+                    ? `#/negocios/${atividade.negocioId}/timeline`
+                    : `#/leads/${atividade.leadId}/timeline`}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    if (atividade.negocioId && onViewNegocio) {
+                      onViewNegocio(atividade.negocioId, 'timeline')
+                    } else if (atividade.leadId && onViewLead) {
+                      onViewLead(atividade.leadId, 'timeline')
+                    } else {
+                      window.location.hash = event.currentTarget.getAttribute('href')
+                    }
+                  }}
+                >Abrir</a>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </>
   )

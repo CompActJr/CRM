@@ -15,3 +15,7 @@ export async function fetchDashboardStats(params = 6) {
   return apiRequest(queryPath)
 }
 
+export async function fetchDashboardAtividades() {
+  return apiRequest('/dashboard/atividades')
+}
+

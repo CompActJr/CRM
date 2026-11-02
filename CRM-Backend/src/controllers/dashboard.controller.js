@@ -8,3 +8,12 @@ export const getStats = async (request, response, next) => {
     next(error)
   }
 }
+
+export const getAtividades = async (request, response, next) => {
+  try {
+    const atividades = await dashboardService.getDashboardAtividades(request.headers['x-usuario-id'])
+    response.json(atividades)
+  } catch (error) {
+    next(error)
+  }
+}

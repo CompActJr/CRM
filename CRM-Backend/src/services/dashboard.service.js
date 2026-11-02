@@ -1,6 +1,19 @@
 import prisma from '../lib/prisma.js'
 import { formatCurrencyBr } from '../utils/currency.js'
+import {
+  buildEtapaEvento,
+  buildInteracaoEvento,
+  buildResponsavelEventos,
+  buildTarefaEventos,
+  timelineEtapaInclude,
+  timelineInteracaoInclude,
+  timelineLeadResponsavelInclude,
+  timelineNegocioResponsavelInclude,
+  timelineTarefaInclude,
+} from '../utils/timelineMapper.js'
 
+const MS_PER_DAY = 1000 * 60 * 60 * 24
+const NEGOCIO_EXCLUIDO_PREFIX = '__CRM_NEGOCIO_EXCLUIDO__'
 const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
@@ -151,6 +164,161 @@ export const getDashboardStats = async (query = {}) => {
     },
     leadsPorMes,
   }
+}
+
+export const getDashboardAtividades = async (usuarioIdParam) => {
+  const usuarioId = Number(usuarioIdParam)
+  if (!Number.isInteger(usuarioId) || usuarioId < 1) {
+    const error = new Error('Usuário inválido.')
+    error.statusCode = 400
+    throw error
+  }
+
+  const [leads, negocios] = await Promise.all([
+    prisma.lead.findMany({ where: { usuarioId }, select: { id: true, nome: true } }),
+    prisma.negocio.findMany({
+      where: { responsaveis: { some: { id: usuarioId } } },
+      select: {
+        id: true,
+        titulo: true,
+        leadId: true,
+        dataCriacao: true,
+        etapaFunil: { select: { nome: true } },
+        lead: { select: { nome: true } },
+      },
+    }),
+  ])
+
+  const leadNames = new Map(leads.map((lead) => [lead.id, lead.nome]))
+  const negocioMap = new Map(negocios.map((negocio) => [negocio.id, negocio]))
+  const leadIds = leads.map((lead) => lead.id)
+  const negocioIds = negocios.map((negocio) => negocio.id)
+  const cutoff = Date.now() - 30 * MS_PER_DAY
+  const cutoffDate = new Date(cutoff)
+  const [etapas, tarefas, interacoes, historicoLead, historicoNegocio, exclusoesNegocio] = await Promise.all([
+    negocioIds.length ? prisma.negocioEtapaHistorico.findMany({
+      where: { negocioId: { in: negocioIds }, entradaEm: { gte: new Date(cutoff - 7 * MS_PER_DAY) } },
+      include: timelineEtapaInclude,
+    }) : [],
+    leadIds.length || negocioIds.length ? prisma.tarefa.findMany({
+      where: {
+        OR: [
+          ...(leadIds.length ? [{ leadId: { in: leadIds }, negocioId: null, createdAt: { gte: cutoffDate } }] : []),
+          ...(negocioIds.length ? [{ negocioId: { in: negocioIds }, createdAt: { gte: cutoffDate } }] : []),
+          { negocioId: { in: negocioIds }, status: 'Concluida', updatedAt: { gte: cutoffDate } },
+        ],
+      },
+      include: timelineTarefaInclude,
+    }) : [],
+    leadIds.length ? prisma.interacao.findMany({
+      where: {
+        leadId: { in: leadIds },
+        tipo: 'Nota',
+        dataInteracao: { gte: cutoffDate },
+        OR: [
+          { negocioId: null },
+          ...(negocioIds.length ? [{ negocioId: { in: negocioIds } }] : []),
+        ],
+      },
+      include: timelineInteracaoInclude,
+    }) : [],
+    leadIds.length ? prisma.leadResponsavelHistorico.findMany({
+      where: { leadId: { in: leadIds }, OR: [{ entradaEm: { gte: cutoffDate } }, { saidaEm: { gte: cutoffDate } }] },
+      include: timelineLeadResponsavelInclude,
+    }) : [],
+    negocioIds.length ? prisma.negocioResponsavelHistorico.findMany({
+      where: { negocioId: { in: negocioIds }, OR: [{ entradaEm: { gte: cutoffDate } }, { saidaEm: { gte: cutoffDate } }] },
+      include: timelineNegocioResponsavelInclude,
+    }) : [],
+    prisma.interacao.findMany({
+      where: {
+        tipo: 'Registro',
+        dataInteracao: { gte: cutoffDate },
+        descricao: { startsWith: NEGOCIO_EXCLUIDO_PREFIX },
+      },
+    }),
+  ])
+
+  const dadosExclusao = exclusoesNegocio.flatMap((registro) => {
+    try {
+      return [{ registro, detalhes: JSON.parse(registro.descricao.slice(NEGOCIO_EXCLUIDO_PREFIX.length)) }]
+    } catch {
+      return []
+    }
+  })
+  const dadosExclusaoVisiveis = dadosExclusao.filter(({ detalhes }) =>
+    (detalhes.responsavelIds ?? []).includes(usuarioId)
+  )
+  const tarefasExcluidas = new Set(dadosExclusaoVisiveis.flatMap(({ detalhes }) => detalhes.tarefaIds ?? []))
+  const interacoesExcluidas = new Set(dadosExclusaoVisiveis.flatMap(({ detalhes }) => detalhes.interacaoIds ?? []))
+
+  const criacoesNegocio = negocios
+    .filter((negocio) => negocio.dataCriacao.getTime() >= cutoff && negocio.dataCriacao.getTime() <= Date.now())
+    .map((negocio) => {
+      const responsaveisIniciais = historicoNegocio
+        .filter((registro) => registro.negocioId === negocio.id && registro.entradaEm.getTime() === negocio.dataCriacao.getTime())
+        .map((registro) => registro.usuario?.nome)
+        .filter(Boolean)
+      return {
+        id: `negocio-${negocio.id}-criado`,
+        tipo: 'negocio',
+        tipoLabel: 'Negócio',
+        evento: 'Negócio criado',
+        descricao: negocio.titulo,
+        detalhe: `Responsável: ${responsaveisIniciais.join(', ') || 'Não informado'} · Etapa: ${negocio.etapaFunil.nome}`,
+        data: negocio.dataCriacao.toISOString(),
+        negocioId: negocio.id,
+        negocioTitulo: negocio.titulo,
+        leadId: negocio.leadId,
+        leadNome: negocio.lead.nome,
+      }
+    })
+
+  const atividades = [
+    ...dadosExclusaoVisiveis.map(({ registro, detalhes }) => ({
+      id: `negocio-${detalhes.negocioId}-excluido-${registro.id}`,
+      tipo: 'negocio',
+      tipoLabel: 'Negócio',
+      evento: 'Negócio excluído',
+      descricao: detalhes.titulo,
+      detalhe: null,
+      data: registro.dataInteracao.toISOString(),
+      negocioId: null,
+      negocioTitulo: detalhes.titulo,
+      leadId: registro.leadId,
+      leadNome: detalhes.leadNome ?? leadNames.get(registro.leadId),
+    })),
+    ...criacoesNegocio,
+    ...etapas
+      .filter((registro) => registro.entradaEm.getTime() !== negocioMap.get(registro.negocioId)?.dataCriacao.getTime())
+      .map((registro) => ({
+        ...buildEtapaEvento(registro),
+        evento: `Etapa alterada para ${registro.etapaFunil.nome}`,
+        detalhe: null,
+        leadId: negocioMap.get(registro.negocioId)?.leadId,
+      })),
+    ...tarefas
+      .filter((tarefa) => !tarefasExcluidas.has(tarefa.id))
+      .flatMap((tarefa) => buildTarefaEventos(tarefa).map((evento) => ({ ...evento, leadId: tarefa.leadId }))),
+    ...interacoes
+      .filter((interacao) => !interacoesExcluidas.has(interacao.id) && (!interacao.negocioId || negocioMap.has(interacao.negocioId)))
+      .map((interacao) => ({ ...buildInteracaoEvento(interacao), leadId: interacao.leadId })),
+    ...historicoLead.flatMap((registro) => buildResponsavelEventos(registro, 'lead').map((evento) => ({ ...evento, leadId: registro.leadId }))),
+    ...historicoNegocio
+      .filter((registro) => registro.entradaEm.getTime() !== negocioMap.get(registro.negocioId)?.dataCriacao.getTime())
+      .flatMap((registro) => buildResponsavelEventos(registro, 'negocio').map((evento) => ({
+        ...evento,
+        leadId: negocioMap.get(registro.negocioId)?.leadId,
+      }))),
+  ].filter((evento) => {
+    const timestamp = new Date(evento.data).getTime()
+    return timestamp >= cutoff && timestamp <= Date.now()
+  }).map((evento) => ({
+    ...evento,
+    leadNome: negocioMap.get(evento.negocioId)?.lead.nome ?? leadNames.get(evento.leadId),
+  }))
+
+  return atividades.sort((a, b) => new Date(b.data) - new Date(a.data)).slice(0, 20)
 }
 
 const buildLeadsChartData = (leads, periodInfo) => {

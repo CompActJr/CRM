@@ -47,7 +47,7 @@ export const update = async (request, response, next) => {
 
 export const remove = async (request, response, next) => {
   try {
-    await negociosService.deleteNegocio(request.params.id)
+    await negociosService.deleteNegocio(request.params.id, request.headers['x-usuario-id'])
     response.status(204).send()
   } catch (error) {
     next(error)

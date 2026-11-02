@@ -287,7 +287,9 @@ export const updateNegocio = async (idParam, body) => {
   return mapNegocioToResponse(negocio)
 }
 
-export const deleteNegocio = async (idParam) => {
+const NEGOCIO_EXCLUIDO_PREFIX = '__CRM_NEGOCIO_EXCLUIDO__'
+
+export const deleteNegocio = async (idParam, usuarioIdParam = null) => {
   const id = parseNegocioId(idParam)
   if (!id) {
     const error = new Error(ErrorMessages.invalidNegocioId)
@@ -295,14 +297,47 @@ export const deleteNegocio = async (idParam) => {
     throw error
   }
 
-  const existing = await prisma.negocio.findUnique({ where: { id } })
+  const existing = await prisma.negocio.findUnique({
+    where: { id },
+    include: {
+      lead: { select: { id: true, nome: true, usuarioId: true } },
+      responsaveis: { select: { id: true } },
+      tarefas: { select: { id: true } },
+      interacoes: { select: { id: true } },
+    },
+  })
   if (!existing) {
     const error = new Error(ErrorMessages.negocioNotFound)
     error.statusCode = 404
     throw error
   }
 
-  await prisma.negocio.delete({ where: { id } })
+  const solicitanteId = parseRelationId(usuarioIdParam)
+  const solicitante = solicitanteId
+    ? await prisma.usuario.findUnique({ where: { id: solicitanteId }, select: { id: true } })
+    : null
+  const usuarioId = solicitante?.id ?? existing.responsaveis[0]?.id ?? existing.lead.usuarioId
+  const dataExclusao = new Date()
+
+  await prisma.$transaction(async (tx) => {
+    await tx.interacao.create({
+      data: {
+        tipo: 'Registro',
+        descricao: `${NEGOCIO_EXCLUIDO_PREFIX}${JSON.stringify({
+          negocioId: id,
+          titulo: existing.titulo,
+          leadNome: existing.lead.nome,
+          responsavelIds: existing.responsaveis.map(({ id: responsavelId }) => responsavelId),
+          tarefaIds: existing.tarefas.map(({ id: tarefaId }) => tarefaId),
+          interacaoIds: existing.interacoes.map(({ id: interacaoId }) => interacaoId),
+        })}`,
+        dataInteracao: dataExclusao,
+        leadId: existing.leadId,
+        usuarioId,
+      },
+    })
+    await tx.negocio.delete({ where: { id } })
+  }, TransactionOptions)
 }
 
 export const marcarNegocioComoPerdida = async (idParam, body) => {

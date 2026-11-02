@@ -19,6 +19,7 @@ import {
   buildNavigationPath,
   createScreenNavigation,
   getInitialNavigation,
+  parseNavigationPath,
 } from './utils/appNavigation'
 import { clearSessionUser, loadSessionUser, saveSessionUser } from './utils/authSession'
 import { adminOnlyScreens, isAdministrador } from './utils/userAccess'
@@ -63,8 +64,14 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
       setNavigation(getInitialNavigation())
     }
 
+    const handleHashChange = () => setNavigation(parseNavigationPath(window.location.hash))
+
     window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
+    window.addEventListener('hashchange', handleHashChange)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('hashchange', handleHashChange)
+    }
   }, [])
 
   const setScreen = useCallback(
@@ -130,7 +137,7 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
   }, [screen, currentUser, pushNavigation])
 
   const screens = {
-    dashboard: <Dashboard />,
+    dashboard: <Dashboard onViewLead={openViewLead} onViewNegocio={openViewNegocio} />,
     leads: (
       <Leads
         setScreen={setScreen}

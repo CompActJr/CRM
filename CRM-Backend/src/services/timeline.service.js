@@ -25,6 +25,9 @@ const parseId = (value) => {
   return parsed
 }
 
+const isNegocioExclusaoMarker = (interacao) =>
+  interacao.tipo === 'Registro' && interacao.descricao.startsWith('__CRM_NEGOCIO_EXCLUIDO__')
+
 const buildEventosDeResponsaveis = (registros, escopo) =>
   registros.flatMap((registro) => buildResponsavelEventos(registro, escopo))
 
@@ -94,7 +97,7 @@ export const getTimelineByLead = async (leadIdParam) => {
   const primeiraEtapa = mapPrimeiraEtapaPorNegocio(historicoEtapas)
 
   const eventos = sortEventosTimeline([
-    ...interacoes.map(buildInteracaoEvento),
+    ...interacoes.filter((interacao) => !isNegocioExclusaoMarker(interacao)).map(buildInteracaoEvento),
     ...tarefas.flatMap(buildTarefaEventos),
     ...negocios.map((negocio) => buildNegocioEvento(negocio, primeiraEtapa.get(negocio.id))),
     ...historicoEtapas.map(buildEtapaEvento),
@@ -152,7 +155,7 @@ export const getTimelineByNegocio = async (negocioIdParam) => {
     ])
 
   const eventos = sortEventosTimeline([
-    ...interacoes.map(buildInteracaoEvento),
+    ...interacoes.filter((interacao) => !isNegocioExclusaoMarker(interacao)).map(buildInteracaoEvento),
     ...tarefas.flatMap(buildTarefaEventos),
     buildNegocioEvento(negocio, mapPrimeiraEtapaPorNegocio(historicoEtapas).get(negocio.id)),
     ...historicoEtapas.map(buildEtapaEvento),

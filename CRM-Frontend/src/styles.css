@@ -2028,6 +2028,30 @@ th {
   color: #475569;
 }
 
+.dashboardActivityPanel { margin-top: 20px; }
+.dashboardActivityHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
+.dashboardActivityHeader h2 { margin: 0; }
+.dashboardActivityHeader p { margin: 5px 0 0; color: #64748b; font-size: 13px; }
+.dashboardActivityHeader > span { color: #64748b; font-size: 13px; white-space: nowrap; }
+.dashboardActivityList { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
+.dashboardActivityList li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #e2e8f0; }
+.dashboardActivityDot { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; background: #64748b; }
+.dashboardActivityDot-etapa { background: #7c3aed; }
+.dashboardActivityDot-responsavel { background: #e11d48; }
+.dashboardActivityDot-interacao { background: #2563eb; }
+.dashboardActivityDot-tarefa { background: #d97706; }
+.dashboardActivityDot-temperatura { background: #0f766e; }
+.dashboardActivityContent { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.dashboardActivityContent strong { color: #1e293b; }
+.dashboardActivityContent span, .dashboardActivityContent small { color: #64748b; font-size: 12px; }
+.dashboardActivityContent p { margin: 2px 0 0; color: #475569; font-size: 13px; overflow-wrap: anywhere; }
+.dashboardActivityList time { color: #64748b; font-size: 12px; white-space: nowrap; }
+.dashboardActivityLink { border: 0; background: none; color: #2563eb; cursor: pointer; font: inherit; font-size: 13px; }
+@media (max-width: 640px) {
+  .dashboardActivityList li { align-items: flex-start; flex-wrap: wrap; }
+  .dashboardActivityList time { margin-left: 21px; }
+}
+
 .taskCard {
   display: flex;
   justify-content: space-between;
