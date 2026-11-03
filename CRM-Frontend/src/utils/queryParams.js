@@ -19,3 +19,16 @@ export const buildLeadFilterQuery = (params = {}) => {
 
   return queryString ? `?${queryString}` : ''
 }
+
+export const buildFunilFilterQuery = (params = {}) => {
+  const query = new URLSearchParams()
+
+  if (params.nome) query.set('nome', params.nome)
+  if (params.cnpj) query.set('cnpj', params.cnpj)
+  if (params.empresa) query.set('empresa', params.empresa)
+  if (params.temperatura) query.set('temperatura', params.temperatura)
+
+  const queryString = query.toString()
+
+  return queryString ? `?${queryString}` : ''
+}

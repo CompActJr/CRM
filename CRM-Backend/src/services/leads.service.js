@@ -18,6 +18,7 @@ import {
   registrarResponsavelLead,
   sincronizarResponsavelLead,
 } from './responsavelHistorico.service.js'
+import { normalizeString} from "../utils/stringNormalize.js"
 
 const parseLeadId = (id) => {
   const parsed = Number(id)
@@ -36,11 +37,6 @@ const parseStatusFilter = (query) => {
     return query.status
   }
   return null
-}
-
-const normalizeString = (string) => {
-  const normalized = string?.trim().toLowerCase()
-  return normalized || null
 }
 
 const buildLeadData = async (body, excludeId = null) => {
