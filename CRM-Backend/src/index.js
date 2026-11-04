@@ -23,6 +23,7 @@ import relatoriosRoutes from './routes/relatorios.routes.js'
 import tarefasRoutes from './routes/tarefas.routes.js'
 import propostasRoutes from './routes/propostas.routes.js'
 import usuariosRoutes from './routes/usuarios.routes.js'
+import metasRoutes from './routes/metas.routes.js'
 
 const app = express()
 
@@ -77,6 +78,7 @@ app.use('/propostas', propostasRoutes)
 app.use('/relatorios', relatoriosRoutes)
 app.use('/interacoes', interacoesRoutes)
 app.use('/usuarios', usuariosRoutes)
+app.use('/metas', metasRoutes)
 
 app.use(errorHandler)
 

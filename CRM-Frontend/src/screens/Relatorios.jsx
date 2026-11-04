@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, CheckCircle2, Download, RefreshCw, Users } from 'lucide-react'
+import { BarChart3, CheckCircle2, Download, RefreshCw, Target, Users } from 'lucide-react'
 import Header from '../components/layout/Header'
 import { downloadRelatorioExcel, downloadRelatorioPdf, fetchRelatorio, fetchRelatorioOpcoes } from '../services/relatoriosService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
@@ -196,6 +196,71 @@ function Relatorios() {
                   ))}
                 </div>
               ) : <p className="tableMessage">Não há etapas para exibir.</p>}
+            </div>
+
+            <div className="panel">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Target size={18} style={{ color: 'var(--color-primary, #0284c7)' }} />
+                  Metas no período
+                </h2>
+                {relatorio.metas?.kpis && (
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary, #0284c7)' }}>
+                    {relatorio.metas.kpis.percentualMetasAtingidas}% atingidas ({relatorio.metas.kpis.metasAtingidas}/{relatorio.metas.kpis.totalMetas})
+                  </span>
+                )}
+              </div>
+
+              {relatorio.metas?.metas?.length ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {relatorio.metas.metas.map((item) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        padding: '10px 12px',
+                        background: 'var(--color-bg-alt, #f8fafc)',
+                        borderRadius: '8px',
+                        border: '1px solid var(--color-border, #e2e8f0)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <div>
+                          <strong style={{ fontSize: '0.875rem', display: 'block', color: 'var(--color-text, #0f172a)' }}>
+                            {item.usuarioNome}
+                          </strong>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
+                            {item.tipoLabel}
+                          </span>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{
+                            fontSize: '0.875rem',
+                            fontWeight: 700,
+                            color: item.progressoPercentual >= 100 ? '#10b981' : item.progressoPercentual >= 50 ? '#0284c7' : '#f59e0b',
+                          }}>
+                            {item.progressoPercentual}%
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', display: 'block' }}>
+                            {item.valorRealizado} / {item.valorAlvo} {item.unidade}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            width: `${Math.min(100, item.progressoPercentual)}%`,
+                            height: '100%',
+                            background: item.progressoPercentual >= 100 ? '#10b981' : item.progressoPercentual >= 50 ? '#0284c7' : '#f59e0b',
+                            borderRadius: '999px',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="tableMessage">Nenhuma meta configurada para o período selecionado.</p>
+              )}
             </div>
           </section>
         </>

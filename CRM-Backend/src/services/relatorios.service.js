@@ -4,6 +4,7 @@ import { parseDateInput } from '../utils/date.js'
 import { buildRelatorioExcelBuffer } from '../utils/relatorioExcel.js'
 import { buildRelatorioPdfBuffer } from '../utils/relatorioPdf.js'
 import { calcularTempoMedioPorEtapa } from './negocioEtapaHistorico.service.js'
+import { getMetasDashboardStats } from './metas.service.js'
 
 const formatDateQuery = (date) => date.toISOString().slice(0, 10)
 
@@ -137,6 +138,7 @@ export const gerarRelatorio = async (query) => {
     negociosAbertas,
     negociosFechadas,
     tempoMedioPorEtapa,
+    metasResult,
   ] = await Promise.all([
     prisma.lead.count({ where: leadWhere }),
     prisma.negocio.findMany({
@@ -161,6 +163,12 @@ export const gerarRelatorio = async (query) => {
       })
       : Promise.resolve(0),
     buildTempoMedioPorEtapa(filters, excludedEtapaIds),
+    getMetasDashboardStats({
+      dataInicio: formatDateQuery(filters.dataInicio),
+      dataFim: formatDateQuery(filters.dataFim),
+      usuarioId: filters.usuarioId || undefined,
+      tipoMeta: 'todos',
+    }).catch(() => null),
   ])
 
   const totalNegocios = negociosNoPeriodo.length
@@ -192,6 +200,7 @@ export const gerarRelatorio = async (query) => {
     oportunidadesFechadas: negociosFechadas,
     taxaConversao,
     tempoMedioPorEtapa,
+    metas: metasResult,
   }
 }
 

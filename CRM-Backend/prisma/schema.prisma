@@ -54,6 +54,12 @@ model Usuario {
   perfilAcesso                PerfilAcesso                  @default(Usuario) @map("perfil_acesso")
   avatarUrl                   String?                       @map("avatar_url") @db.Text
   ativo                       Boolean                       @default(true)
+  ativarMetaLeads             Boolean                       @default(false) @map("ativar_meta_leads")
+  ativarMetasNegociacoes      Boolean                       @default(false) @map("ativar_metas_negociacoes")
+  quantidadeLeads             Int                           @default(0) @map("quantidade_leads")
+  quantidadeNegociacoes       Int                           @default(0) @map("quantidade_negociacoes")
+  metaPeriodoInicio           DateTime?                     @map("meta_periodo_inicio") @db.Date
+  metaPeriodoFim             DateTime?                     @map("meta_periodo_fim") @db.Date
   createdAt                   DateTime                      @default(now()) @map("created_at")
   updatedAt                   DateTime                      @updatedAt @map("updated_at")
   leads                       Lead[]

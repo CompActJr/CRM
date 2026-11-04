@@ -1,9 +1,10 @@
-import { BarChart3, BriefcaseBusiness, KanbanSquare, LayoutDashboard, UserCog, Users } from 'lucide-react'
+import { BarChart3, BriefcaseBusiness, KanbanSquare, LayoutDashboard, Target, UserCog, Users } from 'lucide-react'
 import { isAdministrador } from '../../utils/userAccess'
 import logoImage from '../../assets/Logo.png'
 
 const navItems = [
   ['dashboard', LayoutDashboard, 'Dashboard'],
+  ['metas', Target, 'Metas'],
   ['leads', Users, 'Leads'],
   ['funil', KanbanSquare, 'Funil'],
   ['negocios', BriefcaseBusiness, 'Negócios'],

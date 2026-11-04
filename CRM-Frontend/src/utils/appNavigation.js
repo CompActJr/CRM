@@ -41,6 +41,7 @@ export const buildNavigationPath = (state) => {
 
   const paths = {
     dashboard: '#/dashboard',
+    metas: '#/metas',
     leads: '#/leads',
     funil: '#/funil',
     negocio: '#/negocios',
@@ -108,6 +109,7 @@ export const parseNavigationPath = (hash = '') => {
 
   const screenMap = {
     dashboard: 'dashboard',
+    metas: 'metas',
     funil: 'funil',
     relatorios: 'relatorios',
   }

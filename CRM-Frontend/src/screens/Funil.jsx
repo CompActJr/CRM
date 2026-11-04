@@ -196,8 +196,16 @@ function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
 
     const etapaDestino = resolveEtapaDestino(over.id, funil, etapasAtivas)
     const etapaOrigem = findEtapaOrigem(active.id, funil, etapasAtivas)
-    if (!podeMudarEtapa(etapaOrigem, etapaDestino)) return
+    if (!podeMudarEtapa(etapaOrigem, etapaDestino)) {
+      const ordemOrigem = etapaOrdemPorNome[etapaOrigem]
+      const ordemDestino = etapaOrdemPorNome[etapaDestino]
+      if (ordemDestino !== undefined && ordemOrigem !== undefined && ordemDestino < ordemOrigem) {
+        setError('Não é possível retroceder etapas arrastando o negócio. Para voltar de etapa, edite o negócio.')
+      }
+      return
+    }
 
+    setError('')
     const negocio = active.data.current?.negocio ?? findNegocio(active.id)
     if (!negocio) return
 
@@ -219,7 +227,9 @@ function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
     const ordemDestino = etapaOrdemPorNome[etapaDestino]
     if (!etapaDestino || !etapaOrigem) return false
     if (etapaDestino === etapaOrigem) return false
-    if (ordemDestino === ordemOrigem + 1 || ordemDestino < ordemOrigem) return true
+    if (etapaDestino === ETAPA_PERDIDA) return true
+    if (ordemDestino === ordemOrigem + 1) return true
+    return false
   }
 
   const applyFilters = async () => {

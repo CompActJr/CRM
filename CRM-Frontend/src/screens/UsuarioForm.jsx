@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Save, Settings2, X } from 'lucide-react'
+import { Save, Settings2, Target, X } from 'lucide-react'
 import Field from '../components/common/Field'
 import Header from '../components/layout/Header'
 import ModalGerenciarCargos from '../components/usuarios/ModalGerenciarCargos'
@@ -14,6 +14,12 @@ const EmptyForm = {
   cargo: '',
   perfil: 'Usuário',
   avatar: null,
+  ativarMetaLeads: false,
+  ativarMetasNegociacoes: false,
+  quantidadeLeads: 0,
+  quantidadeNegociacoes: 0,
+  metaPeriodoInicio: '',
+  metaPeriodoFim: '',
 }
 
 function UsuarioForm({ setScreen, usuarioId }) {
@@ -55,6 +61,12 @@ function UsuarioForm({ setScreen, usuarioId }) {
           cargo: usuario.cargo ?? '',
           perfil: usuario.perfil ?? 'Usuário',
           avatar: usuario.avatar ?? '',
+          ativarMetaLeads: Boolean(usuario.ativarMetaLeads),
+          ativarMetasNegociacoes: Boolean(usuario.ativarMetasNegociacoes),
+          quantidadeLeads: usuario.quantidadeLeads ?? 0,
+          quantidadeNegociacoes: usuario.quantidadeNegociacoes ?? 0,
+          metaPeriodoInicio: usuario.metaPeriodoInicio ?? '',
+          metaPeriodoFim: usuario.metaPeriodoFim ?? '',
         })
       } catch (requestError) {
         setError(requestError.message)
@@ -88,6 +100,12 @@ function UsuarioForm({ setScreen, usuarioId }) {
         email: form.email,
         cargo: form.cargo,
         perfil: form.perfil,
+        ativarMetaLeads: Boolean(form.ativarMetaLeads),
+        ativarMetasNegociacoes: Boolean(form.ativarMetasNegociacoes),
+        quantidadeLeads: Number(form.quantidadeLeads || 0),
+        quantidadeNegociacoes: Number(form.quantidadeNegociacoes || 0),
+        metaPeriodoInicio: form.metaPeriodoInicio || null,
+        metaPeriodoFim: form.metaPeriodoFim || null,
       }
       if (form.senha.trim()) {
         payload.senha = form.senha
@@ -223,6 +241,82 @@ function UsuarioForm({ setScreen, usuarioId }) {
               />
             </label>
           </div>
+
+          {isAdmin && (
+            <div style={{ marginTop: '24px', padding: '16px', background: 'var(--color-bg-alt, #f8fafc)', borderRadius: '8px', border: '1px solid var(--color-border, #e2e8f0)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <Target size={18} style={{ color: 'var(--color-primary, #0284c7)' }} />
+                <strong style={{ fontSize: '1rem' }}>Metas Comerciais</strong>
+              </div>
+
+              <div className="formGrid">
+                <label className="inputGroup" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    name="ativarMetaLeads"
+                    checked={form.ativarMetaLeads}
+                    onChange={(e) => setForm((c) => ({ ...c, ativarMetaLeads: e.target.checked }))}
+                    style={{ width: '18px', height: '18px' }}
+                  />
+                  <span style={{ margin: 0, fontWeight: 500 }}>Ativar Meta de Leads</span>
+                </label>
+
+                {form.ativarMetaLeads && (
+                  <Field
+                    label="Quantidade Alvo de Leads"
+                    name="quantidadeLeads"
+                    type="number"
+                    min="0"
+                    placeholder="Ex: 300"
+                    value={form.quantidadeLeads}
+                    onChange={handleChange}
+                  />
+                )}
+
+                <label className="inputGroup" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    name="ativarMetasNegociacoes"
+                    checked={form.ativarMetasNegociacoes}
+                    onChange={(e) => setForm((c) => ({ ...c, ativarMetasNegociacoes: e.target.checked }))}
+                    style={{ width: '18px', height: '18px' }}
+                  />
+                  <span style={{ margin: 0, fontWeight: 500 }}>Ativar Meta de Negociações</span>
+                </label>
+
+                {form.ativarMetasNegociacoes && (
+                  <Field
+                    label="Quantidade Alvo de Negociações"
+                    name="quantidadeNegociacoes"
+                    type="number"
+                    min="0"
+                    placeholder="Ex: 50"
+                    value={form.quantidadeNegociacoes}
+                    onChange={handleChange}
+                  />
+                )}
+
+                {(form.ativarMetaLeads || form.ativarMetasNegociacoes) && (
+                  <>
+                    <Field
+                      label="Data Início da Meta"
+                      name="metaPeriodoInicio"
+                      type="date"
+                      value={form.metaPeriodoInicio}
+                      onChange={handleChange}
+                    />
+                    <Field
+                      label="Data Fim da Meta"
+                      name="metaPeriodoFim"
+                      type="date"
+                      value={form.metaPeriodoFim}
+                      onChange={handleChange}
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+          )}
           {cargoOptions.length === 0 && (
             <p className="formError">
               {isAdmin

@@ -66,6 +66,33 @@ const buildUsuarioData = async (
     data.avatarUrl = body.avatarUrl ? String(body.avatarUrl).trim() : null
   }
 
+  // Apenas administradores podem configurar e alterar metas comerciais
+  if (!isUpdate || isAdmin) {
+    if (body.ativarMetaLeads !== undefined) {
+      data.ativarMetaLeads = Boolean(body.ativarMetaLeads)
+    }
+
+    if (body.ativarMetasNegociacoes !== undefined) {
+      data.ativarMetasNegociacoes = Boolean(body.ativarMetasNegociacoes)
+    }
+
+    if (body.quantidadeLeads !== undefined) {
+      data.quantidadeLeads = Math.max(0, parseInt(body.quantidadeLeads, 10) || 0)
+    }
+
+    if (body.quantidadeNegociacoes !== undefined) {
+      data.quantidadeNegociacoes = Math.max(0, parseInt(body.quantidadeNegociacoes, 10) || 0)
+    }
+
+    if (body.metaPeriodoInicio !== undefined) {
+      data.metaPeriodoInicio = body.metaPeriodoInicio ? new Date(body.metaPeriodoInicio) : null
+    }
+
+    if (body.metaPeriodoFim !== undefined) {
+      data.metaPeriodoFim = body.metaPeriodoFim ? new Date(body.metaPeriodoFim) : null
+    }
+  }
+
   const senha = body.senha?.trim()
   if (senha) {
     data.senha = await bcrypt.hash(senha, 10)

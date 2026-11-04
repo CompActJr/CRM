@@ -113,6 +113,35 @@ export const buildRelatorioPdfBuffer = (relatorio) => new Promise((resolve, reje
     })
   }
 
+  if (relatorio.metas?.metas?.length) {
+    ensureSpace(doc, 80)
+    drawSectionTitle(doc, 'Metas comerciais no período')
+
+    const metasTableY = doc.y
+    const colVendedor = pageWidth * 0.45
+    const colAlvo = pageWidth * 0.30
+    const colProgresso = pageWidth - colVendedor - colAlvo
+
+    doc.rect(tableX, metasTableY, pageWidth, rowHeight).fill(colors.pale)
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(colors.ink)
+    doc.text('Vendedor / Meta', tableX + 10, metasTableY + 8, { width: colVendedor - 12 })
+    doc.text('Alvo vs Realizado', tableX + colVendedor, metasTableY + 8, { width: colAlvo - 12 })
+    doc.text('Progresso', tableX + colVendedor + colAlvo, metasTableY + 8, { width: colProgresso - 10, align: 'right' })
+    doc.y = metasTableY + rowHeight
+
+    relatorio.metas.metas.forEach((item, index) => {
+      ensureSpace(doc, rowHeight + 6)
+      const y = doc.y
+      if (index % 2 === 0) doc.rect(tableX, y, pageWidth, rowHeight).fill('#fbfdff')
+      doc.strokeColor(colors.border).moveTo(tableX, y + rowHeight).lineTo(tableX + pageWidth, y + rowHeight).stroke()
+      doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(`${item.usuarioNome} (${item.tipoLabel})`, tableX + 10, y + 8, { width: colVendedor - 12 })
+      doc.text(`${item.valorRealizado} / ${item.valorAlvo} ${item.unidade}`, tableX + colVendedor, y + 8, { width: colAlvo - 12 })
+      doc.font('Helvetica-Bold').fillColor(item.progressoPercentual >= 100 ? colors.green : colors.blue)
+        .text(`${item.progressoPercentual}%`, tableX + colVendedor + colAlvo, y + 8, { width: colProgresso - 10, align: 'right' })
+      doc.y += rowHeight
+    })
+  }
+
   const range = doc.bufferedPageRange()
   for (let index = range.start; index < range.start + range.count; index += 1) {
     doc.switchToPage(index)

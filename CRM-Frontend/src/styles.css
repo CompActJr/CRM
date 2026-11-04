@@ -1115,12 +1115,11 @@ textarea {
 }
 
 .tableCard {
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .tableCard table {
   width: 100%;
-  table-layout: fixed;
 }
 
 .tableCard td {
@@ -1202,7 +1201,19 @@ th {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.tableTitleCell span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tableTitleCell .tag {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .formPanel {
