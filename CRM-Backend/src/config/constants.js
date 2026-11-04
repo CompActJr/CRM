@@ -37,7 +37,6 @@ export const ErrorMessages = {
   invalidEtapaFunilId: 'Etapa do funil inválida',
   etapaFunilNotFound: 'Etapa do funil não encontrada',
   invalidValorEstimado: 'Valor estimado inválido',
-  invalidPrioridade: 'Prioridade inválida',
   invalidUsuarioIdParam: 'ID do usuário inválido',
   usuarioNotFound: 'Usuário não encontrado',
   usuarioNomeRequired: 'Nome é obrigatório',

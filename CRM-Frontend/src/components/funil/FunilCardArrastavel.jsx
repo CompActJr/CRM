@@ -1,8 +1,14 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { getPriorityClass } from '../../utils/priorityClass'
 
-function FunilCardArrastavel({ negocio, onViewNegocio, onEditNegocio }) {
+function FunilCardArrastavel({
+  negocio,
+  onViewNegocio,
+  onEditNegocio,
+  onViewLead,
+  onEditLead,
+}) {
+  const isLead = negocio.tipoCard === 'lead'
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: String(negocio.id),
     data: { negocio },
@@ -37,31 +43,38 @@ function FunilCardArrastavel({ negocio, onViewNegocio, onEditNegocio }) {
                 : `Quente ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`}
           </div>
         )}
+        {isLead && (
+          <div style={{ marginBottom: '6px' }}>
+            <span className="tag admin" style={{ fontSize: '11px', padding: '2px 8px' }}>
+              Lead
+            </span>
+          </div>
+        )}
         <h3>{negocio.titulo}</h3>
-        <p>{negocio.lead}</p>
+        {negocio.empresa && negocio.empresa !== negocio.lead && (
+          <p>{negocio.empresa}</p>
+        )}
+        {!isLead && <p>{negocio.lead}</p>}
         {negocio.motivoPerda && (
           <p className="opCardMotivoPerda">{negocio.motivoPerda}</p>
         )}
         <div className="cardMeta">
           <span>{negocio.responsavel}</span>
-          <span className={`priority ${getPriorityClass(negocio.prioridade)}`}>
-            {negocio.prioridade}
-          </span>
         </div>
-        <strong>{negocio.valor}</strong>
+        {negocio.valor && <strong>{negocio.valor}</strong>}
       </div>
       <div className="opCardActions">
         <button
           type="button"
           className="secondaryBtn opCardActionBtn"
-          onClick={() => onViewNegocio(negocio.id)}
+          onClick={() => (isLead && onViewLead ? onViewLead(negocio.leadId) : onViewNegocio(negocio.id))}
         >
           Ver
         </button>
         <button
           type="button"
           className="secondaryBtn opCardActionBtn"
-          onClick={() => onEditNegocio(negocio.id)}
+          onClick={() => (isLead && onEditLead ? onEditLead(negocio.leadId) : onEditNegocio(negocio.id))}
         >
           Editar
         </button>

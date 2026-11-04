@@ -26,18 +26,21 @@ const toDateTimeLocalValue = (date = new Date()) => {
   return local.toISOString().slice(0, 16)
 }
 
-export const buildMudancaEtapaDescricao = (etapaOrigem, etapaDestino) =>
-  `Negócio movido de "${etapaOrigem}" para "${etapaDestino}".`
+export const buildMudancaEtapaDescricao = (etapaOrigem, etapaDestino, isLead = false) =>
+  isLead
+    ? `Lead movido de "${etapaOrigem}" para "${etapaDestino}".`
+    : `Negócio movido de "${etapaOrigem}" para "${etapaDestino}".`
 
 function ModalMudancaEtapaFunil({
   tituloNegocio,
   etapaOrigem,
   etapaDestino,
+  isLead = false,
   onClose,
   onConfirm,
 }) {
   const [tipo, setTipo] = useState('Registro')
-  const [descricao, setDescricao] = useState(buildMudancaEtapaDescricao(etapaOrigem, etapaDestino))
+  const [descricao, setDescricao] = useState(buildMudancaEtapaDescricao(etapaOrigem, etapaDestino, isLead))
   const [dataInteracao, setDataInteracao] = useState(toDateTimeLocalValue())
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -70,13 +73,13 @@ function ModalMudancaEtapaFunil({
     <div className="modalOverlay" onClick={onClose}>
       <div className="modalCard" onClick={(event) => event.stopPropagation()}>
         <div className="modalHeader">
-          <h3>{ModalLabels.title}</h3>
+          <h3>{isLead ? 'Registrar mudança de etapa do lead' : ModalLabels.title}</h3>
           <button type="button" className="iconBtn" onClick={onClose} aria-label="Fechar">
             <X size={20} />
           </button>
         </div>
         <p className="modalHint">
-          O negócio <strong>{tituloNegocio}</strong> será movido de{' '}
+          {isLead ? 'O lead ' : 'O negócio '}<strong>{tituloNegocio}</strong> será movido de{' '}
           <strong>{etapaOrigem}</strong> para <strong>{etapaDestino}</strong>. Registre a interação
           para a linha do tempo.
         </p>

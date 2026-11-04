@@ -15,14 +15,23 @@ export const mapLeadToResponse = (lead) => ({
   dataCadastro: formatDateBr(lead.dataCadastro),
   usuarioId: lead.usuarioId,
   responsavel: lead.usuario?.nome ?? null,
+  etapaFunilId: lead.etapaFunilId ?? null,
+  etapa: lead.etapaFunil?.nome ?? null,
+  etapaOrdem: lead.etapaFunil?.ordem ?? null,
+  motivoPerdaId: lead.motivoPerdaId ?? null,
+  motivoPerda: lead.motivoPerda?.nome ?? null,
 })
 
 export const leadIncludeUsuario = {
   usuario: { select: { id: true, nome: true } },
+  etapaFunil: { select: { id: true, nome: true, ordem: true } },
+  motivoPerda: { select: { id: true, nome: true } },
 }
 
 export const leadIncludeDetail = {
   usuario: { select: { id: true, nome: true } },
+  etapaFunil: { select: { id: true, nome: true, ordem: true } },
+  motivoPerda: { select: { id: true, nome: true } },
   negocios: {
     include: {
       responsaveis: { select: { id: true, nome: true, avatarUrl: true } },

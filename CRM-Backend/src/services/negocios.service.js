@@ -3,7 +3,6 @@ import prisma from '../lib/prisma.js'
 import { TransactionOptions } from '../lib/transaction.js'
 import { parseValorEstimado } from '../utils/currency.js'
 import { mapNegocioToResponse, negocioInclude } from '../utils/negocioMapper.js'
-import { parsePrioridade } from '../utils/prioridade.js'
 import { parseUsuarioIdFilter } from '../utils/usuarioFilter.js'
 import {
   calcularTempoMedioPorEtapa,
@@ -16,9 +15,11 @@ import {
 } from './responsavelHistorico.service.js'
 import {
   buildTarefaResumo,
+  collectLeadPendingDates,
   collectNegocioPendingDates,
   sortByPendingTasks,
 } from '../utils/tarefaResumo.js'
+import { formatDateBr } from '../utils/date.js'
 import {normalizeString} from "../utils/stringNormalize.js";
 import {parseTemperaturaRange} from "../utils/temperatura.js";
 
@@ -54,13 +55,6 @@ const buildNegocioData = async (body) => {
   const valorEstimado = parseValorEstimado(body.valorEstimado)
   if (valorEstimado === null) {
     const error = new Error(ErrorMessages.invalidValorEstimado)
-    error.statusCode = 400
-    throw error
-  }
-
-  const prioridade = parsePrioridade(body.prioridade)
-  if (!prioridade) {
-    const error = new Error(ErrorMessages.invalidPrioridade)
     error.statusCode = 400
     throw error
   }
@@ -107,11 +101,15 @@ const buildNegocioData = async (body) => {
     error.statusCode = 400
     throw error
   }
+  if (etapa.ordem < 4) {
+    const error = new Error('Negócios só podem ser criados ou movidos a partir da fase de Proposta.')
+    error.statusCode = 400
+    throw error
+  }
 
   const data = {
     titulo,
     valorEstimado,
-    prioridade,
     leadId,
     etapaFunilId,
     responsaveisIds,
@@ -199,7 +197,21 @@ export const listNegociosFunil = async (query = {}) => {
     }
   }
 
-  const [etapas, negocios] = await Promise.all([
+  const leadsWhere = {
+    status: 'Ativo',
+    etapaFunil: { ordem: { lt: 4 } },
+    ...(usuarioId ? { usuarioId } : {}),
+    ...(nome ? { nome: { contains: nome, mode: 'insensitive' } } : {}),
+    ...(cnpj ? { cnpj: { contains: cnpj, mode: 'insensitive' } } : {}),
+    ...(empresa ? { empresa: { contains: empresa, mode: 'insensitive' } } : {}),
+    negocios: {
+      none: {
+        etapaFunil: { ordem: { gte: 4, lte: 6 } },
+      },
+    },
+  }
+
+  const [etapas, negocios, leads] = await Promise.all([
     prisma.etapaFunil.findMany({
       orderBy: { ordem: 'asc' },
     }),
@@ -216,35 +228,86 @@ export const listNegociosFunil = async (query = {}) => {
       },
       orderBy: { dataCriacao: 'desc' },
     }),
+
+    prisma.lead.findMany({
+      where: leadsWhere,
+      include: {
+        usuario: { select: { id: true, nome: true, avatarUrl: true } },
+        tarefas: {
+          where: { status: 'Pendente' },
+          select: { id: true, dataPrazo: true },
+        },
+        historicoEtapas: {
+          where: { saidaEm: null },
+          orderBy: { entradaEm: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
   ])
 
   const agora = Date.now()
   const MS_PER_DAY = 1000 * 60 * 60 * 24
 
-  const mapped = negocios.map((op) => {
+  const mappedLeads = leads.map((lead) => {
+    const ultimaEntrada = lead.historicoEtapas?.[0]?.entradaEm || lead.createdAt
+    const diasNaEtapa = Math.floor((agora - new Date(ultimaEntrada).getTime()) / MS_PER_DAY)
+    const pendingDates = collectLeadPendingDates(lead.tarefas || [])
+
+    return {
+      id: `lead_${lead.id}`,
+      cardId: `lead_${lead.id}`,
+      leadId: lead.id,
+      negocioId: null,
+      tipoCard: 'lead',
+      titulo: lead.empresa ? `${lead.empresa} (${lead.nome})` : lead.nome,
+      lead: lead.nome,
+      empresa: lead.empresa,
+      cidade: lead.cidade,
+      responsavel: lead.usuario?.nome ?? 'Sem responsável',
+      responsaveis: lead.usuario ? [{ id: lead.usuario.id, nome: lead.usuario.nome }] : [],
+      responsaveisIds: lead.usuarioId ? [lead.usuarioId] : [],
+      usuarioId: lead.usuarioId,
+      etapaFunilId: lead.etapaFunilId,
+      valor: null,
+      valorEstimado: 0,
+      diasNaEtapa: Math.max(0, diasNaEtapa),
+      tarefasPendentes: lead.tarefas?.length ?? 0,
+      prazoMaisProximo: pendingDates[0] ? formatDateBr(pendingDates[0]) : null,
+    }
+  })
+
+  const mappedNegocios = negocios.map((op) => {
     const response = mapNegocioToResponse(op)
     const ultimaEntrada = op.historicoEtapas?.[0]?.entradaEm || op.dataCriacao
-
-    const diasNaEtapa = Math.floor(
-        (agora - new Date(ultimaEntrada).getTime()) / MS_PER_DAY,
-    )
+    const diasNaEtapa = Math.floor((agora - new Date(ultimaEntrada).getTime()) / MS_PER_DAY)
 
     return {
       ...response,
+      cardId: String(op.id),
+      negocioId: op.id,
+      tipoCard: 'negocio',
       diasNaEtapa: Math.max(0, diasNaEtapa),
     }
   })
+
   const range = parseTemperaturaRange(temperatura)
-  const filtrados = range
-      ? mapped.filter((negocio) => negocio.diasNaEtapa >= range.min && negocio.diasNaEtapa <= range.max)
-      : mapped
+  const filtradosLeads = range
+    ? mappedLeads.filter((item) => item.diasNaEtapa >= range.min && item.diasNaEtapa <= range.max)
+    : mappedLeads
+  const filtradosNegocios = range
+    ? mappedNegocios.filter((item) => item.diasNaEtapa >= range.min && item.diasNaEtapa <= range.max)
+    : mappedNegocios
 
   const funil = {}
 
   for (const etapa of etapas) {
-    funil[etapa.nome] = filtrados.filter(
-        (item) => item.etapaFunilId === etapa.id,
-    )
+    if (etapa.ordem < 4) {
+      funil[etapa.nome] = filtradosLeads.filter((item) => item.etapaFunilId === etapa.id)
+    } else {
+      funil[etapa.nome] = filtradosNegocios.filter((item) => item.etapaFunilId === etapa.id)
+    }
   }
 
   return { funil }
@@ -288,6 +351,23 @@ export const createNegocio = async (body) => {
     })
     await registrarEntradaEtapa(tx, created.id, created.etapaFunilId, created.dataCriacao)
     await registrarResponsaveisNegocio(tx, created.id, responsaveisIds, created.dataCriacao)
+
+    // Atualiza o lead para a etapa do negócio (promovido a negócio)
+    const etapaAbertaLead = await tx.leadEtapaHistorico.findFirst({
+      where: { leadId: rest.leadId, saidaEm: null },
+      orderBy: { entradaEm: 'desc' },
+    })
+    if (etapaAbertaLead) {
+      await tx.leadEtapaHistorico.update({
+        where: { id: etapaAbertaLead.id },
+        data: { saidaEm: created.dataCriacao },
+      })
+    }
+    await tx.lead.update({
+      where: { id: rest.leadId },
+      data: { etapaFunilId: created.etapaFunilId },
+    })
+
     return created
   }, TransactionOptions)
 

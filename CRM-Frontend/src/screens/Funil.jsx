@@ -14,8 +14,10 @@ import FiltroResponsavel from '../components/filtros/FiltroResponsavel'
 import FunilColuna from '../components/funil/FunilColuna'
 import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
 import ModalMudancaEtapaFunil from '../components/negocios/ModalMudancaEtapaFunil'
+import ModalCriarNegocioProposta from '../components/negocios/ModalCriarNegocioProposta'
 import { fetchEtapasFunil } from '../services/etapasService'
 import { fetchNegociosFunil, updateNegocio } from '../services/negociosService'
+import { mudarEtapaLead } from '../services/leadsService'
 import { createInteracaoForNegocio } from '../services/interacoesService'
 import {
   ETAPA_PERDIDA,
@@ -23,16 +25,16 @@ import {
   findEtapaOrigem,
   resolveEtapaDestino,
 } from '../utils/funilDrag'
-import { getPriorityClass } from '../utils/priorityClass'
 import SearchableSelect from "../components/common/SearchableSelect";
 import {fetchUsuariosOpcoes} from "../services/usuariosService";
 
 const etapasSemTempoMedio = new Set(['Fechado', 'Perdida'])
 
 function FunilOverlayCard({ negocio }) {
+  const isLead = negocio?.tipoCard === 'lead'
+
   return (
     <div className="opCard opCardOverlay">
-
       {/* Etiqueta de Tempo na Etapa */}
       {negocio.diasNaEtapa !== undefined && (
         <div
@@ -52,26 +54,40 @@ function FunilOverlayCard({ negocio }) {
         </div>
       )}
 
-      {/* Informações do Negócio */}
-      <h3>{negocio.titulo}</h3>
-      <p>{negocio.lead}</p>
+      {isLead && (
+        <div style={{ marginBottom: '6px' }}>
+          <span className="tag admin" style={{ fontSize: '11px', padding: '2px 8px' }}>
+            Lead
+          </span>
+        </div>
+      )}
 
-      {/* Meta e Prioridade */}
+      {/* Informações do Negócio ou Lead */}
+      <h3>{negocio.titulo}</h3>
+      {negocio.empresa && negocio.empresa !== negocio.lead && (
+        <p>{negocio.empresa}</p>
+      )}
+      {!isLead && <p>{negocio.lead}</p>}
+
+      {/* Meta */}
       <div className="cardMeta">
         <span>{negocio.responsavel}</span>
-        <span className={`priority ${getPriorityClass(negocio.prioridade)}`}>
-          {negocio.prioridade}
-        </span>
       </div>
 
       {/* Valor */}
-      <strong>{negocio.valor}</strong>
-
+      {negocio.valor && <strong>{negocio.valor}</strong>}
     </div>
   );
 }
 
-function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
+function Funil({
+  onNewNegocio,
+  onViewNegocio,
+  onEditNegocio,
+  onViewLead,
+  onEditLead,
+  currentUser,
+}) {
   const [funil, setFunil] = useState({})
   const [tempoMedioPorEtapa, setTempoMedioPorEtapa] = useState({})
   const [etapas, setEtapas] = useState([])
@@ -89,6 +105,7 @@ function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
   const [activeCard, setActiveCard] = useState(null)
   const [perdidaModal, setPerdidaModal] = useState(null)
   const [mudancaEtapaModal, setMudancaEtapaModal] = useState(null)
+  const [criarNegocioModal, setCriarNegocioModal] = useState(null)
   const [users, setUsers] = useState([])
 
   const sensors = useSensors(
@@ -189,37 +206,80 @@ function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
     setActiveCard(negocio ?? null)
   }
 
+  const podeMudarEtapa = (card, etapaOrigem, etapaDestino) => {
+    const ordemOrigem = etapaOrdemPorNome[etapaOrigem]
+    const ordemDestino = etapaOrdemPorNome[etapaDestino]
+    if (!etapaDestino || !etapaOrigem) return false
+    if (etapaDestino === etapaOrigem) return false
+    if (etapaDestino === ETAPA_PERDIDA) return true
+
+    // Negócios só podem existir a partir da fase de Proposta (ordem >= 4)
+    if (card?.tipoCard === 'negocio' && ordemDestino < 4) {
+      return false
+    }
+
+    if (ordemDestino === ordemOrigem + 1) return true
+    return false
+  }
+
   const handleDragEnd = async (event) => {
     setActiveCard(null)
     const { active, over } = event
-    if (!over || mudancaEtapaModal || perdidaModal) return
+    if (!over || mudancaEtapaModal || perdidaModal || criarNegocioModal) return
 
     const etapaDestino = resolveEtapaDestino(over.id, funil, etapasAtivas)
     const etapaOrigem = findEtapaOrigem(active.id, funil, etapasAtivas)
-    if (!podeMudarEtapa(etapaOrigem, etapaDestino)) return
+    const card = active.data.current?.negocio ?? findNegocio(active.id)
+    if (!card) return
 
-    const negocio = active.data.current?.negocio ?? findNegocio(active.id)
-    if (!negocio) return
+    const ordemOrigem = etapaOrdemPorNome[etapaOrigem]
+    const ordemDestino = etapaOrdemPorNome[etapaDestino]
 
-    if (etapaDestino === ETAPA_PERDIDA) {
-      setPerdidaModal({ negocio, etapaOrigem })
+    if (!podeMudarEtapa(card, etapaOrigem, etapaDestino)) {
+      if (card.tipoCard === 'negocio' && ordemDestino < 4) {
+        setError('Negócios só podem existir a partir da fase de Proposta.')
+      } else if (ordemDestino !== undefined && ordemOrigem !== undefined && ordemDestino < ordemOrigem) {
+        setError('Não é possível retroceder etapas arrastando. Para voltar de etapa, utilize a edição.')
+      }
       return
     }
 
-    await aplicarMudancaEtapa(negocio, etapaOrigem, etapaDestino)
+    setError('')
+
+    // Se o card for um LEAD:
+    if (card.tipoCard === 'lead') {
+      if (etapaDestino === ETAPA_PERDIDA) {
+        setPerdidaModal({ negocio: card, etapaOrigem })
+        return
+      }
+
+      // Se for arrastado para Proposta (ou além):
+      if (ordemDestino >= 4) {
+        setCriarNegocioModal({
+          lead: card,
+          etapaDestino,
+          etapaFunilId: etapaIdPorNome[etapaDestino],
+        })
+        return
+      }
+
+      // Mudança normal entre etapas preliminares (< 4): abre o modal de anotações
+      await aplicarMudancaEtapa(card, etapaOrigem, etapaDestino)
+      return
+    }
+
+    // Se o card for um NEGÓCIO:
+    if (etapaDestino === ETAPA_PERDIDA) {
+      setPerdidaModal({ negocio: card, etapaOrigem })
+      return
+    }
+
+    await aplicarMudancaEtapa(card, etapaOrigem, etapaDestino)
   }
 
   const handlePerdidaSuccess = async () => {
     setPerdidaModal(null)
     await loadFunil()
-  }
-
-  const podeMudarEtapa = (etapaOrigem, etapaDestino) => {
-    const ordemOrigem = etapaOrdemPorNome[etapaOrigem]
-    const ordemDestino = etapaOrdemPorNome[etapaDestino]
-    if (!etapaDestino || !etapaOrigem) return false
-    if (etapaDestino === etapaOrigem) return false
-    if (ordemDestino === ordemOrigem + 1 || ordemDestino < ordemOrigem) return true
   }
 
   const applyFilters = async () => {
@@ -364,6 +424,8 @@ function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
                     showTempoMedio={!etapasSemTempoMedio.has(etapa)}
                     onViewNegocio={onViewNegocio}
                     onEditNegocio={onEditNegocio}
+                    onViewLead={onViewLead}
+                    onEditLead={onEditLead}
                   />
                 )
               })}
@@ -382,22 +444,44 @@ function Funil({ onNewNegocio, onViewNegocio, onEditNegocio, currentUser }) {
           onSuccess={handlePerdidaSuccess}
         />
       )}
+      {criarNegocioModal && (
+        <ModalCriarNegocioProposta
+          lead={criarNegocioModal.lead}
+          etapaDestino={criarNegocioModal.etapaDestino}
+          etapaFunilId={criarNegocioModal.etapaFunilId}
+          users={users}
+          currentUser={currentUser}
+          onClose={() => setCriarNegocioModal(null)}
+          onSuccess={async () => {
+            setCriarNegocioModal(null)
+            await loadFunil({ silent: true })
+          }}
+        />
+      )}
       {mudancaEtapaModal && (
         <ModalMudancaEtapaFunil
           tituloNegocio={mudancaEtapaModal.negocio.titulo}
           etapaOrigem={mudancaEtapaModal.etapaOrigem}
           etapaDestino={mudancaEtapaModal.etapaDestino}
+          isLead={mudancaEtapaModal.negocio.tipoCard === 'lead'}
           onClose={() => setMudancaEtapaModal(null)}
           onConfirm={async (interacao) => {
             const { negocio, etapaFunilId } = mudancaEtapaModal
-            await updateNegocio(
-              negocio.id,
-              buildUpdatePayload(negocio, etapaFunilId)
-            )
-            await createInteracaoForNegocio(negocio.id, {
-              ...interacao,
-              usuarioId: currentUser?.id,
-            })
+            if (negocio.tipoCard === 'lead') {
+              await mudarEtapaLead(negocio.leadId, {
+                etapaFunilId,
+                interacao,
+              })
+            } else {
+              await updateNegocio(
+                negocio.id,
+                buildUpdatePayload(negocio, etapaFunilId)
+              )
+              await createInteracaoForNegocio(negocio.id, {
+                ...interacao,
+                usuarioId: currentUser?.id,
+              })
+            }
             await handleMudancaEtapaSuccess()
           }}
         />

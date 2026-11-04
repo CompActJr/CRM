@@ -23,7 +23,6 @@ const EmptyForm = {
   titulo: '',
   responsaveisIds: [],
   valorEstimado: '',
-  prioridade: 'Média',
   etapaFunilId: '',
 }
 
@@ -51,13 +50,19 @@ function NegocioForm({ setScreen, negocioId }) {
           fetchUsuariosOpcoes(),
           fetchEtapasFunil(),
         ])
+        const etapasNegocios = etapasData.filter((etapa) => etapa.ordem >= 4)
         setLeads(leadsData)
         setUsuarios(usuariosData)
-        setEtapas(etapasData)
+        setEtapas(etapasNegocios)
 
         if (!negocioId) {
           const initialUserIds = currentUser?.id ? [Number(currentUser.id)] : []
-          setForm({ ...EmptyForm, responsaveisIds: initialUserIds })
+          const etapaProposta = etapasNegocios.find((e) => e.ordem === 4) || etapasNegocios[0]
+          setForm({
+            ...EmptyForm,
+            responsaveisIds: initialUserIds,
+            etapaFunilId: etapaProposta ? String(etapaProposta.id) : '',
+          })
           setLoading(false)
           return
         }
@@ -78,7 +83,6 @@ function NegocioForm({ setScreen, negocioId }) {
           titulo: negocio.titulo ?? '',
           responsaveisIds: initialResponsaveis,
           valorEstimado: formatValorFromAmount(negocio.valorEstimado),
-          prioridade: negocio.prioridade ?? 'Média',
           etapaFunilId: etapaId,
         })
       } catch (requestError) {
@@ -148,7 +152,6 @@ function NegocioForm({ setScreen, negocioId }) {
       responsaveisIds: form.responsaveisIds,
       usuarioId: form.responsaveisIds[0],
       etapaFunilId: Number(form.etapaFunilId),
-      prioridade: form.prioridade,
       valorEstimado: parseValorInputToAmount(form.valorEstimado),
     }
 
@@ -292,22 +295,6 @@ function NegocioForm({ setScreen, negocioId }) {
                 required
               />
             </label>
-
-            <SearchableSelect
-              label="Prioridade"
-              placeholder="Selecione uma prioridade"
-              searchPlaceholder="Buscar prioridade..."
-              options={[
-                { value: 'Baixa', label: 'Baixa' },
-                { value: 'Média', label: 'Média' },
-                { value: 'Alta', label: 'Alta' },
-              ]}
-              value={form.prioridade}
-              onChange={(nextPrioridade) =>
-                setForm((current) => ({ ...current, prioridade: nextPrioridade }))
-              }
-              required
-            />
 
             <SearchableSelect
               label="Etapa do funil"

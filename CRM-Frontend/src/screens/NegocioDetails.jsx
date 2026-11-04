@@ -8,7 +8,6 @@ import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
 import Header from '../components/layout/Header'
 import { fetchPropostasByNegocio, downloadPropostaPdf } from '../services/propostasService'
 import { fetchNegocioById } from '../services/negociosService'
-import { getPriorityClass } from '../utils/priorityClass'
 
 
 function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', currentUser }) {
@@ -108,10 +107,6 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
           <h2>{negocio.titulo}</h2>
 
           <div className="leadSummaryTags">
-            <span className={`priority ${getPriorityClass(negocio.prioridade)}`}>
-              {negocio.prioridade}
-            </span>
-
             {negocio.perdida && <span className="tag danger">Perdido</span>}
           </div>
 
@@ -139,6 +134,8 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
                         borderRadius: '12px',
                         fontSize: '12px',
                         fontWeight: 600,
+                        maxWidth: '100%',
+                        wordBreak: 'break-word',
                       }}
                     >
                       {resp.nome}

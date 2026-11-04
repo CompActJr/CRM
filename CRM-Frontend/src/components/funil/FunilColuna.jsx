@@ -10,6 +10,8 @@ function FunilColuna({
   showTempoMedio,
   onViewNegocio,
   onEditNegocio,
+  onViewLead,
+  onEditLead,
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: etapa,
@@ -32,6 +34,8 @@ function FunilColuna({
           negocio={negocio}
           onViewNegocio={onViewNegocio}
           onEditNegocio={onEditNegocio}
+          onViewLead={onViewLead}
+          onEditLead={onEditLead}
         />
       ))}
     </div>

@@ -389,24 +389,24 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
         {loading ? (
           <p className="tableMessage">Carregando leads...</p>
         ) : (
-          <table>
+          <table style={{ minWidth: '980px' }}>
             <thead>
               <tr>
-                <th>Nome</th>
-                <th>CNPJ</th>
-                <th>Empresa</th>
-                <th>Responsável</th>
-                <th>Cidade</th>
-                <th>Nicho</th>
-                <th>Data de cadastro</th>
-                <th>Status</th>
-                <th>Ações</th>
+                <th style={{ minWidth: '220px' }}>Nome</th>
+                <th style={{ minWidth: '150px' }}>CNPJ</th>
+                <th style={{ minWidth: '140px' }}>Empresa</th>
+                <th style={{ minWidth: '130px' }}>Responsável</th>
+                <th style={{ minWidth: '110px' }}>Cidade</th>
+                <th style={{ minWidth: '110px' }}>Nicho</th>
+                <th style={{ minWidth: '120px' }}>Data de cadastro</th>
+                <th style={{ minWidth: '90px' }}>Status</th>
+                <th style={{ minWidth: '90px' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="tableMessage">
+                  <td colSpan={9} className="tableMessage">
                     Nenhum lead encontrado.
                   </td>
                 </tr>

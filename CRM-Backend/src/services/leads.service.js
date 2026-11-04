@@ -18,6 +18,10 @@ import {
   registrarResponsavelLead,
   sincronizarResponsavelLead,
 } from './responsavelHistorico.service.js'
+import {
+  registrarEntradaEtapaLead,
+  registrarMudancaEtapaLead,
+} from './leadEtapaHistorico.service.js'
 import { normalizeString} from "../utils/stringNormalize.js"
 
 const parseLeadId = (id) => {
@@ -218,9 +222,15 @@ export const getLeadById = async (idParam) => {
 
 export const createLead = async (body) => {
   const data = await buildLeadData(body)
+  const etapaInicial = await prisma.etapaFunil.findFirst({ orderBy: { ordem: 'asc' } })
+  const etapaFunilId = etapaInicial ? etapaInicial.id : 1
+
   const lead = await prisma.$transaction(async (tx) => {
     const created = await tx.lead.create({
-      data,
+      data: {
+        ...data,
+        etapaFunilId,
+      },
       include: leadIncludeUsuario,
     })
     await registrarResponsavelLead(
@@ -229,9 +239,126 @@ export const createLead = async (body) => {
       created.usuarioId,
       toDateOnlyInstant(created.dataCadastro)
     )
+    await registrarEntradaEtapaLead(tx, created.id, etapaFunilId, created.createdAt)
     return created
   }, TransactionOptions)
   return mapLeadToResponse(lead)
+}
+
+export const mudarEtapaLead = async (idParam, body, usuarioIdParam) => {
+  const id = parseLeadId(idParam)
+  if (!id) {
+    const error = new Error(ErrorMessages.invalidLeadId)
+    error.statusCode = 400
+    throw error
+  }
+
+  const existing = await prisma.lead.findUnique({
+    where: { id },
+    include: { etapaFunil: true },
+  })
+  if (!existing) {
+    const error = new Error(ErrorMessages.leadNotFound)
+    error.statusCode = 404
+    throw error
+  }
+
+  const usuarioId = parseUsuarioId(usuarioIdParam) || existing.usuarioId
+
+  // Se for marcar como perdido / inativo (desqualificação no funil):
+  if (body.motivoPerdaId || body.status === 'Inativo') {
+    const motivoPerdaId = Number(body.motivoPerdaId)
+    if (!motivoPerdaId) {
+      const error = new Error('Motivo de perda é obrigatório para desqualificar o lead.')
+      error.statusCode = 400
+      throw error
+    }
+    const motivo = await prisma.motivoPerda.findUnique({ where: { id: motivoPerdaId } })
+    if (!motivo) {
+      const error = new Error('Motivo de perda não encontrado.')
+      error.statusCode = 400
+      throw error
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const etapaAberta = await tx.leadEtapaHistorico.findFirst({
+        where: { leadId: id, saidaEm: null },
+        orderBy: { entradaEm: 'desc' },
+      })
+      if (etapaAberta) {
+        await tx.leadEtapaHistorico.update({
+          where: { id: etapaAberta.id },
+          data: { saidaEm: new Date() },
+        })
+      }
+
+      const leadUpdated = await tx.lead.update({
+        where: { id },
+        data: {
+          status: 'Inativo',
+          motivoPerdaId,
+        },
+        include: leadIncludeUsuario,
+      })
+
+      await tx.interacao.create({
+        data: {
+          tipo: 'Registro',
+          descricao: `Lead desqualificado no funil. Motivo: ${motivo.nome}`,
+          dataInteracao: new Date(),
+          leadId: id,
+          usuarioId,
+        },
+      })
+
+      return leadUpdated
+    }, TransactionOptions)
+
+    return mapLeadToResponse(updated)
+  }
+
+  // Mudança normal de etapa (1, 2, 3)
+  const etapaFunilId = Number(body.etapaFunilId)
+  if (!etapaFunilId) {
+    const error = new Error('Etapa de destino inválida.')
+    error.statusCode = 400
+    throw error
+  }
+
+  const etapa = await prisma.etapaFunil.findUnique({ where: { id: etapaFunilId } })
+  if (!etapa) {
+    const error = new Error('Etapa não encontrada.')
+    error.statusCode = 400
+    throw error
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    await registrarMudancaEtapaLead(tx, id, etapaFunilId)
+
+    const leadUpdated = await tx.lead.update({
+      where: { id },
+      data: { etapaFunilId },
+      include: leadIncludeUsuario,
+    })
+
+    const descricaoInteracao = body.interacao?.descricao
+      ? body.interacao.descricao.trim()
+      : `Lead movido para a etapa "${etapa.nome}".`
+
+    await tx.interacao.create({
+      data: {
+        tipo: body.interacao?.tipo || 'Registro',
+        descricao: descricaoInteracao,
+        dataInteracao: body.interacao?.dataInteracao ? new Date(body.interacao.dataInteracao) : new Date(),
+        leadId: id,
+        usuarioId,
+      },
+    })
+
+    return leadUpdated
+  }, TransactionOptions)
+
+  return mapLeadToResponse(updated)
 }
 
 export const updateLead = async (idParam, body) => {

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { SessionProvider } from './context/SessionContext'
 import Sidebar from './components/layout/Sidebar'
 import Dashboard from './screens/Dashboard'
+import MetasDashboard from './screens/MetasDashboard'
 import Funil from './screens/Funil'
 import LeadDetails from './screens/LeadDetails'
 import LeadForm from './screens/LeadForm'
@@ -138,6 +139,14 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
 
   const screens = {
     dashboard: <Dashboard onViewLead={openViewLead} onViewNegocio={openViewNegocio} />,
+    metas: (
+      <MetasDashboard
+        onViewLead={openViewLead}
+        onViewNegocio={openViewNegocio}
+        onEditUsuario={openEditUsuario}
+        setScreen={setScreen}
+      />
+    ),
     leads: (
       <Leads
         setScreen={setScreen}
@@ -162,6 +171,8 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
         onNewNegocio={openNewNegocio}
         onViewNegocio={openViewNegocio}
         onEditNegocio={openEditNegocio}
+        onViewLead={openViewLead}
+        onEditLead={openEditLead}
         currentUser={currentUser}
       />
     ),

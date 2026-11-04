@@ -209,6 +209,51 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
     currentRow += 1
   })
 
+  if (relatorio.metas?.metas?.length) {
+    currentRow += 1
+
+    mergeAndStyleRow(sheet, currentRow, 1, 3, 'Desempenho de Metas Comerciais', (cell) => {
+      cell.font = { name: Styles.fontName, bold: true, size: 12, color: { argb: Styles.sectionFont } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.sectionFill } }
+      cell.alignment = { horizontal: 'left', vertical: 'middle' }
+    })
+    currentRow += 1
+
+    const metasHeaderRow = sheet.getRow(currentRow)
+    metasHeaderRow.getCell(1).value = 'Vendedor / Meta'
+    metasHeaderRow.getCell(2).value = 'Alvo vs Realizado'
+    metasHeaderRow.getCell(3).value = '% Concluído (Status)'
+    forEachCellInRange(sheet, currentRow, 1, 3, (cell) => {
+      cell.font = { name: Styles.fontName, bold: true, size: 11, color: { argb: Styles.sectionFont } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.headerFill } }
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      applyBorder(cell)
+    })
+    metasHeaderRow.height = 24
+    currentRow += 1
+
+    relatorio.metas.metas.forEach((meta, index) => {
+      const row = sheet.getRow(currentRow)
+      row.getCell(1).value = `${meta.usuarioNome} — ${meta.tipoLabel}`
+      row.getCell(2).value = `${meta.valorRealizado} / ${meta.valorAlvo} ${meta.unidade}`
+      row.getCell(3).value = `${meta.progressoPercentual}% (${meta.status})`
+
+      const isZebra = index % 2 === 0
+      forEachCellInRange(sheet, currentRow, 1, 3, (cell, col) => {
+        cell.font = { name: Styles.fontName, size: 11, color: { argb: Styles.sectionFont } }
+        if (isZebra) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.zebraFill } }
+        }
+        cell.alignment = {
+          horizontal: col === 1 ? 'left' : 'center',
+          vertical: 'middle',
+        }
+        applyBorder(cell)
+      })
+      currentRow += 1
+    })
+  }
+
   sheet.pageSetup = {
     fitToPage: true,
     fitToWidth: 1,

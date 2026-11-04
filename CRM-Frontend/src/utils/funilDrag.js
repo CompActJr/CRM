@@ -37,7 +37,6 @@ export const moveNegocioNoFunil = (funil, negocioId, etapaOrigem, etapaDestino) 
 export const buildUpdatePayload = (negocio, etapaFunilId) => ({
   titulo: negocio.titulo,
   valorEstimado: negocio.valorEstimado,
-  prioridade: negocio.prioridadeDb,
   responsaveisIds:
     negocio.responsaveisIds ??
     (negocio.responsaveis ? negocio.responsaveis.map((r) => r.id) : [negocio.usuarioId].filter(Boolean)),

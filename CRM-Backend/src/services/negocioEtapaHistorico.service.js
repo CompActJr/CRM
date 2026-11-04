@@ -54,10 +54,18 @@ export const calcularTempoMedioPorEtapa = async (query = {}) => {
   if (Object.keys(negocioWhere).length > 0) {
     filtroNegocio.negocio = { is: negocioWhere }
   }
-  const [etapas, registros] = await Promise.all([
+  const [etapas, registrosNegocio, registrosLead] = await Promise.all([
     prisma.etapaFunil.findMany({ orderBy: { ordem: 'asc' } }),
     prisma.negocioEtapaHistorico.findMany({
       where: filtroNegocio,
+      include: { etapaFunil: { select: { nome: true } } },
+    }),
+    prisma.leadEtapaHistorico.findMany({
+      where: {
+        lead: {
+          ...(usuarioId ? { usuarioId } : {}),
+        },
+      },
       include: { etapaFunil: { select: { nome: true } } },
     }),
   ])
@@ -65,12 +73,20 @@ export const calcularTempoMedioPorEtapa = async (query = {}) => {
   const duracoesPorEtapa = Object.fromEntries(etapas.map((etapa) => [etapa.nome, []]))
   const agora = Date.now()
 
-  for (const registro of registros) {
+  for (const registro of registrosLead) {
     const nomeEtapa = registro.etapaFunil.nome
     const fim = registro.saidaEm ? registro.saidaEm.getTime() : agora
     const dias = (fim - registro.entradaEm.getTime()) / MS_PER_DAY
     if (dias < 0) continue
-    duracoesPorEtapa[nomeEtapa].push(dias)
+    if (duracoesPorEtapa[nomeEtapa]) duracoesPorEtapa[nomeEtapa].push(dias)
+  }
+
+  for (const registro of registrosNegocio) {
+    const nomeEtapa = registro.etapaFunil.nome
+    const fim = registro.saidaEm ? registro.saidaEm.getTime() : agora
+    const dias = (fim - registro.entradaEm.getTime()) / MS_PER_DAY
+    if (dias < 0) continue
+    if (duracoesPorEtapa[nomeEtapa]) duracoesPorEtapa[nomeEtapa].push(dias)
   }
 
   const tempoMedioPorEtapa = {}
@@ -78,7 +94,7 @@ export const calcularTempoMedioPorEtapa = async (query = {}) => {
   for (const etapa of etapas) {
     const duracoes = duracoesPorEtapa[etapa.nome]
     tempoMedioPorEtapa[etapa.nome] =
-      duracoes.length > 0
+      duracoes && duracoes.length > 0
         ? Math.round(duracoes.reduce((total, dias) => total + dias, 0) / duracoes.length)
         : null
   }

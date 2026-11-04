@@ -4,7 +4,6 @@ import Header from '../components/layout/Header'
 import FiltroResponsavel from '../components/filtros/FiltroResponsavel'
 import TarefaPendenteTag from '../components/tarefas/TarefaPendenteTag'
 import { deleteNegocio, fetchNegocios } from '../services/negociosService'
-import { getPriorityClass } from '../utils/priorityClass'
 
 function Negocios({ setScreen, onNewNegocio, onEditNegocio, onViewNegocio }) {
   const [negocios, setNegocios] = useState([])
@@ -96,7 +95,6 @@ function Negocios({ setScreen, onNewNegocio, onEditNegocio, onViewNegocio }) {
                 <th>Título</th>
                 <th>Lead</th>
                 <th>Responsável</th>
-                <th>Prioridade</th>
                 <th>Etapa</th>
                 <th>Valor estimado</th>
                 <th>Ações</th>
@@ -105,7 +103,7 @@ function Negocios({ setScreen, onNewNegocio, onEditNegocio, onViewNegocio }) {
             <tbody>
               {filteredNegocios.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="tableMessage">
+                  <td colSpan={6} className="tableMessage">
                     Nenhum negócio encontrado.
                   </td>
                 </tr>
@@ -124,11 +122,6 @@ function Negocios({ setScreen, onNewNegocio, onEditNegocio, onViewNegocio }) {
                     </td>
                     <td>{negocio.lead}</td>
                     <td>{negocio.responsavel}</td>
-                    <td>
-                      <span className={`priority ${getPriorityClass(negocio.prioridade)}`}>
-                        {negocio.prioridade}
-                      </span>
-                    </td>
                     <td>{negocio.etapa}</td>
                     <td>{negocio.valor}</td>
                     <td className="actions">
