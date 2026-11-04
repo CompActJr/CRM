@@ -46,6 +46,19 @@ export const remove = async (request, response, next) => {
   }
 }
 
+export const mudarEtapa = async (request, response, next) => {
+  try {
+    const lead = await leadsService.mudarEtapaLead(
+      request.params.id,
+      request.body,
+      request.headers['x-usuario-id']
+    )
+    response.json(lead)
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const downloadImportTemplate = async (_request, response, next) => {
   try {
     const buffer = await leadsImportService.getImportTemplate()

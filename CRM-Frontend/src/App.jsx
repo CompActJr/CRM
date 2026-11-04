@@ -171,6 +171,8 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
         onNewNegocio={openNewNegocio}
         onViewNegocio={openViewNegocio}
         onEditNegocio={openEditNegocio}
+        onViewLead={openViewLead}
+        onEditLead={openEditLead}
         currentUser={currentUser}
       />
     ),

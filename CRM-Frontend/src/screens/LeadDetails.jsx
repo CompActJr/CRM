@@ -1,36 +1,52 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { Plus } from 'lucide-react'
 import PainelInteracoes from '../components/interacoes/PainelInteracoes'
 import PainelTarefas from '../components/tarefas/PainelTarefas'
 import PainelTimeline from '../components/timeline/PainelTimeline'
+import ModalCriarNegocioProposta from '../components/negocios/ModalCriarNegocioProposta'
 import Header from '../components/layout/Header'
 import { fetchLeadById } from '../services/leadsService'
-import { getPriorityClass } from '../utils/priorityClass'
+import { fetchEtapasFunil } from '../services/etapasService'
+import { fetchUsuariosOpcoes } from '../services/usuariosService'
 
 function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio, onEditLead, currentUser }) {
   const [activeTab, setActiveTab] = useState(initialTab)
   const [lead, setLead] = useState(null)
+  const [showCriarNegocio, setShowCriarNegocio] = useState(false)
+  const [etapaPropostaId, setEtapaPropostaId] = useState(4)
+  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    const loadLead = async () => {
-      if (!leadId) {
-        setLoading(false)
-        return
-      }
-      setLoading(true)
-      setError('')
-      try {
-        const data = await fetchLeadById(leadId)
-        setLead(data)
-      } catch (requestError) {
-        setError(requestError.message)
-      } finally {
-        setLoading(false)
-      }
+  const loadLead = useCallback(async () => {
+    if (!leadId) {
+      setLoading(false)
+      return
     }
-    loadLead()
+    setLoading(true)
+    setError('')
+    try {
+      const data = await fetchLeadById(leadId)
+      setLead(data)
+    } catch (requestError) {
+      setError(requestError.message)
+    } finally {
+      setLoading(false)
+    }
   }, [leadId])
+
+  useEffect(() => {
+    loadLead()
+  }, [loadLead])
+
+  useEffect(() => {
+    fetchEtapasFunil().then((etapas) => {
+      const proposta = etapas.find((e) => e.ordem === 4) || etapas.find((e) => e.nome === 'Proposta')
+      if (proposta) setEtapaPropostaId(proposta.id)
+    }).catch(() => {})
+
+    fetchUsuariosOpcoes().then(setUsers).catch(() => {})
+  }, [])
 
   useEffect(() => {
     setActiveTab(initialTab)
@@ -72,7 +88,9 @@ function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio
       <div className="leadDetailsLayout">
         <aside className="leadSummaryCard">
           <h2>{lead.empresa || lead.nome}</h2>
-          <span className={lead.status === 'Ativo' ? 'tag ok' : 'tag danger'}>{lead.status}</span>
+          <div className="leadSummaryTags">
+            <span className={lead.status === 'Ativo' ? 'tag ok' : 'tag danger'}>{lead.status}</span>
+          </div>
           <div className="leadSummaryList">
             <div>
               <strong>Nome do contato</strong>
@@ -129,6 +147,17 @@ function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio
 
           {activeTab === 'negocios' && (
             <div className="leadTabContent">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                <button
+                  type="button"
+                  className="primaryBtn"
+                  onClick={() => setShowCriarNegocio(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Plus size={16} />
+                  Novo Negócio
+                </button>
+              </div>
               {lead.negocios?.length === 0 ? (
                 <p className="tableMessage">Nenhum negócio vinculado a este lead.</p>
               ) : (
@@ -138,7 +167,6 @@ function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio
                       <tr>
                         <th>Título</th>
                         <th>Etapa</th>
-                        <th>Prioridade</th>
                         <th>Valor</th>
                         <th>Ação</th>
                       </tr>
@@ -148,11 +176,6 @@ function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio
                         <tr key={negocio.id}>
                           <td>{negocio.titulo}</td>
                           <td>{negocio.etapa}</td>
-                          <td>
-                            <span className={`priority ${getPriorityClass(negocio.prioridade)}`}>
-                              {negocio.prioridade}
-                            </span>
-                          </td>
                           <td>{negocio.valor}</td>
                           <td>
                             <button
@@ -219,6 +242,26 @@ function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio
           )}
         </section>
       </div>
+
+      {showCriarNegocio && (
+        <ModalCriarNegocioProposta
+          lead={{
+            leadId: lead.id,
+            lead: lead.nome,
+            empresa: lead.empresa,
+            usuarioId: lead.usuarioId,
+          }}
+          etapaDestino="Proposta"
+          etapaFunilId={etapaPropostaId}
+          users={users}
+          currentUser={currentUser}
+          onClose={() => setShowCriarNegocio(false)}
+          onSuccess={async () => {
+            setShowCriarNegocio(false)
+            await loadLead()
+          }}
+        />
+      )}
     </>
   )
 }

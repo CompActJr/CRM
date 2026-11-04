@@ -187,7 +187,22 @@ export const importLeadsFromFile = async (file, ruleParam) => {
         continue
       }
 
-      await prisma.lead.create({ data: mapped.data })
+      const etapaInicial = await prisma.etapaFunil.findFirst({ orderBy: { ordem: 'asc' } })
+      const etapaFunilId = etapaInicial ? etapaInicial.id : 1
+
+      const created = await prisma.lead.create({
+        data: {
+          ...mapped.data,
+          etapaFunilId,
+        },
+      })
+      await prisma.leadEtapaHistorico.create({
+        data: {
+          leadId: created.id,
+          etapaFunilId,
+          entradaEm: new Date(),
+        },
+      })
       summary.created += 1
     } catch (importError) {
       summary.errors += 1

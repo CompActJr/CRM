@@ -19,6 +19,12 @@ export const updateLead = (id, payload) =>
     body: JSON.stringify(payload),
   })
 
+export const mudarEtapaLead = (id, payload) =>
+  apiRequest(`/leads/${id}/etapa`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+
 export const deleteLead = (id) =>
   apiRequest(`/leads/${id}`, {
     method: 'DELETE',

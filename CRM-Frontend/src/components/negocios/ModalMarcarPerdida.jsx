@@ -3,6 +3,7 @@ import { Settings2, X } from 'lucide-react'
 import ModalGerenciarMotivosPerda from './ModalGerenciarMotivosPerda'
 import { fetchMotivosPerda } from '../../services/motivosPerdaService'
 import { marcarNegocioPerdida } from '../../services/negociosService'
+import { mudarEtapaLead } from '../../services/leadsService'
 
 function ModalMarcarPerdida({ negocio, currentUser, onClose, onSuccess }) {
   const [motivos, setMotivos] = useState([])
@@ -44,10 +45,17 @@ function ModalMarcarPerdida({ negocio, currentUser, onClose, onSuccess }) {
     setSaving(true)
     setError('')
     try {
-      await marcarNegocioPerdida(negocio.id, {
-        motivoPerdaId: Number(motivoPerdaId),
-        usuarioId: currentUser?.id,
-      })
+      if (negocio.tipoCard === 'lead') {
+        await mudarEtapaLead(negocio.leadId, {
+          motivoPerdaId: Number(motivoPerdaId),
+          status: 'Inativo',
+        })
+      } else {
+        await marcarNegocioPerdida(negocio.id, {
+          motivoPerdaId: Number(motivoPerdaId),
+          usuarioId: currentUser?.id,
+        })
+      }
       onSuccess()
       onClose()
     } catch (requestError) {
@@ -62,13 +70,17 @@ function ModalMarcarPerdida({ negocio, currentUser, onClose, onSuccess }) {
       <div className="modalOverlay" onClick={onClose}>
         <div className="modalCard" onClick={(event) => event.stopPropagation()}>
           <div className="modalHeader">
-            <h3>Marcar negócio como perdido</h3>
+            <h3>{negocio.tipoCard === 'lead' ? 'Desqualificar Lead' : 'Marcar negócio como perdido'}</h3>
             <button type="button" className="iconBtn" onClick={onClose} aria-label="Fechar">
               <X size={20} />
             </button>
           </div>
           <p className="modalHint">
-            O negócio <strong>{negocio.titulo}</strong> será movido para a etapa Perdida.
+            {negocio.tipoCard === 'lead' ? (
+              <>O lead <strong>{negocio.titulo}</strong> será desqualificado e marcado como inativo no CRM.</>
+            ) : (
+              <>O negócio <strong>{negocio.titulo}</strong> será movido para a etapa Perdida.</>
+            )}
           </p>
           <form onSubmit={handleSubmit}>
             <label className="inputGroup fullLine">

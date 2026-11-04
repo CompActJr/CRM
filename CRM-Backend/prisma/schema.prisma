@@ -18,12 +18,6 @@ enum LeadStatus {
   Inativo
 }
 
-enum Prioridade {
-  Baixa
-  Media
-  Alta
-}
-
 enum InteracaoTipo {
   Ligacao
   Email
@@ -80,6 +74,7 @@ model MotivoPerda {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   negocios  Negocio[]
+  leads     Lead[]
 
   @@map("motivo_perda")
 }
@@ -95,13 +90,15 @@ model Cargo {
 }
 
 model EtapaFunil {
-  id              Int                     @id @default(autoincrement())
-  nome            String                  @unique @db.VarChar(80)
-  ordem           Int                     @unique
-  createdAt       DateTime                @default(now()) @map("created_at")
-  updatedAt       DateTime                @updatedAt @map("updated_at")
-  negocios        Negocio[]
-  historicoEtapas NegocioEtapaHistorico[]
+  id                  Int                     @id @default(autoincrement())
+  nome                String                  @unique @db.VarChar(80)
+  ordem               Int                     @unique
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+  negocios            Negocio[]
+  leads               Lead[]
+  historicoEtapas     NegocioEtapaHistorico[]
+  historicoEtapasLead LeadEtapaHistorico[]
 
   @@map("etapa_funil")
 }
@@ -119,15 +116,22 @@ model Lead {
   status                LeadStatus                 @default(Ativo)
   dataCadastro          DateTime                   @map("data_cadastro") @db.Date
   usuarioId             Int                        @map("usuario_id")
+  etapaFunilId          Int                        @default(1) @map("etapa_funil_id")
+  motivoPerdaId         Int?                       @map("motivo_perda_id")
   createdAt             DateTime                   @default(now()) @map("created_at")
   updatedAt             DateTime                   @updatedAt @map("updated_at")
   usuario               Usuario                    @relation(fields: [usuarioId], references: [id])
+  etapaFunil            EtapaFunil                 @relation(fields: [etapaFunilId], references: [id])
+  motivoPerda           MotivoPerda?               @relation(fields: [motivoPerdaId], references: [id], onDelete: SetNull)
   negocios              Negocio[]
   interacoes            Interacao[]
   tarefas               Tarefa[]
+  historicoEtapas       LeadEtapaHistorico[]
   historicoResponsaveis LeadResponsavelHistorico[]
 
   @@index([usuarioId])
+  @@index([etapaFunilId])
+  @@index([motivoPerdaId])
   @@index([dataCadastro])
   @@index([status])
   @@map("lead")
@@ -137,7 +141,6 @@ model Negocio {
   id                    Int                           @id @default(autoincrement())
   titulo                String                        @db.VarChar(160)
   valorEstimado         Decimal                       @default(0) @map("valor_estimado") @db.Decimal(12, 2)
-  prioridade            Prioridade                    @default(Media)
   motivoPerdaId         Int?                          @map("motivo_perda_id")
   dataCriacao           DateTime                      @default(now()) @map("data_criacao")
   leadId                Int                           @map("lead_id")
@@ -174,6 +177,22 @@ model NegocioEtapaHistorico {
   @@index([etapaFunilId])
   @@index([entradaEm])
   @@map("negocio_etapa_historico")
+}
+
+model LeadEtapaHistorico {
+  id           Int        @id @default(autoincrement())
+  leadId       Int        @map("lead_id")
+  etapaFunilId Int        @map("etapa_funil_id")
+  entradaEm    DateTime   @map("entrada_em")
+  saidaEm      DateTime?  @map("saida_em")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  lead         Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  etapaFunil   EtapaFunil @relation(fields: [etapaFunilId], references: [id])
+
+  @@index([leadId])
+  @@index([etapaFunilId])
+  @@index([entradaEm])
+  @@map("lead_etapa_historico")
 }
 
 model Proposta {

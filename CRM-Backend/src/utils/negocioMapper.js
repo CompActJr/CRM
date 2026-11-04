@@ -1,6 +1,5 @@
 import { formatCurrencyBr } from './currency.js'
 import { formatDateBr } from './date.js'
-import { formatPrioridadeLabel } from './prioridade.js'
 
 export const negocioInclude = {
   responsaveis: { select: { id: true, nome: true, avatarUrl: true } },
@@ -19,8 +18,6 @@ export const mapNegocioToResponse = (negocio) => {
     titulo: negocio.titulo,
     valorEstimado: negocio.valorEstimado,
     valor: formatCurrencyBr(negocio.valorEstimado),
-    prioridade: formatPrioridadeLabel(negocio.prioridade),
-    prioridadeDb: negocio.prioridade,
     motivoPerdaId: negocio.motivoPerdaId,
     motivoPerda: negocio.motivoPerda?.nome ?? null,
     perdida: Boolean(negocio.motivoPerdaId),
