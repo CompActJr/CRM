@@ -116,7 +116,7 @@ model Lead {
   status                LeadStatus                 @default(Ativo)
   dataCadastro          DateTime                   @map("data_cadastro") @db.Date
   usuarioId             Int                        @map("usuario_id")
-  etapaFunilId          Int                        @default(1) @map("etapa_funil_id")
+  etapaFunilId          Int                        @map("etapa_funil_id")
   motivoPerdaId         Int?                       @map("motivo_perda_id")
   createdAt             DateTime                   @default(now()) @map("created_at")
   updatedAt             DateTime                   @updatedAt @map("updated_at")
