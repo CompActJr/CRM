@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
-import { Save, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Save, X, DollarSign, MessageSquare, CheckSquare, Eye } from 'lucide-react'
 import Field from '../components/common/Field'
+import SearchableSelect from '../components/common/SearchableSelect'
 import Header from '../components/layout/Header'
+import { useSession } from '../context/SessionContext'
 import { createLead, fetchLeadById, updateLead } from '../services/leadsService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
 
@@ -16,7 +18,7 @@ const EmptyForm = {
   observacoes: '',
   status: 'Ativo',
   dataCadastro: '',
-  usuarioId: '',
+  responsaveisIds: [],
 }
 
 const toInputDate = (brDate) => {
@@ -25,13 +27,22 @@ const toInputDate = (brDate) => {
   return `${year}-${month}-${day}`
 }
 
-function LeadForm({ setScreen, leadId }) {
+function LeadForm({ setScreen, leadId, onViewLead }) {
+  const currentUser = useSession()
   const [form, setForm] = useState(EmptyForm)
   const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading] = useState(Boolean(leadId))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const isEditing = Boolean(leadId)
+
+  const handleNavigateToView = (tab = 'negocios', action = null) => {
+    if (onViewLead && leadId) {
+      onViewLead(leadId, tab, action)
+    } else if (setScreen) {
+      setScreen('leadDetails')
+    }
+  }
 
   useEffect(() => {
     const loadFormData = async () => {
@@ -40,14 +51,23 @@ function LeadForm({ setScreen, leadId }) {
         const usuariosData = await fetchUsuariosOpcoes()
         setUsuarios(usuariosData)
         if (!leadId) {
+          const initialUserIds = currentUser?.id ? [Number(currentUser.id)] : []
           setForm({
             ...EmptyForm,
             dataCadastro: new Date().toISOString().slice(0, 10),
+            responsaveisIds: initialUserIds,
           })
           setLoading(false)
           return
         }
         const lead = await fetchLeadById(leadId)
+        const initialResponsaveis =
+          lead.responsaveisIds && lead.responsaveisIds.length > 0
+            ? lead.responsaveisIds.map(Number)
+            : lead.usuarioId
+              ? [Number(lead.usuarioId)]
+              : []
+
         setForm({
           cnpj: lead.cnpj ?? '',
           nome: lead.nome ?? '',
@@ -59,7 +79,7 @@ function LeadForm({ setScreen, leadId }) {
           observacoes: lead.observacoes ?? '',
           status: lead.status ?? 'Ativo',
           dataCadastro: toInputDate(lead.dataCadastro),
-          usuarioId: String(lead.usuarioId ?? ''),
+          responsaveisIds: initialResponsaveis,
         })
       } catch (requestError) {
         setError(requestError.message)
@@ -68,7 +88,7 @@ function LeadForm({ setScreen, leadId }) {
       }
     }
     loadFormData()
-  }, [leadId])
+  }, [leadId, currentUser])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -85,14 +105,29 @@ function LeadForm({ setScreen, leadId }) {
     setForm((current) => ({ ...current, cnpj: formatted }))
   }
 
+  const usuarioOptions = useMemo(() => {
+    return usuarios.map((usuario) => ({
+      value: usuario.id,
+      label: usuario.nome,
+      subtitle: usuario.cargo || usuario.email || '',
+    }))
+  }, [usuarios])
+
   const handleSubmit = async (event) => {
     event.preventDefault()
-    setSaving(true)
     setError('')
+
+    if (!form.responsaveisIds || form.responsaveisIds.length === 0) {
+      setError('Selecione pelo menos um responsável.')
+      return
+    }
+
+    setSaving(true)
     try {
       const payload = {
         ...form,
-        usuarioId: Number(form.usuarioId),
+        responsaveisIds: form.responsaveisIds,
+        usuarioId: form.responsaveisIds[0],
       }
       if (isEditing) {
         await updateLead(leadId, payload)
@@ -125,6 +160,47 @@ function LeadForm({ setScreen, leadId }) {
         title={isEditing ? 'Editar Lead' : 'Cadastro de Lead'}
         subtitle="Informe os dados para qualificação comercial do lead"
       />
+      {isEditing && (
+        <div className="leadActionBar">
+          <button
+            type="button"
+            className="secondaryBtn"
+            onClick={() => handleNavigateToView('negocios', 'criarProposta')}
+            title="Criar proposta para este lead"
+          >
+            <DollarSign size={18} />
+            Criar Proposta
+          </button>
+          <button
+            type="button"
+            className="secondaryBtn"
+            onClick={() => handleNavigateToView('interacoes', 'criarInteracao')}
+            title="Registrar nova interação com este lead"
+          >
+            <MessageSquare size={18} />
+            Criar Interação
+          </button>
+          <button
+            type="button"
+            className="secondaryBtn"
+            onClick={() => handleNavigateToView('tarefas', 'criarTarefa')}
+            title="Agendar nova tarefa para este lead"
+          >
+            <CheckSquare size={18} />
+            Criar Tarefa
+          </button>
+          <button
+            type="button"
+            className="secondaryBtn"
+            onClick={() => handleNavigateToView('negocios')}
+            title="Ver detalhes do lead"
+            style={{ marginLeft: 'auto' }}
+          >
+            <Eye size={18} />
+            Visualizar Lead
+          </button>
+        </div>
+      )}
       <section className="formPanel">
         <form onSubmit={handleSubmit}>
           <div className="formGrid">
@@ -187,17 +263,18 @@ function LeadForm({ setScreen, leadId }) {
               onChange={handleChange}
               required
             />
-            <label className="inputGroup">
-              <span>Responsável</span>
-              <select name="usuarioId" value={form.usuarioId} onChange={handleChange} required>
-                <option value="">Selecione</option>
-                {usuarios.map((usuario) => (
-                  <option key={usuario.id} value={usuario.id}>
-                    {usuario.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SearchableSelect
+              label="Responsáveis"
+              placeholder="Selecione os responsáveis"
+              searchPlaceholder="Buscar responsável por nome..."
+              options={usuarioOptions}
+              value={form.responsaveisIds}
+              onChange={(nextResponsaveis) =>
+                setForm((current) => ({ ...current, responsaveisIds: nextResponsaveis }))
+              }
+              multiple
+              required
+            />
             <label className="inputGroup">
               <span>Status</span>
               <select name="status" value={form.status} onChange={handleChange}>

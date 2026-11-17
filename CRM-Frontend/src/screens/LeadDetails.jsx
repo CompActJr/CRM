@@ -9,10 +9,18 @@ import { fetchLeadById } from '../services/leadsService'
 import { fetchEtapasFunil } from '../services/etapasService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
 
-function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio, onEditLead, currentUser }) {
+function LeadDetails({
+  setScreen,
+  leadId,
+  initialTab = 'negocios',
+  initialAction = null,
+  onViewNegocio,
+  onEditLead,
+  currentUser,
+}) {
   const [activeTab, setActiveTab] = useState(initialTab)
   const [lead, setLead] = useState(null)
-  const [showCriarNegocio, setShowCriarNegocio] = useState(false)
+  const [showCriarNegocio, setShowCriarNegocio] = useState(initialAction === 'criarProposta')
   const [etapaPropostaId, setEtapaPropostaId] = useState(4)
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -50,7 +58,10 @@ function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio
 
   useEffect(() => {
     setActiveTab(initialTab)
-  }, [leadId, initialTab])
+    if (initialAction === 'criarProposta') {
+      setShowCriarNegocio(true)
+    }
+  }, [leadId, initialTab, initialAction])
 
   const tabs = [
     { id: 'negocios', label: 'Negocios' },
@@ -117,8 +128,30 @@ function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio
               <p>{lead.dataCadastro}</p>
             </div>
             <div>
-              <strong>Responsável</strong>
-              <p>{lead.responsavel}</p>
+              <strong>Responsáveis</strong>
+              {lead.responsaveis && lead.responsaveis.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                  {lead.responsaveis.map((resp) => (
+                    <span
+                      key={resp.id}
+                      style={{
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        maxWidth: '100%',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {resp.nome}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p>{lead.responsavel || '—'}</p>
+              )}
             </div>
           </div>
           <div className="leadSummaryActions">
@@ -202,11 +235,16 @@ function LeadDetails({ setScreen, leadId, initialTab = 'negocios', onViewNegocio
               leadId={lead.id}
               negocios={lead.negocios ?? []}
               currentUser={currentUser}
+              initialOpenForm={initialAction === 'criarInteracao'}
             />
           )}
 
           {activeTab === 'tarefas' && (
-            <PainelTarefas leadId={lead.id} currentUser={currentUser} />
+            <PainelTarefas
+              leadId={lead.id}
+              currentUser={currentUser}
+              initialOpenForm={initialAction === 'criarTarefa'}
+            />
           )}
 
           {activeTab === 'contact' && (

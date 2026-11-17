@@ -49,12 +49,12 @@ const buildFormFromInteracao = (interacao, currentUser, negocioId) => ({
   negocioId: String(interacao.negocioId ?? negocioId ?? ''),
 })
 
-function PainelInteracoes({ leadId, negocioId, negocios = [], currentUser }) {
+function PainelInteracoes({ leadId, negocioId, negocios = [], currentUser, initialOpenForm = false }) {
   const [interacoes, setInteracoes] = useState([])
   const [usuarios, setUsuarios] = useState([])
   const [form, setForm] = useState(buildEmptyForm(currentUser, negocioId))
   const [editingId, setEditingId] = useState(null)
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(Boolean(initialOpenForm))
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -96,6 +96,12 @@ function PainelInteracoes({ leadId, negocioId, negocios = [], currentUser }) {
       setForm(buildEmptyForm(currentUser, negocioId))
     }
   }, [currentUser, negocioId, editingId])
+
+  useEffect(() => {
+    if (initialOpenForm) {
+      setShowForm(true)
+    }
+  }, [initialOpenForm])
 
   const resetForm = () => {
     setForm(buildEmptyForm(currentUser, negocioId))

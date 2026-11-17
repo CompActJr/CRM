@@ -6,6 +6,7 @@ const DefaultNavigation = {
   viewingNegocioId: null,
   editingUsuarioId: null,
   activeTab: null,
+  leadAction: null,
 }
 
 const parseId = (value) => {
@@ -21,6 +22,9 @@ export const buildNavigationPath = (state) => {
     return state.editingLeadId ? `#/leads/editar/${state.editingLeadId}` : '#/leads/novo'
   }
   if (screen === 'leadDetails' && state.viewingLeadId) {
+    if (state.leadAction === 'criarProposta') return `#/leads/${state.viewingLeadId}/proposta`
+    if (state.leadAction === 'criarInteracao') return `#/leads/${state.viewingLeadId}/nova-interacao`
+    if (state.leadAction === 'criarTarefa') return `#/leads/${state.viewingLeadId}/nova-tarefa`
     const tabSuffix = state.activeTab && state.activeTab !== 'negocios' ? `/${state.activeTab}` : ''
     return `#/leads/${state.viewingLeadId}${tabSuffix}`
   }
@@ -67,6 +71,33 @@ export const parseNavigationPath = (hash = '') => {
     }
     if (segments[1]) {
       const viewingLeadId = parseId(segments[1])
+      if (segments[2] === 'proposta') {
+        return {
+          ...DefaultNavigation,
+          screen: 'leadDetails',
+          viewingLeadId,
+          activeTab: 'negocios',
+          leadAction: 'criarProposta',
+        }
+      }
+      if (segments[2] === 'nova-interacao') {
+        return {
+          ...DefaultNavigation,
+          screen: 'leadDetails',
+          viewingLeadId,
+          activeTab: 'interacoes',
+          leadAction: 'criarInteracao',
+        }
+      }
+      if (segments[2] === 'nova-tarefa') {
+        return {
+          ...DefaultNavigation,
+          screen: 'leadDetails',
+          viewingLeadId,
+          activeTab: 'tarefas',
+          leadAction: 'criarTarefa',
+        }
+      }
       const activeTab = segments[2] ?? 'negocios'
       return { ...DefaultNavigation, screen: 'leadDetails', viewingLeadId, activeTab }
     }
