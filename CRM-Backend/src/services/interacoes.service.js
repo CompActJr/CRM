@@ -54,19 +54,50 @@ const buildInteracaoData = async (body, leadId, fixedNegocioId = null) => {
     throw error
   }
 
-  const usuarioId = parseUsuarioId(body.usuarioId)
-  if (!usuarioId) {
-    const error = new Error(ErrorMessages.invalidUsuarioId)
-    error.statusCode = 400
-    throw error
+  const targetNegocioId = fixedNegocioId || (body.negocioId ? parseId(body.negocioId) : null)
+  let usuario = null
+  const candidateUsuarioId = parseUsuarioId(body.usuarioId)
+
+  if (candidateUsuarioId) {
+    usuario = await prisma.usuario.findUnique({ where: { id: candidateUsuarioId } })
   }
 
-  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } })
+  if (!usuario && targetNegocioId) {
+    const neg = await prisma.negocio.findUnique({
+      where: { id: targetNegocioId },
+      include: { responsaveis: { select: { id: true }, take: 1 } },
+    })
+    const negUserId = neg?.responsaveis?.[0]?.id || neg?.usuarioId
+    if (negUserId) {
+      usuario = await prisma.usuario.findUnique({ where: { id: negUserId } })
+    }
+  }
+
+  if (!usuario && leadId) {
+    const lead = await prisma.lead.findUnique({
+      where: { id: leadId },
+      include: { responsaveis: { select: { id: true }, take: 1 } },
+    })
+    const leadUserId = lead?.responsaveis?.[0]?.id || lead?.usuarioId
+    if (leadUserId) {
+      usuario = await prisma.usuario.findUnique({ where: { id: leadUserId } })
+    }
+  }
+
+  if (!usuario) {
+    usuario = await prisma.usuario.findFirst({
+      where: { ativo: true },
+      orderBy: { id: 'asc' },
+    })
+  }
+
   if (!usuario) {
     const error = new Error(ErrorMessages.usuarioNotFound)
     error.statusCode = 400
     throw error
   }
+
+  const usuarioId = usuario.id
 
   let negocioId = fixedNegocioId
   if (!negocioId && body.negocioId) {

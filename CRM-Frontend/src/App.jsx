@@ -187,6 +187,14 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
         onViewNegocio={openViewNegocio}
       />
     ),
+    negocio: (
+      <Negocios
+        setScreen={setScreen}
+        onNewNegocio={openNewNegocio}
+        onEditNegocio={openEditNegocio}
+        onViewNegocio={openViewNegocio}
+      />
+    ),
     negocioForm: (
       <NegocioForm setScreen={setScreen} negocioId={editingNegocioId} />
     ),

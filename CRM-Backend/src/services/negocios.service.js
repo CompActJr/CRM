@@ -403,6 +403,7 @@ export const updateNegocio = async (idParam, body) => {
       where: { id },
       data: {
         ...rest,
+        ...(etapaAlterada ? { motivoPerdaId: null } : {}),
         responsaveis: {
           set: responsaveisIds.map((id) => ({ id })),
         },

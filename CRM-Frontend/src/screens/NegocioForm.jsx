@@ -129,7 +129,7 @@ function NegocioForm({ setScreen, negocioId }) {
     } else {
       await createNegocio(payload)
     }
-    setScreen('negocio')
+    setScreen('negocios')
   }
 
   const handleSubmit = async (event) => {
@@ -192,7 +192,7 @@ function NegocioForm({ setScreen, negocioId }) {
       })
       setMudancaEtapaModal(null)
       setPendingPayload(null)
-      setScreen('negocio')
+      setScreen('negocios')
     } catch (requestError) {
       setError(requestError.message)
       throw requestError
@@ -213,7 +213,7 @@ function NegocioForm({ setScreen, negocioId }) {
 
   const handlePerdidaSuccess = async () => {
     if (!pendingPayload) {
-      setScreen('negocio')
+      setScreen('negocios')
       return
     }
     setSaving(true)
@@ -223,7 +223,7 @@ function NegocioForm({ setScreen, negocioId }) {
       await updateNegocio(negocioId, resto)
       setPerdidaModal(false)
       setPendingPayload(null)
-      setScreen('negocio')
+      setScreen('negocios')
     } catch (requestError) {
       setError(requestError.message)
     } finally {
@@ -314,7 +314,7 @@ function NegocioForm({ setScreen, negocioId }) {
           </div>
           {error && <p className="formError">{error}</p>}
           <div className="formActions">
-            <button type="button" className="secondaryBtn" onClick={() => setScreen('negocio')}>
+            <button type="button" className="secondaryBtn" onClick={() => setScreen('negocios')}>
               <X size={18} />
               Cancelar
             </button>

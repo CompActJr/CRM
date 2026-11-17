@@ -48,6 +48,7 @@ export const buildNavigationPath = (state) => {
     metas: '#/metas',
     leads: '#/leads',
     funil: '#/funil',
+    negocios: '#/negocios',
     negocio: '#/negocios',
     relatorios: '#/relatorios',
     usuarios: '#/usuarios',
@@ -125,7 +126,7 @@ export const parseNavigationPath = (hash = '') => {
         activeTab,
       }
     }
-    return { ...DefaultNavigation, screen: 'negocio' }
+    return { ...DefaultNavigation, screen: 'negocios' }
   }
 
   if (segments[0] === 'usuarios') {
