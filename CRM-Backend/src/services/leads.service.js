@@ -16,7 +16,9 @@ import {
 } from '../utils/tarefaResumo.js'
 import {
   registrarResponsavelLead,
+  registrarResponsaveisLead,
   sincronizarResponsavelLead,
+  sincronizarResponsaveisLead,
 } from './responsavelHistorico.service.js'
 import {
   registrarEntradaEtapaLead,
@@ -34,6 +36,15 @@ const parseUsuarioId = (usuarioId) => {
   const parsed = Number(usuarioId)
   if (!usuarioId || Number.isNaN(parsed) || parsed < 1) return null
   return parsed
+}
+
+const parseRelationIds = (value) => {
+  if (!value) return []
+  const list = Array.isArray(value) ? value : [value]
+  const parsed = list
+    .map((item) => Number(item))
+    .filter((id) => !Number.isNaN(id) && id > 0)
+  return [...new Set(parsed)]
 }
 
 const parseStatusFilter = (query) => {
@@ -60,19 +71,25 @@ const buildLeadData = async (body, excludeId = null) => {
     throw error
   }
 
-  const usuarioId = parseUsuarioId(body.usuarioId)
-  if (!usuarioId) {
-    const error = new Error(ErrorMessages.invalidUsuarioId)
+  const responsaveisIds = parseRelationIds(
+    body.responsaveisIds ?? body.usuarioIds ?? body.usuarioId
+  )
+  if (responsaveisIds.length === 0) {
+    const error = new Error(ErrorMessages.responsaveisRequired || 'Pelo menos um responsável deve ser informado')
     error.statusCode = 400
     throw error
   }
 
-  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } })
-  if (!usuario) {
-    const error = new Error(ErrorMessages.usuarioNotFound)
+  const usuariosCount = await prisma.usuario.count({
+    where: { id: { in: responsaveisIds } },
+  })
+  if (usuariosCount !== responsaveisIds.length) {
+    const error = new Error(ErrorMessages.responsaveisNotFound || 'Um ou mais responsáveis informados não foram encontrados')
     error.statusCode = 400
     throw error
   }
+
+  const usuarioId = responsaveisIds[0]
 
   const status = body.status === 'Inativo' ? 'Inativo' : 'Ativo'
 
@@ -101,6 +118,7 @@ const buildLeadData = async (body, excludeId = null) => {
     status,
     dataCadastro,
     usuarioId,
+    responsaveisIds,
   }
 }
 
@@ -141,7 +159,10 @@ export const listLeads = async (query = {}) => {
   const where = {}
 
   if (usuarioId) {
-    where.usuarioId = usuarioId
+    where.OR = [
+      { responsaveis: { some: { id: usuarioId } } },
+      { usuarioId: usuarioId },
+    ]
   }
 
   if (nome) {
@@ -221,7 +242,7 @@ export const getLeadById = async (idParam) => {
 }
 
 export const createLead = async (body) => {
-  const data = await buildLeadData(body)
+  const { responsaveisIds, ...data } = await buildLeadData(body)
   const etapaInicial = await prisma.etapaFunil.findFirst({ orderBy: { ordem: 'asc' } })
   const etapaFunilId = etapaInicial ? etapaInicial.id : 1
 
@@ -230,13 +251,16 @@ export const createLead = async (body) => {
       data: {
         ...data,
         etapaFunilId,
+        responsaveis: {
+          connect: responsaveisIds.map((id) => ({ id })),
+        },
       },
       include: leadIncludeUsuario,
     })
-    await registrarResponsavelLead(
+    await registrarResponsaveisLead(
       tx,
       created.id,
-      created.usuarioId,
+      responsaveisIds,
       toDateOnlyInstant(created.dataCadastro)
     )
     await registrarEntradaEtapaLead(tx, created.id, etapaFunilId, created.createdAt)
@@ -369,23 +393,29 @@ export const updateLead = async (idParam, body) => {
     throw error
   }
 
-  const existing = await prisma.lead.findUnique({ where: { id } })
+  const existing = await prisma.lead.findUnique({
+    where: { id },
+    include: { responsaveis: { select: { id: true } } },
+  })
   if (!existing) {
     const error = new Error(ErrorMessages.leadNotFound)
     error.statusCode = 404
     throw error
   }
 
-  const data = await buildLeadData(body, id)
+  const { responsaveisIds, ...data } = await buildLeadData(body, id)
   const lead = await prisma.$transaction(async (tx) => {
+    await sincronizarResponsaveisLead(tx, id, responsaveisIds)
     const updated = await tx.lead.update({
       where: { id },
-      data,
+      data: {
+        ...data,
+        responsaveis: {
+          set: responsaveisIds.map((id) => ({ id })),
+        },
+      },
       include: leadIncludeUsuario,
     })
-    if (updated.usuarioId !== existing.usuarioId) {
-      await sincronizarResponsavelLead(tx, id, updated.usuarioId)
-    }
     return updated
   }, TransactionOptions)
   return mapLeadToResponse(lead)

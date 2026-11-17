@@ -56,7 +56,8 @@ model Usuario {
   metaPeriodoFim             DateTime?                     @map("meta_periodo_fim") @db.Date
   createdAt                   DateTime                      @default(now()) @map("created_at")
   updatedAt                   DateTime                      @updatedAt @map("updated_at")
-  leads                       Lead[]
+  leadsCriados                Lead[]                        @relation("LeadCriador")
+  leads                       Lead[]                        @relation("LeadResponsaveis")
   negocios                    Negocio[]
   interacoes                  Interacao[]
   tarefas                     Tarefa[]
@@ -116,11 +117,12 @@ model Lead {
   status                LeadStatus                 @default(Ativo)
   dataCadastro          DateTime                   @map("data_cadastro") @db.Date
   usuarioId             Int                        @map("usuario_id")
-  etapaFunilId          Int                        @default(1) @map("etapa_funil_id")
+  etapaFunilId          Int                        @map("etapa_funil_id")
   motivoPerdaId         Int?                       @map("motivo_perda_id")
   createdAt             DateTime                   @default(now()) @map("created_at")
   updatedAt             DateTime                   @updatedAt @map("updated_at")
-  usuario               Usuario                    @relation(fields: [usuarioId], references: [id])
+  usuario               Usuario                    @relation("LeadCriador", fields: [usuarioId], references: [id])
+  responsaveis          Usuario[]                  @relation("LeadResponsaveis")
   etapaFunil            EtapaFunil                 @relation(fields: [etapaFunilId], references: [id])
   motivoPerda           MotivoPerda?               @relation(fields: [motivoPerdaId], references: [id], onDelete: SetNull)
   negocios              Negocio[]

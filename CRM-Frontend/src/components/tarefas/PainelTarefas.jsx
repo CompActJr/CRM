@@ -38,12 +38,12 @@ const buildFormFromTarefa = (tarefa, currentUser) => ({
   usuarioId: String(tarefa.usuarioId ?? currentUser?.id ?? ''),
 })
 
-function PainelTarefas({ leadId, negocioId, currentUser }) {
+function PainelTarefas({ leadId, negocioId, currentUser, initialOpenForm = false }) {
   const [tarefas, setTarefas] = useState([])
   const [usuarios, setUsuarios] = useState([])
   const [form, setForm] = useState(buildEmptyForm(currentUser))
   const [editingId, setEditingId] = useState(null)
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(Boolean(initialOpenForm))
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -85,6 +85,12 @@ function PainelTarefas({ leadId, negocioId, currentUser }) {
       setForm(buildEmptyForm(currentUser))
     }
   }, [currentUser, editingId])
+
+  useEffect(() => {
+    if (initialOpenForm) {
+      setShowForm(true)
+    }
+  }, [initialOpenForm])
 
   const resetForm = () => {
     setForm(buildEmptyForm(currentUser))

@@ -37,6 +37,7 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
     viewingNegocioId,
     editingUsuarioId,
     activeTab,
+    leadAction,
   } = navigation
 
   const pushNavigation = useCallback((nextNavigation, replace = false) => {
@@ -93,11 +94,12 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
     })
   }
 
-  const openViewLead = (leadId, tab = 'negocios') => {
+  const openViewLead = (leadId, tab = 'negocios', action = null) => {
     pushNavigation({
       ...createScreenNavigation('leadDetails'),
       viewingLeadId: leadId,
       activeTab: tab,
+      leadAction: action,
     })
   }
 
@@ -155,12 +157,13 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
         onViewLead={openViewLead}
       />
     ),
-    leadForm: <LeadForm setScreen={setScreen} leadId={editingLeadId} />,
+    leadForm: <LeadForm setScreen={setScreen} leadId={editingLeadId} onViewLead={openViewLead} />,
     leadDetails: (
       <LeadDetails
         setScreen={setScreen}
         leadId={viewingLeadId}
         initialTab={activeTab ?? 'negocios'}
+        initialAction={leadAction}
         onEditLead={openEditLead}
         onViewNegocio={openViewNegocio}
         currentUser={currentUser}

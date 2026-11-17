@@ -11,6 +11,13 @@ export const registrarResponsavelLead = (tx, leadId, usuarioId, entradaEm) =>
     data: { leadId, usuarioId, entradaEm },
   })
 
+export const registrarResponsaveisLead = async (tx, leadId, usuarioIds, entradaEm) => {
+  if (usuarioIds.length === 0) return
+  await tx.leadResponsavelHistorico.createMany({
+    data: usuarioIds.map((usuarioId) => ({ leadId, usuarioId, entradaEm })),
+  })
+}
+
 export const sincronizarResponsavelLead = async (tx, leadId, usuarioId, momento = new Date()) => {
   const abertos = await tx.leadResponsavelHistorico.findMany({
     where: { leadId, saidaEm: null },
@@ -20,6 +27,29 @@ export const sincronizarResponsavelLead = async (tx, leadId, usuarioId, momento 
 
   await fecharRegistros(tx.leadResponsavelHistorico, abertos, momento)
   await registrarResponsavelLead(tx, leadId, usuarioId, momento)
+}
+
+export const sincronizarResponsaveisLead = async (
+  tx,
+  leadId,
+  usuarioIds,
+  momento = new Date()
+) => {
+  const abertos = await tx.leadResponsavelHistorico.findMany({
+    where: { leadId, saidaEm: null },
+  })
+
+  const atuais = new Set(abertos.map((registro) => registro.usuarioId))
+  const desejados = new Set(usuarioIds)
+
+  await fecharRegistros(
+    tx.leadResponsavelHistorico,
+    abertos.filter((registro) => !desejados.has(registro.usuarioId)),
+    momento
+  )
+
+  const adicionados = usuarioIds.filter((usuarioId) => !atuais.has(usuarioId))
+  await registrarResponsaveisLead(tx, leadId, adicionados, momento)
 }
 
 export const registrarResponsaveisNegocio = async (tx, negocioId, usuarioIds, entradaEm) => {

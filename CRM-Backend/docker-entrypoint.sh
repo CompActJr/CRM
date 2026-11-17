@@ -13,8 +13,8 @@ if [ -n "$DIRECT_URL" ] && [ "$DATABASE_URL" != "$DIRECT_URL" ]; then
   esac
 fi
 
-echo "Aplicando migrations..."
-npx prisma migrate deploy
+echo "Sincronizando banco de dados..."
+npx prisma db push --skip-generate
 
 echo "Verificando seed inicial..."
 node prisma/ensureSeed.js
