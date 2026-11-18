@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   Award,
+  CalendarCheck,
   CheckCircle2,
   Clock,
   ExternalLink,
-  Flame,
-  Layers,
   ListFilter,
   Medal,
+  PhoneCall,
   Target,
   TrendingUp,
   User,
@@ -18,7 +18,20 @@ import Header from '../components/layout/Header'
 import Metric from '../components/common/Metric'
 import { fetchMetasContribuicoes, fetchMetasDashboard } from '../services/metasService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
-import { formatValorFromAmount } from '../utils/currencyInput'
+
+const formatDatePtBr = (value) => {
+  if (!value) return '-'
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR')
+  }
+  return new Date(value).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+}
+
+const renderMetaIcon = (tipo) => {
+  if (tipo === 'ENTRADAS_CONTATO') return <PhoneCall size={16} />
+  if (tipo === 'DIAGNOSTICOS') return <CalendarCheck size={16} />
+  return <Users size={16} />
+}
 
 const PeriodoOptions = [
   { value: 0.25, label: 'Última semana' },
@@ -68,8 +81,8 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
     try {
       const data = await fetchMetasDashboard({
         meses,
-        dataInicio,
-        dataFim,
+        dataInicio: meses === 'custom' ? dataInicio : undefined,
+        dataFim: meses === 'custom' ? dataFim : undefined,
         usuarioId: usuarioId || undefined,
         tipoMeta,
       })
@@ -104,6 +117,7 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
       const data = await fetchMetasContribuicoes({
         usuarioId: meta.usuarioId,
         tipoMeta: meta.tipo,
+        meses: meses === 'custom' ? undefined : meses,
         dataInicio: meses === 'custom' ? dataInicio : undefined,
         dataFim: meses === 'custom' ? dataFim : undefined,
       })
@@ -256,8 +270,9 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
             onChange={(e) => setTipoMeta(e.target.value)}
           >
             <option value="todos">Todas as Metas</option>
-            <option value="leads">Meta de Leads (Prospecção)</option>
-            <option value="negociacoes">Meta de Negociações</option>
+            <option value="leads">Meta de Leads Mapeados</option>
+            <option value="entradas_contato">Meta de Entradas de Contato</option>
+            <option value="diagnosticos">Meta de Diagnósticos Marcados</option>
           </select>
         </label>
       </section>
@@ -387,9 +402,15 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
 
                     {/* Identificador do Tipo */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-muted, #475569)' }}>
-                      {meta.tipo === 'LEADS' ? <Users size={16} /> : <Layers size={16} />}
+                      {renderMetaIcon(meta.tipo)}
                       <span>{meta.tipoLabel}</span>
                     </div>
+
+                    {meta.periodoInicio && meta.periodoFim && (
+                      <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', marginTop: '-6px' }}>
+                        Período avaliado: {formatDatePtBr(meta.periodoInicio)} a {formatDatePtBr(meta.periodoFim)}
+                      </div>
+                    )}
 
                     {/* Valores: Realizado vs Alvo */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -422,13 +443,6 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
                         transition: 'width 0.5s ease',
                       }} />
                     </div>
-
-                    {/* Detalhe extra se for negociação */}
-                    {meta.tipo === 'NEGOCIACOES' && meta.valorTotalEstimado > 0 && (
-                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #64748b)' }}>
-                        Volume total em pipeline: <strong style={{ color: 'var(--color-text-strong, #0f172a)' }}>{formatValorFromAmount(meta.valorTotalEstimado)}</strong>
-                      </div>
-                    )}
 
                     {/* Botão de Histórico / Drilldown */}
                     <button
@@ -590,17 +604,12 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
                 <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
+                      <th style={{ textAlign: 'left', padding: '10px 8px' }}>Lead</th>
+                      <th style={{ textAlign: 'left', padding: '10px 8px' }}>Empresa / Contato</th>
+                      <th style={{ textAlign: 'left', padding: '10px 8px' }}>Etapa / Status</th>
                       <th style={{ textAlign: 'left', padding: '10px 8px' }}>
-                        {modalContribuicoes.tipo === 'LEADS' ? 'Lead' : 'Negócio'}
+                        {modalContribuicoes.tipo === 'LEADS' ? 'Data de Cadastro' : 'Entrada na Etapa'}
                       </th>
-                      <th style={{ textAlign: 'left', padding: '10px 8px' }}>
-                        {modalContribuicoes.tipo === 'LEADS' ? 'Empresa / Contato' : 'Lead / Empresa'}
-                      </th>
-                      {modalContribuicoes.tipo === 'NEGOCIACOES' && (
-                        <th style={{ textAlign: 'right', padding: '10px 8px' }}>Valor Estimado</th>
-                      )}
-                      <th style={{ textAlign: 'left', padding: '10px 8px' }}>Status / Etapa</th>
-                      <th style={{ textAlign: 'left', padding: '10px 8px' }}>Data</th>
                       <th style={{ textAlign: 'center', padding: '10px 8px' }}>Ação</th>
                     </tr>
                   </thead>
@@ -611,11 +620,6 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
                         <td style={{ padding: '10px 8px', color: 'var(--color-text-muted, #64748b)', fontSize: '0.9rem' }}>
                           {item.subtitulo}
                         </td>
-                        {modalContribuicoes.tipo === 'NEGOCIACOES' && (
-                          <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 600 }}>
-                            {formatValorFromAmount(item.valorEstimado)}
-                          </td>
-                        )}
                         <td style={{ padding: '10px 8px' }}>
                           <span style={{
                             display: 'inline-block',
@@ -630,10 +634,10 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
                           </span>
                         </td>
                         <td style={{ padding: '10px 8px', fontSize: '0.85rem', color: 'var(--color-text-muted, #64748b)' }}>
-                          {item.data ? new Date(item.data).toLocaleDateString('pt-BR') : '-'}
+                          {formatDatePtBr(item.data)}
                         </td>
                         <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                          {modalContribuicoes.tipo === 'LEADS' && onViewLead && (
+                          {onViewLead && (
                             <button
                               type="button"
                               className="secondaryBtn"
@@ -643,21 +647,6 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
                               }}
                               style={{ padding: '4px 8px', fontSize: '0.8rem' }}
                               title="Abrir detalhes do Lead"
-                            >
-                              <ExternalLink size={14} />
-                              Ver
-                            </button>
-                          )}
-                          {modalContribuicoes.tipo === 'NEGOCIACOES' && onViewNegocio && (
-                            <button
-                              type="button"
-                              className="secondaryBtn"
-                              onClick={() => {
-                                handleCloseContribuicoes()
-                                onViewNegocio(item.id)
-                              }}
-                              style={{ padding: '4px 8px', fontSize: '0.8rem' }}
-                              title="Abrir detalhes do Negócio"
                             >
                               <ExternalLink size={14} />
                               Ver

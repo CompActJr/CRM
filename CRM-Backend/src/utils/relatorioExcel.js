@@ -92,6 +92,7 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
 
   const filtros = relatorio.filtros ?? {}
   const filtrosAtivos = [
+    filtros.tipoMeta ? `Meta: ${filtros.tipoMeta}` : null,
     filtros.nomeLead ? `Lead: ${filtros.nomeLead}` : null,
     filtros.empresa ? `Empresa: ${filtros.empresa}` : null,
     filtros.cidade ? `Cidade: ${filtros.cidade}` : null,
@@ -234,9 +235,13 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
 
     relatorio.metas.metas.forEach((meta, index) => {
       const row = sheet.getRow(currentRow)
-      row.getCell(1).value = `${meta.usuarioNome} — ${meta.tipoLabel}`
+      const periodoTexto = meta.periodoInicio && meta.periodoFim
+        ? ` (${formatDateBr(meta.periodoInicio)} a ${formatDateBr(meta.periodoFim)})`
+        : ''
+      row.getCell(1).value = `${meta.usuarioNome} — ${meta.tipoLabel}${periodoTexto}`
       row.getCell(2).value = `${meta.valorRealizado} / ${meta.valorAlvo} ${meta.unidade}`
       row.getCell(3).value = `${meta.progressoPercentual}% (${meta.status})`
+      row.height = periodoTexto ? 28 : 22
 
       const isZebra = index % 2 === 0
       forEachCellInRange(sheet, currentRow, 1, 3, (cell, col) => {
@@ -247,6 +252,7 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
         cell.alignment = {
           horizontal: col === 1 ? 'left' : 'center',
           vertical: 'middle',
+          wrapText: col === 1,
         }
         applyBorder(cell)
       })

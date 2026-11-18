@@ -18,9 +18,11 @@ export const mapUsuarioToResponse = (usuario) => ({
   avatarUrl: usuario.avatarUrl ?? null,
   ativo: usuario.ativo ?? true,
   ativarMetaLeads: Boolean(usuario.ativarMetaLeads),
-  ativarMetasNegociacoes: Boolean(usuario.ativarMetasNegociacoes),
+  ativarMetaEntradasContato: Boolean(usuario.ativarMetaEntradasContato),
+  ativarMetaDiagnosticos: Boolean(usuario.ativarMetaDiagnosticos),
   quantidadeLeads: Number(usuario.quantidadeLeads || 0),
-  quantidadeNegociacoes: Number(usuario.quantidadeNegociacoes || 0),
+  quantidadeEntradasContato: Number(usuario.quantidadeEntradasContato || 0),
+  quantidadeDiagnosticos: Number(usuario.quantidadeDiagnosticos || 0),
   metaPeriodoInicio: usuario.metaPeriodoInicio ? usuario.metaPeriodoInicio.toISOString().split('T')[0] : null,
   metaPeriodoFim: usuario.metaPeriodoFim ? usuario.metaPeriodoFim.toISOString().split('T')[0] : null,
 })

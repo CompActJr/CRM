@@ -4,7 +4,13 @@ import { parseDateInput } from '../utils/date.js'
 import { buildRelatorioExcelBuffer } from '../utils/relatorioExcel.js'
 import { buildRelatorioPdfBuffer } from '../utils/relatorioPdf.js'
 import { calcularTempoMedioPorEtapa } from './negocioEtapaHistorico.service.js'
-import { getMetasDashboardStats } from './metas.service.js'
+import { getMetasDashboardStats, normalizeTipoMeta } from './metas.service.js'
+
+const TipoMetaLabels = {
+  LEADS: 'Meta de Leads Mapeados',
+  ENTRADAS_CONTATO: 'Meta de Entradas de Contato',
+  DIAGNOSTICOS: 'Meta de Diagnósticos Marcados',
+}
 
 const formatDateQuery = (date) => date.toISOString().slice(0, 10)
 
@@ -48,7 +54,10 @@ const parseRelatorioFilters = (query) => {
   return {
     dataInicio,
     dataFim: fimDoDia,
+    dataInicioStr: query.dataInicio.trim(),
+    dataFimStr: query.dataFim.trim(),
     usuarioId,
+    tipoMeta: normalizeTipoMeta(query.tipoMeta),
     nomeLead: query.nomeLead?.trim() || null,
     empresa: query.empresa?.trim() || null,
     cidade: query.cidade?.trim() || null,
@@ -164,10 +173,10 @@ export const gerarRelatorio = async (query) => {
       : Promise.resolve(0),
     buildTempoMedioPorEtapa(filters, excludedEtapaIds),
     getMetasDashboardStats({
-      dataInicio: formatDateQuery(filters.dataInicio),
-      dataFim: formatDateQuery(filters.dataFim),
+      dataInicio: filters.dataInicioStr,
+      dataFim: filters.dataFimStr,
       usuarioId: filters.usuarioId || undefined,
-      tipoMeta: 'todos',
+      tipoMeta: filters.tipoMeta,
     }).catch(() => null),
   ])
 
@@ -179,12 +188,13 @@ export const gerarRelatorio = async (query) => {
 
   return {
     periodo: {
-      dataInicio: formatDateQuery(filters.dataInicio),
-      dataFim: formatDateQuery(filters.dataFim),
+      dataInicio: filters.dataInicioStr,
+      dataFim: filters.dataFimStr,
     },
     responsavel,
     usuarioId: filters.usuarioId,
     filtros: {
+      tipoMeta: filters.tipoMeta !== 'TODOS' ? TipoMetaLabels[filters.tipoMeta] ?? null : null,
       nomeLead: filters.nomeLead,
       empresa: filters.empresa,
       cidade: filters.cidade,

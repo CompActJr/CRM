@@ -1,7 +1,8 @@
 import { ErrorMessages } from '../config/constants.js'
 import prisma from '../lib/prisma.js'
-import { parseDateInput } from '../utils/date.js'
+import { parseDateInput, toDateOnlyInstant } from '../utils/date.js'
 import { buildLeadsImportTemplateBuffer, parseSpreadsheetRows } from '../utils/spreadsheet.js'
+import { registrarResponsavelLead } from './responsavelHistorico.service.js'
 
 const ImportRules = {
   upsert: 'upsert',
@@ -194,8 +195,17 @@ export const importLeadsFromFile = async (file, ruleParam) => {
         data: {
           ...mapped.data,
           etapaFunilId,
+          responsaveis: {
+            connect: [{ id: usuarioId }],
+          },
         },
       })
+      await registrarResponsavelLead(
+        prisma,
+        created.id,
+        usuarioId,
+        toDateOnlyInstant(created.dataCadastro)
+      )
       await prisma.leadEtapaHistorico.create({
         data: {
           leadId: created.id,

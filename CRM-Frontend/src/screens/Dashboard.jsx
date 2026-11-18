@@ -46,7 +46,11 @@ function Dashboard({ onViewLead, onViewNegocio }) {
 
   const loadMetas = useCallback(async () => {
     try {
-      const data = await fetchMetasDashboard({ meses, dataInicio, dataFim })
+      const data = await fetchMetasDashboard({
+        meses,
+        dataInicio: meses === 'custom' ? dataInicio : undefined,
+        dataFim: meses === 'custom' ? dataFim : undefined,
+      })
       setMetasStats(data)
     } catch {
       setMetasStats(null)
