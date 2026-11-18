@@ -5,6 +5,7 @@ import Sidebar from './components/layout/Sidebar'
 import Dashboard from './screens/Dashboard'
 import MetasDashboard from './screens/MetasDashboard'
 import Funil from './screens/Funil'
+import ResumoFunil from './screens/ResumoFunil'
 import LeadDetails from './screens/LeadDetails'
 import LeadForm from './screens/LeadForm'
 import Leads from './screens/Leads'
@@ -179,7 +180,21 @@ function AppShell({ currentUser, onLogout, onUpdateUser }) {
         currentUser={currentUser}
       />
     ),
+    resumoFunil: (
+      <ResumoFunil
+        onViewNegocio={openViewNegocio}
+        onViewLead={openViewLead}
+      />
+    ),
     negocios: (
+      <Negocios
+        setScreen={setScreen}
+        onNewNegocio={openNewNegocio}
+        onEditNegocio={openEditNegocio}
+        onViewNegocio={openViewNegocio}
+      />
+    ),
+    negocio: (
       <Negocios
         setScreen={setScreen}
         onNewNegocio={openNewNegocio}

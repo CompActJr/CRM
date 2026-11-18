@@ -55,7 +55,7 @@ const parseStatusFilter = (query) => {
 }
 
 const buildLeadData = async (body, excludeId = null) => {
-  const nome = body.nome?.trim().toLowerCase()
+  const nome = body.nome?.trim()
   if (!nome) {
     const error = new Error(ErrorMessages.nomeRequired)
     error.statusCode = 400
@@ -111,9 +111,9 @@ const buildLeadData = async (body, excludeId = null) => {
     cnpj,
     email: body.email?.trim() || null,
     telefone: body.telefone?.trim() || null,
-    empresa: body.empresa?.trim().toLowerCase() || null,
-    cidade: body.cidade?.trim().toLowerCase() || null,
-    nicho: body.nicho?.trim().toLowerCase() || null,
+    empresa: body.empresa?.trim() || null,
+    cidade: body.cidade?.trim() || null,
+    nicho: body.nicho?.trim() || null,
     observacoes: body.observacoes?.trim() || null,
     status,
     dataCadastro,
@@ -279,7 +279,10 @@ export const mudarEtapaLead = async (idParam, body, usuarioIdParam) => {
 
   const existing = await prisma.lead.findUnique({
     where: { id },
-    include: { etapaFunil: true },
+    include: {
+      etapaFunil: true,
+      responsaveis: { select: { id: true } },
+    },
   })
   if (!existing) {
     const error = new Error(ErrorMessages.leadNotFound)
@@ -287,7 +290,39 @@ export const mudarEtapaLead = async (idParam, body, usuarioIdParam) => {
     throw error
   }
 
-  const usuarioId = parseUsuarioId(usuarioIdParam) || existing.usuarioId
+  const candidateId =
+    parseUsuarioId(body.interacao?.usuarioId) ||
+    parseUsuarioId(body.usuarioId) ||
+    parseUsuarioId(usuarioIdParam)
+
+  const solicitante = candidateId
+    ? await prisma.usuario.findUnique({ where: { id: candidateId }, select: { id: true } })
+    : null
+
+  let usuarioId = solicitante?.id
+
+  if (!usuarioId) {
+    const leadOwnerId = existing.usuarioId || existing.responsaveis?.[0]?.id
+    const leadOwner = leadOwnerId
+      ? await prisma.usuario.findUnique({ where: { id: leadOwnerId }, select: { id: true } })
+      : null
+    usuarioId = leadOwner?.id
+  }
+
+  if (!usuarioId) {
+    const fallbackUser = await prisma.usuario.findFirst({
+      where: { ativo: true },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    })
+    usuarioId = fallbackUser?.id
+  }
+
+  if (!usuarioId) {
+    const error = new Error('Nenhum usuário válido encontrado para registrar a interação.')
+    error.statusCode = 400
+    throw error
+  }
 
   // Se for marcar como perdido / inativo (desqualificação no funil):
   if (body.motivoPerdaId || body.status === 'Inativo') {
@@ -361,13 +396,20 @@ export const mudarEtapaLead = async (idParam, body, usuarioIdParam) => {
 
     const leadUpdated = await tx.lead.update({
       where: { id },
-      data: { etapaFunilId },
+      data: {
+        etapaFunilId,
+        ...(existing.status === 'Inativo' || existing.motivoPerdaId
+          ? { status: 'Ativo', motivoPerdaId: null }
+          : {}),
+      },
       include: leadIncludeUsuario,
     })
 
     const descricaoInteracao = body.interacao?.descricao
       ? body.interacao.descricao.trim()
-      : `Lead movido para a etapa "${etapa.nome}".`
+      : existing.status === 'Inativo'
+        ? `Lead reativado e movido para a etapa "${etapa.nome}".`
+        : `Lead movido para a etapa "${etapa.nome}".`
 
     await tx.interacao.create({
       data: {

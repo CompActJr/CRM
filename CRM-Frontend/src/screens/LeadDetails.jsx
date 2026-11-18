@@ -1,11 +1,21 @@
-import { useEffect, useState, useCallback } from 'react'
-import { Plus } from 'lucide-react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import {
+  ArrowRight,
+  Check,
+  ChevronRight,
+  Edit,
+  Plus,
+  RotateCcw,
+  UserX,
+} from 'lucide-react'
 import PainelInteracoes from '../components/interacoes/PainelInteracoes'
 import PainelTarefas from '../components/tarefas/PainelTarefas'
 import PainelTimeline from '../components/timeline/PainelTimeline'
 import ModalCriarNegocioProposta from '../components/negocios/ModalCriarNegocioProposta'
+import ModalMudancaEtapaFunil from '../components/negocios/ModalMudancaEtapaFunil'
+import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
 import Header from '../components/layout/Header'
-import { fetchLeadById } from '../services/leadsService'
+import { fetchLeadById, mudarEtapaLead } from '../services/leadsService'
 import { fetchEtapasFunil } from '../services/etapasService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
 
@@ -22,6 +32,10 @@ function LeadDetails({
   const [lead, setLead] = useState(null)
   const [showCriarNegocio, setShowCriarNegocio] = useState(initialAction === 'criarProposta')
   const [etapaPropostaId, setEtapaPropostaId] = useState(4)
+  const [etapas, setEtapas] = useState([])
+  const [mudancaEtapaModal, setMudancaEtapaModal] = useState(null)
+  const [showPerdidaModal, setShowPerdidaModal] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -48,10 +62,16 @@ function LeadDetails({
   }, [loadLead])
 
   useEffect(() => {
-    fetchEtapasFunil().then((etapas) => {
-      const proposta = etapas.find((e) => e.ordem === 4) || etapas.find((e) => e.nome === 'Proposta')
-      if (proposta) setEtapaPropostaId(proposta.id)
-    }).catch(() => {})
+    fetchEtapasFunil()
+      .then((etapasData) => {
+        const sorted = [...etapasData].sort((a, b) => a.ordem - b.ordem)
+        setEtapas(sorted)
+        const proposta =
+          sorted.find((e) => e.ordem === 4) ||
+          sorted.find((e) => e.nome === 'Proposta')
+        if (proposta) setEtapaPropostaId(proposta.id)
+      })
+      .catch(() => {})
 
     fetchUsuariosOpcoes().then(setUsers).catch(() => {})
   }, [])
@@ -62,6 +82,79 @@ function LeadDetails({
       setShowCriarNegocio(true)
     }
   }, [leadId, initialTab, initialAction])
+
+  const leadStages = useMemo(() => {
+    return etapas.filter((e) => e.nome !== 'Perdida' && e.ordem <= 4)
+  }, [etapas])
+
+  const currentEtapa = useMemo(() => {
+    if (!lead) return null
+    return (
+      etapas.find((e) => e.id === lead.etapaFunilId) || {
+        id: lead.etapaFunilId,
+        nome: lead.etapa || 'Mapeamento',
+        ordem: lead.etapaOrdem ?? 1,
+      }
+    )
+  }, [lead, etapas])
+
+  const currentOrdem = currentEtapa?.ordem ?? 1
+
+  const isLeadInativo = lead?.status === 'Inativo'
+
+  const proximaEtapa = useMemo(() => {
+    if (isLeadInativo) return null
+    return etapas.find((e) => e.ordem === currentOrdem + 1 && e.nome !== 'Perdida')
+  }, [etapas, currentOrdem, isLeadInativo])
+
+  const handleAvancarPara = (targetEtapa) => {
+    if (!targetEtapa || !lead) return
+    if (targetEtapa.ordem >= 4) {
+      setShowCriarNegocio(true)
+      return
+    }
+    setMudancaEtapaModal({
+      etapaOrigem: isLeadInativo ? 'Desqualificado' : currentEtapa?.nome || 'Etapa anterior',
+      etapaDestino: targetEtapa.nome,
+      etapaFunilId: targetEtapa.id,
+    })
+  }
+
+  const handleReativarLead = () => {
+    const primeiraEtapa = etapas.find((e) => e.ordem === 1) || etapas[0]
+    if (!primeiraEtapa) return
+    setMudancaEtapaModal({
+      etapaOrigem: 'Desqualificado',
+      etapaDestino: primeiraEtapa.nome,
+      etapaFunilId: primeiraEtapa.id,
+    })
+  }
+
+  const handleConfirmMudancaEtapa = async (interacao) => {
+    if (!mudancaEtapaModal || !lead) return
+    setActionLoading(true)
+    try {
+      await mudarEtapaLead(lead.id, {
+        etapaFunilId: mudancaEtapaModal.etapaFunilId,
+        interacao: {
+          ...interacao,
+          ...(currentUser?.id ? { usuarioId: Number(currentUser.id) } : {}),
+        },
+        ...(currentUser?.id ? { usuarioId: Number(currentUser.id) } : {}),
+      })
+      setMudancaEtapaModal(null)
+      await loadLead()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handlePerdidaSuccess = async () => {
+    setShowPerdidaModal(false)
+    await loadLead()
+  }
 
   const tabs = [
     { id: 'negocios', label: 'Negocios' },
@@ -96,13 +189,147 @@ function LeadDetails({
   return (
     <>
       <Header title="Detalhes do Lead" subtitle="Acompanhe dados comerciais e negócios vinculados" />
+
+      <div className="leadActionBar">
+        <button
+          type="button"
+          className="secondaryBtn"
+          onClick={() => (onEditLead ? onEditLead(lead.id) : setScreen && setScreen('leadForm'))}
+          title="Editar dados deste lead"
+          style={{ marginLeft: 'auto' }}
+        >
+          <Edit size={18} />
+          Editar Lead
+        </button>
+      </div>
+
+      {/* Controle de Etapas do Funil */}
+      <section className="leadStagePanel">
+        <div className="leadStageHeader">
+          <div className="leadStageMeta">
+            <span className="leadStageEyebrow">Etapa de Vendas</span>
+            <div className="leadStageTitle">
+              {isLeadInativo ? (
+                <>
+                  <span className="tag danger">Desqualificado</span>
+                  {lead.motivoPerda && (
+                    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>
+                      Motivo: {lead.motivoPerda}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span>{currentEtapa?.nome || lead.etapa}</span>
+                  {currentOrdem >= 4 && (
+                    <span className="tag ok">Fase de Negócio</span>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="leadStageActions">
+            {isLeadInativo ? (
+              <button
+                type="button"
+                className="primaryBtn"
+                onClick={handleReativarLead}
+                disabled={actionLoading}
+              >
+                <RotateCcw size={16} />
+                Reativar Lead
+              </button>
+            ) : (
+              <>
+                {proximaEtapa ? (
+                  <button
+                    type="button"
+                    className="primaryBtn"
+                    onClick={() => handleAvancarPara(proximaEtapa)}
+                    disabled={actionLoading}
+                  >
+                    <ArrowRight size={16} />
+                    {proximaEtapa.ordem >= 4
+                      ? 'Avançar para Proposta (Criar Negócio)'
+                      : `Avançar para ${proximaEtapa.nome}`}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="primaryBtn"
+                    onClick={() => setShowCriarNegocio(true)}
+                  >
+                    <Plus size={16} />
+                    Novo Negócio / Proposta
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  className="secondaryBtn"
+                  onClick={() => setShowPerdidaModal(true)}
+                  title="Desqualificar lead no funil"
+                >
+                  <UserX size={16} />
+                  Desqualificar
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Stepper visual com as etapas do funil */}
+        <div className="leadStageStepper">
+          {leadStages.map((stage, index) => {
+            const isCompleted = !isLeadInativo && currentOrdem > stage.ordem
+            const isActive = !isLeadInativo && currentOrdem === stage.ordem
+            const isClickable = !actionLoading && (!isActive || isLeadInativo)
+
+            let stepClass = 'leadStageStep'
+            if (isCompleted) stepClass += ' completed'
+            else if (isActive) stepClass += ' active'
+
+            return (
+              <div key={stage.id} style={{ display: 'contents' }}>
+                <button
+                  type="button"
+                  className={stepClass}
+                  onClick={() => isClickable && handleAvancarPara(stage)}
+                  title={
+                    stage.ordem >= 4
+                      ? 'Criar proposta comercial / negócio'
+                      : `Mover para ${stage.nome}`
+                  }
+                >
+                  <span className="leadStageStepNumber">
+                    {isCompleted ? <Check size={12} strokeWidth={3} /> : stage.ordem}
+                  </span>
+                  <span>{stage.nome}</span>
+                </button>
+                {index < leadStages.length - 1 && (
+                  <ChevronRight size={16} className="leadStageStepArrow" />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
       <div className="leadDetailsLayout">
         <aside className="leadSummaryCard">
           <h2>{lead.empresa || lead.nome}</h2>
           <div className="leadSummaryTags">
             <span className={lead.status === 'Ativo' ? 'tag ok' : 'tag danger'}>{lead.status}</span>
+            {!isLeadInativo && lead.etapa && (
+              <span className="tag info">{lead.etapa}</span>
+            )}
           </div>
           <div className="leadSummaryList">
+            <div>
+              <strong>Etapa do funil</strong>
+              <p>{isLeadInativo ? 'Desqualificado / Perdido' : (lead.etapa || '—')}</p>
+            </div>
             <div>
               <strong>Nome do contato</strong>
               <p>{lead.nome}</p>
@@ -155,8 +382,13 @@ function LeadDetails({
             </div>
           </div>
           <div className="leadSummaryActions">
-            <button type="button" className="secondaryBtn" onClick={() => onEditLead(lead.id)}>
-              Editar lead
+            <button
+              type="button"
+              className="secondaryBtn"
+              onClick={() => (onEditLead ? onEditLead(lead.id) : setScreen && setScreen('leadForm'))}
+            >
+              <Edit size={16} />
+              Editar Lead
             </button>
             <button type="button" className="secondaryBtn" onClick={() => setScreen('leads')}>
               Voltar para Leads
@@ -280,6 +512,30 @@ function LeadDetails({
           )}
         </section>
       </div>
+
+      {mudancaEtapaModal && (
+        <ModalMudancaEtapaFunil
+          tituloNegocio={lead.empresa || lead.nome}
+          etapaOrigem={mudancaEtapaModal.etapaOrigem}
+          etapaDestino={mudancaEtapaModal.etapaDestino}
+          isLead={true}
+          onClose={() => setMudancaEtapaModal(null)}
+          onConfirm={handleConfirmMudancaEtapa}
+        />
+      )}
+
+      {showPerdidaModal && (
+        <ModalMarcarPerdida
+          negocio={{
+            leadId: lead.id,
+            tipoCard: 'lead',
+            titulo: lead.empresa || lead.nome,
+          }}
+          currentUser={currentUser}
+          onClose={() => setShowPerdidaModal(false)}
+          onSuccess={handlePerdidaSuccess}
+        />
+      )}
 
       {showCriarNegocio && (
         <ModalCriarNegocioProposta

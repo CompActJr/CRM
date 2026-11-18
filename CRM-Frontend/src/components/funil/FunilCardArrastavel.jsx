@@ -1,14 +1,23 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
+import {
+  getFunilCardDisplayTitle,
+  getTemperaturaInfo,
+  isEtapaVendida,
+  isTituloGenerico,
+} from '../../utils/funilDrag'
 
 function FunilCardArrastavel({
   negocio,
+  etapa,
   onViewNegocio,
   onEditNegocio,
   onViewLead,
   onEditLead,
 }) {
   const isLead = negocio.tipoCard === 'lead'
+  const isVendido = isEtapaVendida(etapa || negocio.etapa)
+  const temperatura = getTemperaturaInfo(negocio.diasNaEtapa)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: String(negocio.id),
     data: { negocio },
@@ -26,21 +35,12 @@ function FunilCardArrastavel({
       className={`opCard ${isDragging ? 'opCardDragging' : ''}`}
     >
       <div className="opCardDragHandle" {...listeners} {...attributes}>
-        {negocio.diasNaEtapa !== undefined && (
+        {!isVendido && negocio.diasNaEtapa !== undefined && (
           <div
-            className={`stageTimeTag ${negocio.diasNaEtapa >= 7
-              ? 'frio'
-              : negocio.diasNaEtapa >= 5
-                ? 'morno'
-                : 'quente'
-              }`}
+            className={`stageTimeTag ${temperatura.key}`}
             style={{ marginBottom: '8px' }}
           >
-            {negocio.diasNaEtapa >= 7
-              ? `Frio ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`
-              : negocio.diasNaEtapa >= 5
-                ? `Morno ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`
-                : `Quente ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`}
+            {temperatura.label}
           </div>
         )}
         {isLead && (
@@ -50,11 +50,18 @@ function FunilCardArrastavel({
             </span>
           </div>
         )}
-        <h3>{negocio.titulo}</h3>
-        {negocio.empresa && negocio.empresa !== negocio.lead && (
-          <p>{negocio.empresa}</p>
+        <h3>{getFunilCardDisplayTitle(negocio)}</h3>
+        {negocio.empresa && negocio.lead && negocio.empresa !== negocio.lead && (
+          <p>{negocio.lead}</p>
         )}
-        {!isLead && <p>{negocio.lead}</p>}
+        {!isLead &&
+          negocio.titulo &&
+          !isTituloGenerico(negocio.titulo) &&
+          negocio.titulo !== negocio.empresa &&
+          negocio.titulo !== negocio.lead &&
+          negocio.titulo !== `Negócio - ${negocio.empresa}` && (
+            <p>{negocio.titulo}</p>
+        )}
         {negocio.motivoPerda && (
           <p className="opCardMotivoPerda">{negocio.motivoPerda}</p>
         )}

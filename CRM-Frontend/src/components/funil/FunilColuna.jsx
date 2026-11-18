@@ -32,6 +32,7 @@ function FunilColuna({
         <FunilCardArrastavel
           key={negocio.id}
           negocio={negocio}
+          etapa={etapa}
           onViewNegocio={onViewNegocio}
           onEditNegocio={onEditNegocio}
           onViewLead={onViewLead}

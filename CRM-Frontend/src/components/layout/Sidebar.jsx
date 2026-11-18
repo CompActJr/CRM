@@ -1,4 +1,4 @@
-import { BarChart3, BriefcaseBusiness, KanbanSquare, LayoutDashboard, Target, UserCog, Users } from 'lucide-react'
+import { BarChart3, BriefcaseBusiness, KanbanSquare, LayoutDashboard, Presentation, Target, UserCog, Users } from 'lucide-react'
 import { isAdministrador } from '../../utils/userAccess'
 import logoImage from '../../assets/Logo.png'
 
@@ -7,6 +7,7 @@ const navItems = [
   ['metas', Target, 'Metas'],
   ['leads', Users, 'Leads'],
   ['funil', KanbanSquare, 'Funil'],
+  ['resumoFunil', Presentation, 'Resumo do Funil'],
   ['negocios', BriefcaseBusiness, 'Negócios'],
   ['relatorios', BarChart3, 'Relatórios'],
   ['usuarios', UserCog, 'Usuários', true],

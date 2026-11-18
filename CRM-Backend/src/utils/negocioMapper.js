@@ -28,7 +28,8 @@ export const mapNegocioToResponse = (negocio) => {
     responsavel: responsaveis.map((r) => r.nome).join(', ') || null,
     leadId: negocio.leadId,
     etapaFunilId: negocio.etapaFunilId,
-    lead: negocio.lead?.empresa ?? negocio.lead?.nome ?? null,
+    lead: negocio.lead?.nome ?? negocio.lead?.empresa ?? null,
+    empresa: negocio.lead?.empresa ?? null,
     etapa: negocio.etapaFunil?.nome ?? null,
   }
 }

@@ -116,17 +116,8 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
     }
   }
   const applyFilters = async () => {
-      const data = await fetchLeads(filters)
-      setLeads(data)
-    }
-  const formatText = (text) => {
-  if (!text) return ''
-  
-  return text
-    .toLowerCase()
-    .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
+    const data = await fetchLeads(filters)
+    setLeads(data)
   }
 
   return (
@@ -392,9 +383,8 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
           <table style={{ minWidth: '980px' }}>
             <thead>
               <tr>
-                <th style={{ minWidth: '220px' }}>Nome</th>
+                <th style={{ minWidth: '220px' }}>Empresa / Lead</th>
                 <th style={{ minWidth: '150px' }}>CNPJ</th>
-                <th style={{ minWidth: '140px' }}>Empresa</th>
                 <th style={{ minWidth: '130px' }}>Responsável</th>
                 <th style={{ minWidth: '110px' }}>Cidade</th>
                 <th style={{ minWidth: '110px' }}>Nicho</th>
@@ -406,7 +396,7 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
             <tbody>
               {filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="tableMessage">
+                  <td colSpan={8} className="tableMessage">
                     Nenhum lead encontrado.
                   </td>
                 </tr>
@@ -415,7 +405,12 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
                   <tr key={lead.id}>
                     <td>
                       <div className="tableTitleCell">
-                        <span>{formatText(lead.nome)}</span>
+                        <div className="tableTitleCellText">
+                          <strong>{lead.empresa || lead.nome}</strong>
+                          {lead.empresa && lead.nome && (
+                            <span>{lead.nome}</span>
+                          )}
+                        </div>
                         <TarefaPendenteTag
                           count={lead.tarefasPendentes}
                           prazoMaisProximo={lead.prazoMaisProximo}
@@ -424,10 +419,9 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
                       </div>
                     </td>
                     <td>{lead.cnpj}</td>
-                    <td>{formatText(lead.empresa)}</td>
-                    <td>{(lead.responsavel)}</td>
-                    <td>{formatText(lead.cidade)}</td>
-                    <td>{formatText(lead.nicho)}</td>
+                    <td>{lead.responsavel}</td>
+                    <td>{lead.cidade}</td>
+                    <td>{lead.nicho}</td>
                     <td>{lead.dataCadastro}</td>
                     <td>
                       <span className={lead.status === 'Ativo' ? 'tag ok' : 'tag danger'}>{lead.status}</span>

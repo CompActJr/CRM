@@ -24,33 +24,30 @@ import {
   buildUpdatePayload,
   findEtapaOrigem,
   resolveEtapaDestino,
+  getFunilCardDisplayTitle,
+  getTemperaturaInfo,
+  isEtapaVendida,
+  isTituloGenerico,
 } from '../utils/funilDrag'
 import SearchableSelect from "../components/common/SearchableSelect";
 import {fetchUsuariosOpcoes} from "../services/usuariosService";
 
-const etapasSemTempoMedio = new Set(['Fechado', 'Perdida'])
+const etapasSemTempoMedio = new Set(['Fechado', 'Perdida', 'Pós Venda', 'Pos Venda', 'Pós-Venda', 'Ganho', 'Vendido'])
 
 function FunilOverlayCard({ negocio }) {
   const isLead = negocio?.tipoCard === 'lead'
+  const isVendido = isEtapaVendida(negocio?.etapa)
+  const temperatura = getTemperaturaInfo(negocio?.diasNaEtapa)
 
   return (
     <div className="opCard opCardOverlay">
       {/* Etiqueta de Tempo na Etapa */}
-      {negocio.diasNaEtapa !== undefined && (
+      {!isVendido && negocio?.diasNaEtapa !== undefined && (
         <div
-          className={`stageTimeTag ${negocio.diasNaEtapa >= 7
-            ? 'frio'
-            : negocio.diasNaEtapa >= 5
-              ? 'morno'
-              : 'quente'
-            }`}
+          className={`stageTimeTag ${temperatura.key}`}
           style={{ marginBottom: '8px' }}
         >
-          {negocio.diasNaEtapa >= 7
-            ? `Frio ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`
-            : negocio.diasNaEtapa >= 5
-              ? `Morno ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`
-              : `Quente ${negocio.diasNaEtapa >= 1 ? `(${negocio.diasNaEtapa} dias)` : ''}`}
+          {temperatura.label}
         </div>
       )}
 
@@ -63,11 +60,18 @@ function FunilOverlayCard({ negocio }) {
       )}
 
       {/* Informações do Negócio ou Lead */}
-      <h3>{negocio.titulo}</h3>
-      {negocio.empresa && negocio.empresa !== negocio.lead && (
-        <p>{negocio.empresa}</p>
+      <h3>{getFunilCardDisplayTitle(negocio)}</h3>
+      {negocio.empresa && negocio.lead && negocio.empresa !== negocio.lead && (
+        <p>{negocio.lead}</p>
       )}
-      {!isLead && <p>{negocio.lead}</p>}
+      {!isLead &&
+        negocio.titulo &&
+        !isTituloGenerico(negocio.titulo) &&
+        negocio.titulo !== negocio.empresa &&
+        negocio.titulo !== negocio.lead &&
+        negocio.titulo !== `Negócio - ${negocio.empresa}` && (
+          <p>{negocio.titulo}</p>
+      )}
 
       {/* Meta */}
       <div className="cardMeta">

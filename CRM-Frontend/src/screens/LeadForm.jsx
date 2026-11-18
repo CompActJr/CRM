@@ -213,6 +213,13 @@ function LeadForm({ setScreen, leadId, onViewLead }) {
               required
             />
             <Field
+              label="Empresa"
+              name="empresa"
+              placeholder="Nome da empresa"
+              value={form.empresa}
+              onChange={handleChange}
+            />
+            <Field
               label="CNPJ"
               name="cnpj"
               placeholder="00.000.000/0000-00"
@@ -232,13 +239,6 @@ function LeadForm({ setScreen, leadId, onViewLead }) {
               name="telefone"
               placeholder="(55) 99999-9999"
               value={form.telefone}
-              onChange={handleChange}
-            />
-            <Field
-              label="Empresa"
-              name="empresa"
-              placeholder="Nome da empresa"
-              value={form.empresa}
               onChange={handleChange}
             />
             <Field
