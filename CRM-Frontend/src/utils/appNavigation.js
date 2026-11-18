@@ -48,6 +48,7 @@ export const buildNavigationPath = (state) => {
     metas: '#/metas',
     leads: '#/leads',
     funil: '#/funil',
+    resumoFunil: '#/resumo-funil',
     negocios: '#/negocios',
     negocio: '#/negocios',
     relatorios: '#/relatorios',
@@ -143,6 +144,7 @@ export const parseNavigationPath = (hash = '') => {
     dashboard: 'dashboard',
     metas: 'metas',
     funil: 'funil',
+    'resumo-funil': 'resumoFunil',
     relatorios: 'relatorios',
   }
 

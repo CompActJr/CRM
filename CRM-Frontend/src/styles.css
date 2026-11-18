@@ -1211,6 +1211,28 @@ th {
   white-space: nowrap;
 }
 
+.tableTitleCellText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tableTitleCellText strong {
+  font-size: 14px;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tableTitleCellText span {
+  font-size: 12px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tableTitleCell .tag {
   flex-shrink: 0;
   white-space: nowrap;
@@ -2615,6 +2637,242 @@ th {
   font-size: 13px;
 }
 
+.funilSummaryToolbar {
+  flex-wrap: wrap;
+}
+
+.funilSummaryToolbar select {
+  min-width: 220px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.funilSummaryToolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.funilSummaryCaptureOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: #061124;
+  padding: 20px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  overflow: auto;
+}
+
+.funilSummaryCaptureBar {
+  width: min(1240px, 100%);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.funilSummaryCaptureOverlay .funilSummaryBoard {
+  width: min(1240px, 100%);
+}
+
+.funilSummaryBoard {
+  display: flex;
+  background: #0b2247;
+  border: 2px solid #eab308;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+}
+
+.funilSummarySidebar {
+  width: 58px;
+  flex-shrink: 0;
+  background: #071631;
+  border-right: 2px solid #eab308;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.funilSummarySidebar span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.funilSummaryContent {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: linear-gradient(180deg, #0b2247 0%, #0e2a57 100%);
+}
+
+.funilSummarySection {
+  border: 1.5px solid #eab308;
+  border-radius: 4px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(7, 22, 49, 0.35);
+  min-height: 92px;
+}
+
+.funilSummarySectionBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.funilSummaryStageBadge {
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
+}
+
+.funilSummaryPill {
+  border: none;
+  border-radius: 6px;
+  padding: 5px 11px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.12s, filter 0.12s;
+  text-align: left;
+}
+
+.funilSummaryPill:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+.funilSummaryPill.quente {
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
+}
+
+.funilSummaryPill.morno {
+  background: #fbbf24;
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(251, 191, 36, 0.28);
+}
+
+.funilSummaryPill.frio {
+  background: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(148, 163, 184, 0.25);
+}
+
+.funilSummaryEmpty {
+  color: #94a3b8;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.funilSummaryCount {
+  min-width: 56px;
+  text-align: right;
+  color: #ffffff;
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.funilSummaryFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+.funilSummaryLegend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.funilSummaryLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.funilSummaryLegendDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.funilSummaryLegendDot.quente {
+  background: #dc2626;
+}
+
+.funilSummaryLegendDot.morno {
+  background: #fbbf24;
+}
+
+.funilSummaryLegendDot.frio {
+  background: #cbd5e1;
+}
+
+.funilSummaryFilterInfo {
+  color: #93c5fd;
+}
+
+.funilSummaryBrand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 800;
+  margin-left: auto;
+}
+
+.funilSummaryBrand img {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
 @media (max-width: 1100px) {
   .reportFilters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2665,5 +2923,32 @@ th {
 
   .leadStageStepArrow {
     display: none;
+  }
+
+  .funilSummaryBoard {
+    flex-direction: column;
+  }
+
+  .funilSummarySidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 2px solid #eab308;
+    padding: 10px 16px;
+  }
+
+  .funilSummarySidebar span {
+    writing-mode: horizontal-tb;
+    transform: none;
+    font-size: 16px;
+  }
+
+  .funilSummarySection {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .funilSummaryCount {
+    text-align: left;
+    font-size: 28px;
   }
 }

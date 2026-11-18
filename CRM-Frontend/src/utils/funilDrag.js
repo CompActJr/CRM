@@ -1,5 +1,58 @@
 export const ETAPA_PERDIDA = 'Perdida'
 
+export const isEtapaVendida = (nomeEtapa) => {
+  if (!nomeEtapa) return false
+  const lower = nomeEtapa.toLowerCase()
+  return (
+    lower.includes('pós venda') ||
+    lower.includes('pos venda') ||
+    lower.includes('pós-venda') ||
+    lower.includes('fechado') ||
+    lower.includes('ganho') ||
+    lower.includes('vendido')
+  )
+}
+
+export const isTituloGenerico = (titulo) => {
+  if (!titulo) return true
+  const lower = titulo.trim().toLowerCase()
+  return (
+    lower === 'venda de serviço' ||
+    lower === 'venda de servico' ||
+    lower === 'venda de serviços' ||
+    lower === 'venda de servicos' ||
+    lower === 'venda de consultoria' ||
+    lower === 'serviço' ||
+    lower === 'servico'
+  )
+}
+
+export const getTemperaturaInfo = (diasNaEtapa) => {
+  const dias = Number(diasNaEtapa ?? 0)
+  if (dias >= 7) {
+    return {
+      key: 'frio',
+      nome: 'Frio',
+      label: `Frio ${dias >= 1 ? `(${dias} dias)` : ''}`.trim(),
+    }
+  }
+  if (dias >= 5) {
+    return {
+      key: 'morno',
+      nome: 'Morno',
+      label: `Morno ${dias >= 1 ? `(${dias} dias)` : ''}`.trim(),
+    }
+  }
+  return {
+    key: 'quente',
+    nome: 'Quente',
+    label: `Quente ${dias >= 1 ? `(${dias} dias)` : ''}`.trim(),
+  }
+}
+
+export const getFunilCardDisplayTitle = (item) =>
+  item?.empresa || item?.lead || item?.titulo || ''
+
 export const resolveEtapaDestino = (overId, funil, etapasAtivas) => {
   if (!overId) return null
   const overKey = String(overId)

@@ -55,7 +55,7 @@ const parseStatusFilter = (query) => {
 }
 
 const buildLeadData = async (body, excludeId = null) => {
-  const nome = body.nome?.trim().toLowerCase()
+  const nome = body.nome?.trim()
   if (!nome) {
     const error = new Error(ErrorMessages.nomeRequired)
     error.statusCode = 400
@@ -111,9 +111,9 @@ const buildLeadData = async (body, excludeId = null) => {
     cnpj,
     email: body.email?.trim() || null,
     telefone: body.telefone?.trim() || null,
-    empresa: body.empresa?.trim().toLowerCase() || null,
-    cidade: body.cidade?.trim().toLowerCase() || null,
-    nicho: body.nicho?.trim().toLowerCase() || null,
+    empresa: body.empresa?.trim() || null,
+    cidade: body.cidade?.trim() || null,
+    nicho: body.nicho?.trim() || null,
     observacoes: body.observacoes?.trim() || null,
     status,
     dataCadastro,

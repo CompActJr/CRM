@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Check,
   ChevronRight,
+  Edit,
   Plus,
   RotateCcw,
   UserX,
@@ -189,6 +190,19 @@ function LeadDetails({
     <>
       <Header title="Detalhes do Lead" subtitle="Acompanhe dados comerciais e negócios vinculados" />
 
+      <div className="leadActionBar">
+        <button
+          type="button"
+          className="secondaryBtn"
+          onClick={() => (onEditLead ? onEditLead(lead.id) : setScreen && setScreen('leadForm'))}
+          title="Editar dados deste lead"
+          style={{ marginLeft: 'auto' }}
+        >
+          <Edit size={18} />
+          Editar Lead
+        </button>
+      </div>
+
       {/* Controle de Etapas do Funil */}
       <section className="leadStagePanel">
         <div className="leadStageHeader">
@@ -368,8 +382,13 @@ function LeadDetails({
             </div>
           </div>
           <div className="leadSummaryActions">
-            <button type="button" className="secondaryBtn" onClick={() => onEditLead(lead.id)}>
-              Editar lead
+            <button
+              type="button"
+              className="secondaryBtn"
+              onClick={() => (onEditLead ? onEditLead(lead.id) : setScreen && setScreen('leadForm'))}
+            >
+              <Edit size={16} />
+              Editar Lead
             </button>
             <button type="button" className="secondaryBtn" onClick={() => setScreen('leads')}>
               Voltar para Leads

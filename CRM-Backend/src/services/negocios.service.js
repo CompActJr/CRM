@@ -261,7 +261,7 @@ export const listNegociosFunil = async (query = {}) => {
       leadId: lead.id,
       negocioId: null,
       tipoCard: 'lead',
-      titulo: lead.empresa ? `${lead.empresa} (${lead.nome})` : lead.nome,
+      titulo: lead.empresa || lead.nome,
       lead: lead.nome,
       empresa: lead.empresa,
       cidade: lead.cidade,
