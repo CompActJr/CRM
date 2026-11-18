@@ -14,10 +14,10 @@ export const requireAdministrador = async (request, response, next) => {
 
     const usuario = await prisma.usuario.findUnique({
       where: { id: usuarioId },
-      select: { perfilAcesso: true },
+      select: { perfilAcesso: true, ativo: true },
     })
 
-    if (!usuario || usuario.perfilAcesso !== 'Administrador') {
+    if (!usuario || !usuario.ativo || usuario.perfilAcesso !== 'Administrador') {
       const error = new Error(ErrorMessages.accessDenied)
       error.statusCode = 403
       throw error

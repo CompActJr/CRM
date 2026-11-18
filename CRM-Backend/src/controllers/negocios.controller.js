@@ -58,7 +58,21 @@ export const marcarPerdida = async (request, response, next) => {
   try {
     const negocio = await negociosService.marcarNegocioComoPerdida(
       request.params.id,
-      request.body
+      request.body,
+      request.headers['x-usuario-id']
+    )
+    response.json(negocio)
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const ganhar = async (request, response, next) => {
+  try {
+    const negocio = await negociosService.ganharNegocio(
+      request.params.id,
+      request.body,
+      request.headers['x-usuario-id']
     )
     response.json(negocio)
   } catch (error) {

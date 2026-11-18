@@ -8,13 +8,14 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { ArrowUp, ArrowDown, Plus } from 'lucide-react'
+import { ArrowUp, ArrowDown, Maximize2, Minimize2, Plus } from 'lucide-react'
 import Header from '../components/layout/Header'
 import FiltroResponsavel from '../components/filtros/FiltroResponsavel'
 import FunilColuna from '../components/funil/FunilColuna'
 import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
 import ModalMudancaEtapaFunil from '../components/negocios/ModalMudancaEtapaFunil'
 import ModalCriarNegocioProposta from '../components/negocios/ModalCriarNegocioProposta'
+import ModalGanharLead from '../components/negocios/ModalGanharLead'
 import { fetchEtapasFunil } from '../services/etapasService'
 import { fetchNegociosFunil, updateNegocio } from '../services/negociosService'
 import { mudarEtapaLead } from '../services/leadsService'
@@ -26,6 +27,8 @@ import {
   resolveEtapaDestino,
   getFunilCardDisplayTitle,
   getTemperaturaInfo,
+  hasValidValorEstimado,
+  isEtapaProposta,
   isEtapaVendida,
   isTituloGenerico,
 } from '../utils/funilDrag'
@@ -34,10 +37,31 @@ import {fetchUsuariosOpcoes} from "../services/usuariosService";
 
 const etapasSemTempoMedio = new Set(['Fechado', 'Perdida', 'Pós Venda', 'Pos Venda', 'Pós-Venda', 'Ganho', 'Vendido'])
 
-function FunilOverlayCard({ negocio }) {
+function FunilOverlayCard({ negocio, isMinimized = false }) {
   const isLead = negocio?.tipoCard === 'lead'
   const isVendido = isEtapaVendida(negocio?.etapa)
   const temperatura = getTemperaturaInfo(negocio?.diasNaEtapa)
+  const displayTitle = getFunilCardDisplayTitle(negocio)
+
+  if (isMinimized) {
+    return (
+      <div className="opCard opCardOverlay opCardMinimized">
+        <div className="opCardMiniRow">
+          <div className="opCardMiniContent">
+            {!isVendido && negocio?.diasNaEtapa !== undefined && (
+              <span className={`opCardTempDot ${temperatura.key}`} />
+            )}
+            <div className="opCardMiniText">
+              <strong className="opCardMiniTitle">{displayTitle}</strong>
+              {(negocio?.valor || isLead) && (
+                <span className="opCardMiniMeta">{isLead ? 'Lead' : negocio.valor}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="opCard opCardOverlay">
@@ -104,12 +128,14 @@ function Funil({
   })
   const [responsavelFilter, setResponsavelFilter] = useState({})
   const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false)
+  const [isCardsMinimized, setIsCardsMinimized] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeCard, setActiveCard] = useState(null)
   const [perdidaModal, setPerdidaModal] = useState(null)
   const [mudancaEtapaModal, setMudancaEtapaModal] = useState(null)
   const [criarNegocioModal, setCriarNegocioModal] = useState(null)
+  const [ganharModal, setGanharModal] = useState(null)
   const [users, setUsers] = useState([])
 
   const sensors = useSensors(
@@ -215,11 +241,22 @@ function Funil({
     const ordemDestino = etapaOrdemPorNome[etapaDestino]
     if (!etapaDestino || !etapaOrigem) return false
     if (etapaDestino === etapaOrigem) return false
-    if (etapaDestino === ETAPA_PERDIDA) return true
+    if (etapaDestino === ETAPA_PERDIDA) {
+      return !(isEtapaVendida(etapaOrigem) || ordemOrigem === 6)
+    }
 
     // Negócios só podem existir a partir da fase de Proposta (ordem >= 4)
     if (card?.tipoCard === 'negocio' && ordemDestino < 4) {
       return false
+    }
+
+    // Conversão antecipada: de Proposta (4) direto para Pós Venda / Fechado (6)
+    if (
+      card?.tipoCard === 'negocio' &&
+      isEtapaProposta(etapaOrigem, ordemOrigem) &&
+      (isEtapaVendida(etapaDestino) || ordemDestino === 6)
+    ) {
+      return true
     }
 
     if (ordemDestino === ordemOrigem + 1) return true
@@ -229,7 +266,7 @@ function Funil({
   const handleDragEnd = async (event) => {
     setActiveCard(null)
     const { active, over } = event
-    if (!over || mudancaEtapaModal || perdidaModal || criarNegocioModal) return
+    if (!over || mudancaEtapaModal || perdidaModal || criarNegocioModal || ganharModal) return
 
     const etapaDestino = resolveEtapaDestino(over.id, funil, etapasAtivas)
     const etapaOrigem = findEtapaOrigem(active.id, funil, etapasAtivas)
@@ -240,7 +277,9 @@ function Funil({
     const ordemDestino = etapaOrdemPorNome[etapaDestino]
 
     if (!podeMudarEtapa(card, etapaOrigem, etapaDestino)) {
-      if (card.tipoCard === 'negocio' && ordemDestino < 4) {
+      if (etapaDestino === ETAPA_PERDIDA && (isEtapaVendida(etapaOrigem) || ordemOrigem === 6)) {
+        setError('Negócios na etapa de Pós Venda não podem ser marcados como perdidos.')
+      } else if (card.tipoCard === 'negocio' && ordemDestino < 4) {
         setError('Negócios só podem existir a partir da fase de Proposta.')
       } else if (ordemDestino !== undefined && ordemOrigem !== undefined && ordemDestino < ordemOrigem) {
         setError('Não é possível retroceder etapas arrastando. Para voltar de etapa, utilize a edição.')
@@ -273,6 +312,27 @@ function Funil({
     }
 
     // Se o card for um NEGÓCIO:
+    if (
+      isEtapaProposta(etapaOrigem, ordemOrigem) &&
+      (isEtapaVendida(etapaDestino) || ordemDestino === 6)
+    ) {
+      setGanharModal({
+        negocio: card,
+        etapaDestino,
+        etapaFunilId: etapaIdPorNome[etapaDestino],
+      })
+      return
+    }
+
+    if (!hasValidValorEstimado(card.valorEstimado)) {
+      setError(
+        etapaDestino === ETAPA_PERDIDA
+          ? 'Preencha o valor estimado do negócio antes de marcá-lo como perdido.'
+          : 'Preencha o valor estimado do negócio antes de avançar de etapa.'
+      )
+      return
+    }
+
     if (etapaDestino === ETAPA_PERDIDA) {
       setPerdidaModal({ negocio: card, etapaOrigem })
       return
@@ -311,6 +371,15 @@ function Funil({
         <button onClick={() => setIsAdvancedFiltersOpen((value) => !value)} className="secondaryBtn">
           {!isAdvancedFiltersOpen ? <ArrowDown size={18} /> : <ArrowUp size={18} /> }
           Filtros avançados
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsCardsMinimized((value) => !value)}
+          className="secondaryBtn"
+          aria-pressed={isCardsMinimized}
+        >
+          {isCardsMinimized ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
+          {isCardsMinimized ? 'Expandir cards' : 'Minimizar cards'}
         </button>
         <button type="button" className="primaryBtn" onClick={onNewNegocio}>
           <Plus size={18} />
@@ -426,6 +495,7 @@ function Funil({
                     isPerdida={isPerdida}
                     diasMedios={diasMedios}
                     showTempoMedio={!etapasSemTempoMedio.has(etapa)}
+                    isMinimized={isCardsMinimized}
                     onViewNegocio={onViewNegocio}
                     onEditNegocio={onEditNegocio}
                     onViewLead={onViewLead}
@@ -436,7 +506,7 @@ function Funil({
             </section>
           </div>
           <DragOverlay dropAnimation={null}>
-            {activeCard ? <FunilOverlayCard negocio={activeCard} /> : null}
+            {activeCard ? <FunilOverlayCard negocio={activeCard} isMinimized={isCardsMinimized} /> : null}
           </DragOverlay>
         </DndContext>
       )}
@@ -458,6 +528,19 @@ function Funil({
           onClose={() => setCriarNegocioModal(null)}
           onSuccess={async () => {
             setCriarNegocioModal(null)
+            await loadFunil({ silent: true })
+          }}
+        />
+      )}
+      {ganharModal && (
+        <ModalGanharLead
+          negocio={ganharModal.negocio}
+          etapaDestinoNome={ganharModal.etapaDestino}
+          etapaFunilId={ganharModal.etapaFunilId}
+          currentUser={currentUser}
+          onClose={() => setGanharModal(null)}
+          onSuccess={async () => {
+            setGanharModal(null)
             await loadFunil({ silent: true })
           }}
         />

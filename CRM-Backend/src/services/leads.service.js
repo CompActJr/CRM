@@ -1,4 +1,4 @@
-import { ErrorMessages } from '../config/constants.js'
+import { ErrorMessages, isEtapaPosVenda } from '../config/constants.js'
 import prisma from '../lib/prisma.js'
 import { TransactionOptions } from '../lib/transaction.js'
 import { parseDateInput, toDateOnlyInstant } from '../utils/date.js'
@@ -282,6 +282,10 @@ export const mudarEtapaLead = async (idParam, body, usuarioIdParam) => {
     include: {
       etapaFunil: true,
       responsaveis: { select: { id: true } },
+      negocios: {
+        where: { motivoPerdaId: null },
+        include: { etapaFunil: true },
+      },
     },
   })
   if (!existing) {
@@ -326,6 +330,15 @@ export const mudarEtapaLead = async (idParam, body, usuarioIdParam) => {
 
   // Se for marcar como perdido / inativo (desqualificação no funil):
   if (body.motivoPerdaId || body.status === 'Inativo') {
+    const emPosVenda =
+      isEtapaPosVenda(existing.etapaFunil) ||
+      (existing.negocios ?? []).some((negocio) => isEtapaPosVenda(negocio.etapaFunil))
+    if (emPosVenda) {
+      const error = new Error(ErrorMessages.leadPosVendaNaoPodeSerPerdido)
+      error.statusCode = 400
+      throw error
+    }
+
     const motivoPerdaId = Number(body.motivoPerdaId)
     if (!motivoPerdaId) {
       const error = new Error('Motivo de perda é obrigatório para desqualificar o lead.')
@@ -387,6 +400,12 @@ export const mudarEtapaLead = async (idParam, body, usuarioIdParam) => {
   const etapa = await prisma.etapaFunil.findUnique({ where: { id: etapaFunilId } })
   if (!etapa) {
     const error = new Error('Etapa não encontrada.')
+    error.statusCode = 400
+    throw error
+  }
+
+  if (etapa.ordem >= 4) {
+    const error = new Error(ErrorMessages.leadEtapaPropostaRequiresNegocio)
     error.statusCode = 400
     throw error
   }

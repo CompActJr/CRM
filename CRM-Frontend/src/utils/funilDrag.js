@@ -13,6 +13,17 @@ export const isEtapaVendida = (nomeEtapa) => {
   )
 }
 
+export const isEtapaProposta = (nomeEtapa, ordem) => {
+  if (ordem === 4) return true
+  if (!nomeEtapa) return false
+  return nomeEtapa.toLowerCase().includes('proposta')
+}
+
+export const findEtapaPosVenda = (etapas = []) =>
+  etapas.find((etapa) => isEtapaVendida(etapa.nome)) ||
+  etapas.find((etapa) => etapa.ordem === 6) ||
+  null
+
 export const isTituloGenerico = (titulo) => {
   if (!titulo) return true
   const lower = titulo.trim().toLowerCase()
@@ -85,6 +96,11 @@ export const moveNegocioNoFunil = (funil, negocioId, etapaOrigem, etapaDestino) 
     [etapaOrigem]: origemLista,
     [etapaDestino]: destinoLista,
   }
+}
+
+export const hasValidValorEstimado = (valor) => {
+  const numeric = Number(valor)
+  return Number.isFinite(numeric) && numeric > 0
 }
 
 export const buildUpdatePayload = (negocio, etapaFunilId) => ({

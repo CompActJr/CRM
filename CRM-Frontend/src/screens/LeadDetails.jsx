@@ -6,18 +6,21 @@ import {
   Edit,
   Plus,
   RotateCcw,
+  Trophy,
   UserX,
 } from 'lucide-react'
 import PainelInteracoes from '../components/interacoes/PainelInteracoes'
 import PainelTarefas from '../components/tarefas/PainelTarefas'
 import PainelTimeline from '../components/timeline/PainelTimeline'
 import ModalCriarNegocioProposta from '../components/negocios/ModalCriarNegocioProposta'
+import ModalGanharLead from '../components/negocios/ModalGanharLead'
 import ModalMudancaEtapaFunil from '../components/negocios/ModalMudancaEtapaFunil'
 import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
 import Header from '../components/layout/Header'
 import { fetchLeadById, mudarEtapaLead } from '../services/leadsService'
 import { fetchEtapasFunil } from '../services/etapasService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
+import { findEtapaPosVenda, isEtapaProposta, isEtapaVendida } from '../utils/funilDrag'
 
 function LeadDetails({
   setScreen,
@@ -35,6 +38,7 @@ function LeadDetails({
   const [etapas, setEtapas] = useState([])
   const [mudancaEtapaModal, setMudancaEtapaModal] = useState(null)
   const [showPerdidaModal, setShowPerdidaModal] = useState(false)
+  const [ganharNegocioModal, setGanharNegocioModal] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -101,6 +105,23 @@ function LeadDetails({
   const currentOrdem = currentEtapa?.ordem ?? 1
 
   const isLeadInativo = lead?.status === 'Inativo'
+  const etapaPosVenda = useMemo(() => findEtapaPosVenda(etapas), [etapas])
+
+  const isPosVenda = useMemo(() => {
+    if (!lead || isLeadInativo) return false
+    return (
+      isEtapaVendida(currentEtapa?.nome || lead.etapa) ||
+      currentOrdem === 6 ||
+      (lead.negocios ?? []).some((n) => !n.perdida && isEtapaVendida(n.etapa))
+    )
+  }, [lead, isLeadInativo, currentEtapa, currentOrdem])
+
+  const negocioEmProposta = useMemo(() => {
+    if (!lead || isLeadInativo || !isEtapaProposta(currentEtapa?.nome || lead.etapa, currentOrdem)) {
+      return null
+    }
+    return (lead.negocios ?? []).find((n) => !n.perdida && isEtapaProposta(n.etapa)) ?? null
+  }, [lead, isLeadInativo, currentEtapa, currentOrdem])
 
   const proximaEtapa = useMemo(() => {
     if (isLeadInativo) return null
@@ -242,6 +263,18 @@ function LeadDetails({
               </button>
             ) : (
               <>
+                {negocioEmProposta && etapaPosVenda && (
+                  <button
+                    type="button"
+                    className="successBtn"
+                    onClick={() => setGanharNegocioModal(negocioEmProposta)}
+                    disabled={actionLoading}
+                  >
+                    <Trophy size={16} />
+                    Ganhar lead
+                  </button>
+                )}
+
                 {proximaEtapa ? (
                   <button
                     type="button"
@@ -265,15 +298,17 @@ function LeadDetails({
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  className="secondaryBtn"
-                  onClick={() => setShowPerdidaModal(true)}
-                  title="Desqualificar lead no funil"
-                >
-                  <UserX size={16} />
-                  Desqualificar
-                </button>
+                {!isPosVenda && (
+                  <button
+                    type="button"
+                    className="secondaryBtn"
+                    onClick={() => setShowPerdidaModal(true)}
+                    title="Desqualificar lead no funil"
+                  >
+                    <UserX size={16} />
+                    Desqualificar
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -552,6 +587,20 @@ function LeadDetails({
           onClose={() => setShowCriarNegocio(false)}
           onSuccess={async () => {
             setShowCriarNegocio(false)
+            await loadLead()
+          }}
+        />
+      )}
+
+      {ganharNegocioModal && (
+        <ModalGanharLead
+          negocio={ganharNegocioModal}
+          etapaDestinoNome={etapaPosVenda?.nome}
+          etapaFunilId={etapaPosVenda?.id}
+          currentUser={currentUser}
+          onClose={() => setGanharNegocioModal(null)}
+          onSuccess={async () => {
+            setGanharNegocioModal(null)
             await loadLead()
           }}
         />

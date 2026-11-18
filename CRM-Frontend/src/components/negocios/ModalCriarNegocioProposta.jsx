@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, DollarSign } from 'lucide-react'
 import { createNegocio } from '../../services/negociosService'
 import { maskValorInput, parseValorInputToAmount } from '../../utils/currencyInput'
+import { hasValidValorEstimado } from '../../utils/funilDrag'
 import SearchableSelect from '../common/SearchableSelect'
 
 function ModalCriarNegocioProposta({
@@ -31,7 +32,7 @@ function ModalCriarNegocioProposta({
       setError('Informe um título para o negócio.')
       return
     }
-    if (!valorEstimado || parseValorInputToAmount(valorEstimado) <= 0) {
+    if (!valorEstimado || !hasValidValorEstimado(parseValorInputToAmount(valorEstimado))) {
       setError('Informe um valor estimado válido para a proposta.')
       return
     }
@@ -92,6 +93,7 @@ function ModalCriarNegocioProposta({
             <span>Valor estimado da proposta (R$)</span>
             <input
               type="text"
+              inputMode="numeric"
               value={valorEstimado}
               onChange={(e) => setValorEstimado(maskValorInput(e.target.value))}
               required

@@ -42,3 +42,32 @@ export const login = async ({ email, senha }) => {
     avatarUrl: usuario.avatarUrl,
   }
 }
+
+export const getSessionUsuario = async (usuarioIdParam) => {
+  const usuarioId = Number(usuarioIdParam)
+  if (!usuarioIdParam || Number.isNaN(usuarioId) || usuarioId < 1) {
+    const error = new Error('Sessão inválida')
+    error.statusCode = 401
+    throw error
+  }
+
+  const usuario = await prisma.usuario.findFirst({
+    where: { id: usuarioId, ativo: true },
+    select: {
+      id: true,
+      nome: true,
+      email: true,
+      cargo: true,
+      perfilAcesso: true,
+      avatarUrl: true,
+    },
+  })
+
+  if (!usuario) {
+    const error = new Error('Sessão expirada ou usuário não encontrado')
+    error.statusCode = 401
+    throw error
+  }
+
+  return usuario
+}

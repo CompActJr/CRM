@@ -85,7 +85,7 @@ function Usuarios({ setScreen, onNewUsuario, onEditUsuario }) {
             <tbody>
               {filteredUsuarios.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="tableMessage">
+                  <td colSpan={6} className="tableMessage">
                     Nenhum usuário encontrado.
                   </td>
                 </tr>

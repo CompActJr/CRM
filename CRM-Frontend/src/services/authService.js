@@ -5,3 +5,5 @@ export const login = (email, senha) =>
     method: 'POST',
     body: JSON.stringify({ email, senha }),
   })
+
+export const fetchCurrentSession = () => apiRequest('/auth/me')
