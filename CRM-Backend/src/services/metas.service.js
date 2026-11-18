@@ -1,45 +1,281 @@
 import prisma from '../lib/prisma.js'
+import { parseDateTimeInput, toDateOnlyInstant } from '../utils/date.js'
 
-const parseDateInput = (value, isEnd = false) => {
+const SAO_PAULO_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+const toSaoPauloDateStr = (date) => SAO_PAULO_DATE_FORMATTER.format(date)
+
+const normalizeDateStr = (value) => {
   if (!value) return null
-  if (value instanceof Date) return value
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString().slice(0, 10)
+  }
   if (typeof value !== 'string') return null
-  const dateStr = isEnd ? `${value}T23:59:59.999Z` : `${value}T00:00:00.000Z`
-  const parsed = new Date(dateStr)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim())
+  return match ? match[1] : null
+}
+
+const toDateStartUtc = (dateStr) => new Date(`${dateStr}T00:00:00.000Z`)
+const toDateEndUtc = (dateStr) => new Date(`${dateStr}T23:59:59.999Z`)
+
+const toSaoPauloDayStart = (dateStr) => parseDateTimeInput(`${dateStr}T00:00:00`)
+const toSaoPauloDayEnd = (dateStr) => {
+  const endSecond = parseDateTimeInput(`${dateStr}T23:59:59`)
+  return endSecond ? new Date(endSecond.getTime() + 999) : null
+}
+
+const normalizeStageName = (text = '') =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+
+export const normalizeTipoMeta = (value) => {
+  if (!value) return 'TODOS'
+  const normalized = String(value).trim().toUpperCase()
+  if (normalized === 'LEADS' || normalized === 'LEADS_MAPEADOS') return 'LEADS'
+  if (normalized === 'ENTRADAS_CONTATO') return 'ENTRADAS_CONTATO'
+  if (normalized === 'DIAGNOSTICOS') return 'DIAGNOSTICOS'
+  return 'TODOS'
 }
 
 export const getPeriodBounds = (query = {}) => {
-  const now = new Date()
+  const todayStr = toSaoPauloDateStr(new Date())
+  const [year, month, day] = todayStr.split('-').map(Number)
 
   if (query.dataInicio || query.dataFim || query.meses === 'custom') {
-    const dataInicio = parseDateInput(query.dataInicio) || new Date(now.getFullYear(), now.getMonth(), 1)
-    const dataFim = parseDateInput(query.dataFim, true) || new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
-    return { type: 'custom', dataInicio, dataFim }
+    const firstOfMonth = `${year}-${String(month).padStart(2, '0')}-01`
+    const startStr = normalizeDateStr(query.dataInicio) || firstOfMonth
+    const endStr = normalizeDateStr(query.dataFim) || todayStr
+    return {
+      type: 'custom',
+      startStr,
+      endStr,
+      dataInicio: toDateStartUtc(startStr),
+      dataFim: toDateEndUtc(endStr),
+    }
   }
 
   const meses = Number(query.meses)
   if (meses === 0.25) {
-    const dataInicio = new Date(now)
-    dataInicio.setDate(now.getDate() - 6)
-    dataInicio.setHours(0, 0, 0, 0)
-    const dataFim = new Date(now)
-    dataFim.setHours(23, 59, 59, 999)
-    return { type: 'week', dataInicio, dataFim }
+    const startDate = new Date(Date.UTC(year, month - 1, day - 6))
+    const startStr = startDate.toISOString().slice(0, 10)
+    return {
+      type: 'week',
+      startStr,
+      endStr: todayStr,
+      dataInicio: toDateStartUtc(startStr),
+      dataFim: toDateEndUtc(todayStr),
+    }
   }
 
   const numMeses = [1, 3, 6, 12].includes(meses) ? meses : 3
-  const dataInicio = new Date(now.getFullYear(), now.getMonth() - (numMeses - 1), 1)
-  const dataFim = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
-  return { type: 'months', numMeses, dataInicio, dataFim }
+  const startStr = new Date(Date.UTC(year, month - 1 - (numMeses - 1), 1)).toISOString().slice(0, 10)
+  const endStr = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
+  return {
+    type: 'months',
+    numMeses,
+    startStr,
+    endStr,
+    dataInicio: toDateStartUtc(startStr),
+    dataFim: toDateEndUtc(endStr),
+  }
+}
+
+const resolvePeriodoEfetivo = (filterBounds, usuario) => {
+  const userStartStr = normalizeDateStr(usuario.metaPeriodoInicio)
+  const userEndStr = normalizeDateStr(usuario.metaPeriodoFim)
+
+  const startStr = userStartStr && userStartStr > filterBounds.startStr
+    ? userStartStr
+    : filterBounds.startStr
+  const endStr = userEndStr && userEndStr < filterBounds.endStr
+    ? userEndStr
+    : filterBounds.endStr
+
+  if (startStr > endStr) {
+    return null
+  }
+
+  return {
+    startStr,
+    endStr,
+    dateStartUtc: toDateStartUtc(startStr),
+    dateEndUtc: toDateEndUtc(endStr),
+    tsStart: toSaoPauloDayStart(startStr),
+    tsEnd: toSaoPauloDayEnd(endStr),
+    metaPeriodoInicio: userStartStr,
+    metaPeriodoFim: userEndStr,
+  }
+}
+
+const resolveEtapasMetas = async () => {
+  const etapas = await prisma.etapaFunil.findMany({
+    select: { id: true, nome: true, ordem: true },
+    orderBy: { ordem: 'asc' },
+  })
+
+  const entradaContato =
+    etapas.find((e) => normalizeStageName(e.nome) === 'entrada de contato') ||
+    etapas.find((e) => {
+      const normalized = normalizeStageName(e.nome)
+      return normalized.includes('entrada') && normalized.includes('contato')
+    }) ||
+    etapas.find((e) => e.ordem === 2) ||
+    null
+
+  const diagnostico =
+    etapas.find((e) => normalizeStageName(e.nome) === 'diagnostico') ||
+    etapas.find((e) => normalizeStageName(e.nome).includes('diagnostico')) ||
+    etapas.find((e) => e.ordem === 3) ||
+    null
+
+  return { entradaContato, diagnostico }
+}
+
+const isUsuarioResponsavelNaEntrada = (lead, usuarioId, entradaEm) => {
+  if (!lead) return false
+
+  if (lead._count?.historicoResponsaveis > 0) {
+    const entradaDiaStr = toSaoPauloDateStr(entradaEm)
+    const diaInicio = toSaoPauloDayStart(entradaDiaStr)
+    const diaFim = toSaoPauloDayEnd(entradaDiaStr)
+
+    return (lead.historicoResponsaveis ?? []).some((registro) => {
+      const entrouAntesDoFimDoDia = registro.entradaEm <= diaFim
+      const saiuDepoisDoInicioDoDia = registro.saidaEm === null || registro.saidaEm >= diaInicio
+      return entrouAntesDoFimDoDia && saiuDepoisDoInicioDoDia
+    })
+  }
+
+  return (
+    lead.usuarioId === usuarioId ||
+    (lead.responsaveis ?? []).some((responsavel) => responsavel.id === usuarioId)
+  )
+}
+
+const findLeadsPorEntradaEtapa = async ({ usuarioId, etapaId, window }) => {
+  if (!etapaId) return []
+
+  const registros = await prisma.leadEtapaHistorico.findMany({
+    where: {
+      etapaFunilId: etapaId,
+      entradaEm: {
+        gte: window.tsStart,
+        lte: window.tsEnd,
+      },
+      lead: {
+        OR: [
+          { historicoResponsaveis: { some: { usuarioId } } },
+          { responsaveis: { some: { id: usuarioId } } },
+          { usuarioId },
+        ],
+      },
+    },
+    include: {
+      lead: {
+        select: {
+          id: true,
+          nome: true,
+          empresa: true,
+          email: true,
+          telefone: true,
+          cidade: true,
+          status: true,
+          dataCadastro: true,
+          usuarioId: true,
+          etapaFunil: { select: { id: true, nome: true } },
+          responsaveis: { select: { id: true } },
+          _count: { select: { historicoResponsaveis: true } },
+          historicoResponsaveis: {
+            where: { usuarioId },
+            select: {
+              usuarioId: true,
+              entradaEm: true,
+              saidaEm: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { entradaEm: 'asc' },
+  })
+
+  const leadsUnicos = new Map()
+  for (const registro of registros) {
+    if (!registro.lead || leadsUnicos.has(registro.leadId)) continue
+    if (!isUsuarioResponsavelNaEntrada(registro.lead, usuarioId, registro.entradaEm)) continue
+
+    leadsUnicos.set(registro.leadId, {
+      id: registro.lead.id,
+      titulo: registro.lead.nome,
+      subtitulo: registro.lead.empresa || 'Sem empresa',
+      status: registro.lead.etapaFunil?.nome || registro.lead.status,
+      data: registro.entradaEm,
+      detalhes: {
+        email: registro.lead.email,
+        telefone: registro.lead.telefone,
+        cidade: registro.lead.cidade,
+      },
+      tipo: 'LEAD',
+    })
+  }
+
+  return Array.from(leadsUnicos.values()).sort(
+    (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()
+  )
+}
+
+const buildMetaCard = ({
+  idPrefix,
+  usuario,
+  tipo,
+  tipoLabel,
+  unidade,
+  valorAlvo,
+  valorRealizado,
+  window,
+}) => {
+  const alvo = Number(valorAlvo || 0)
+  const progresso = alvo > 0
+    ? Math.min(1000, Number(((valorRealizado / alvo) * 100).toFixed(1)))
+    : (valorRealizado > 0 ? 100 : 0)
+
+  const status = progresso >= 100
+    ? 'ATINGIDA'
+    : (valorRealizado > 0 ? 'EM_ANDAMENTO' : 'NAO_INICIADA')
+
+  return {
+    id: `${idPrefix}_${usuario.id}`,
+    usuarioId: usuario.id,
+    usuarioNome: usuario.nome,
+    usuarioCargo: usuario.cargo,
+    usuarioAvatar: usuario.avatarUrl,
+    tipo,
+    tipoLabel,
+    valorAlvo: alvo,
+    valorRealizado,
+    unidade,
+    progressoPercentual: progresso,
+    status,
+    periodoInicio: window.startStr,
+    periodoFim: window.endStr,
+    metaPeriodoInicio: window.metaPeriodoInicio,
+    metaPeriodoFim: window.metaPeriodoFim,
+  }
 }
 
 export const getMetasDashboardStats = async (query = {}) => {
-  const { dataInicio, dataFim } = getPeriodBounds(query)
+  const filterBounds = getPeriodBounds(query)
   const usuarioId = query.usuarioId ? Number(query.usuarioId) : null
-  const tipoFiltro = query.tipoMeta || 'todos' // 'todos' | 'leads' | 'negociacoes'
+  const tipoFiltro = normalizeTipoMeta(query.tipoMeta)
 
-  // Buscar usuários com metas configuradas e ativas
   const whereUser = {
     ativo: true,
   }
@@ -49,156 +285,123 @@ export const getMetasDashboardStats = async (query = {}) => {
   } else {
     whereUser.OR = [
       { ativarMetaLeads: true },
-      { ativarMetasNegociacoes: true },
+      { ativarMetaEntradasContato: true },
+      { ativarMetaDiagnosticos: true },
     ]
   }
 
-  const usuarios = await prisma.usuario.findMany({
-    where: whereUser,
-    select: {
-      id: true,
-      nome: true,
-      email: true,
-      cargo: true,
-      avatarUrl: true,
-      ativarMetaLeads: true,
-      ativarMetasNegociacoes: true,
-      quantidadeLeads: true,
-      quantidadeNegociacoes: true,
-      metaPeriodoInicio: true,
-      metaPeriodoFim: true,
-    },
-    orderBy: { nome: 'asc' },
-  })
+  const [usuarios, etapas] = await Promise.all([
+    prisma.usuario.findMany({
+      where: whereUser,
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        cargo: true,
+        avatarUrl: true,
+        ativarMetaLeads: true,
+        ativarMetaEntradasContato: true,
+        ativarMetaDiagnosticos: true,
+        quantidadeLeads: true,
+        quantidadeEntradasContato: true,
+        quantidadeDiagnosticos: true,
+        metaPeriodoInicio: true,
+        metaPeriodoFim: true,
+      },
+      orderBy: { nome: 'asc' },
+    }),
+    resolveEtapasMetas(),
+  ])
 
   const metasCards = []
   const rankingMap = new Map()
 
   for (const usuario of usuarios) {
-    // Determinar janela de período para este usuário:
-    // Se o filtro veio com datas personalizadas, usamos o filtro global;
-    // Caso contrário, se o usuário tem período configurado, usamos o dele, ou fallback para o bounds global.
-    const userPeriodoInicio = query.dataInicio && query.dataFim
-      ? dataInicio
-      : (usuario.metaPeriodoInicio || dataInicio)
-    const userPeriodoFim = query.dataInicio && query.dataFim
-      ? dataFim
-      : (usuario.metaPeriodoFim ? new Date(`${usuario.metaPeriodoFim.toISOString().split('T')[0]}T23:59:59.999Z`) : dataFim)
+    const window = resolvePeriodoEfetivo(filterBounds, usuario)
+    if (!window) continue
 
     let userScoreTotal = 0
     let userMetasCount = 0
 
-    // 1. Meta de Leads
-    if (usuario.ativarMetaLeads && (tipoFiltro === 'todos' || tipoFiltro === 'leads')) {
-      const totalLeadsCadastrados = await prisma.lead.count({
+    // 1. Meta de Leads Mapeados
+    if (usuario.ativarMetaLeads && (tipoFiltro === 'TODOS' || tipoFiltro === 'LEADS')) {
+      const totalLeadsMapeados = await prisma.lead.count({
         where: {
           usuarioId: usuario.id,
           dataCadastro: {
-            gte: userPeriodoInicio,
-            lte: userPeriodoFim,
+            gte: window.dateStartUtc,
+            lte: window.dateEndUtc,
           },
         },
       })
 
-      const alvoLeads = Number(usuario.quantidadeLeads || 0)
-      const progressoLeads = alvoLeads > 0
-        ? Math.min(1000, Number(((totalLeadsCadastrados / alvoLeads) * 100).toFixed(1)))
-        : (totalLeadsCadastrados > 0 ? 100 : 0)
-
-      const statusMeta = progressoLeads >= 100
-        ? 'ATINGIDA'
-        : (totalLeadsCadastrados > 0 ? 'EM_ANDAMENTO' : 'NAO_INICIADA')
-
-      metasCards.push({
-        id: `lead_${usuario.id}`,
-        usuarioId: usuario.id,
-        usuarioNome: usuario.nome,
-        usuarioCargo: usuario.cargo,
-        usuarioAvatar: usuario.avatarUrl,
+      const card = buildMetaCard({
+        idPrefix: 'lead',
+        usuario,
         tipo: 'LEADS',
-        tipoLabel: 'Leads Cadastrados',
-        valorAlvo: alvoLeads,
-        valorRealizado: totalLeadsCadastrados,
+        tipoLabel: 'Leads Mapeados',
         unidade: 'leads',
-        progressoPercentual: progressoLeads,
-        status: statusMeta,
-        periodoInicio: userPeriodoInicio,
-        periodoFim: userPeriodoFim,
+        valorAlvo: usuario.quantidadeLeads,
+        valorRealizado: totalLeadsMapeados,
+        window,
       })
 
-      userScoreTotal += progressoLeads
+      metasCards.push(card)
+      userScoreTotal += card.progressoPercentual
       userMetasCount++
     }
 
-    // 2. Meta de Negociações (via negocio_responsavel_historico)
-    if (usuario.ativarMetasNegociacoes && (tipoFiltro === 'todos' || tipoFiltro === 'negociacoes')) {
-      const historicosNegocios = await prisma.negocioResponsavelHistorico.findMany({
-        where: {
-          usuarioId: usuario.id,
-          entradaEm: { lte: userPeriodoFim },
-          OR: [
-            { saidaEm: null },
-            { saidaEm: { gte: userPeriodoInicio } },
-          ],
-          negocio: {
-            dataCriacao: {
-              gte: userPeriodoInicio,
-              lte: userPeriodoFim,
-            },
-          },
-        },
-        include: {
-          negocio: {
-            select: {
-              id: true,
-              valorEstimado: true,
-            },
-          },
-        },
-      })
-
-      // Extrai negócios únicos para evitar contagem duplicada se houve múltiplas passagens
-      const negociosUnicosMap = new Map()
-      for (const h of historicosNegocios) {
-        if (h.negocio && !negociosUnicosMap.has(h.negocio.id)) {
-          negociosUnicosMap.set(h.negocio.id, Number(h.negocio.valorEstimado || 0))
-        }
-      }
-
-      const totalNegociosCount = negociosUnicosMap.size
-      let totalValorEstimado = 0
-      for (const valor of negociosUnicosMap.values()) {
-        totalValorEstimado += valor
-      }
-
-      const alvoNegociacoes = Number(usuario.quantidadeNegociacoes || 0)
-      const progressoNegociacoes = alvoNegociacoes > 0
-        ? Math.min(1000, Number(((totalNegociosCount / alvoNegociacoes) * 100).toFixed(1)))
-        : (totalNegociosCount > 0 ? 100 : 0)
-
-      const statusMeta = progressoNegociacoes >= 100
-        ? 'ATINGIDA'
-        : (totalNegociosCount > 0 ? 'EM_ANDAMENTO' : 'NAO_INICIADA')
-
-      metasCards.push({
-        id: `negocio_${usuario.id}`,
+    // 2. Meta de Entradas de Contato
+    if (
+      usuario.ativarMetaEntradasContato &&
+      (tipoFiltro === 'TODOS' || tipoFiltro === 'ENTRADAS_CONTATO')
+    ) {
+      const entradasContato = await findLeadsPorEntradaEtapa({
         usuarioId: usuario.id,
-        usuarioNome: usuario.nome,
-        usuarioCargo: usuario.cargo,
-        usuarioAvatar: usuario.avatarUrl,
-        tipo: 'NEGOCIACOES',
-        tipoLabel: 'Negociações Atribuídas',
-        valorAlvo: alvoNegociacoes,
-        valorRealizado: totalNegociosCount,
-        valorTotalEstimado,
-        unidade: 'negócios',
-        progressoPercentual: progressoNegociacoes,
-        status: statusMeta,
-        periodoInicio: userPeriodoInicio,
-        periodoFim: userPeriodoFim,
+        etapaId: etapas.entradaContato?.id,
+        window,
       })
 
-      userScoreTotal += progressoNegociacoes
+      const card = buildMetaCard({
+        idPrefix: 'entrada_contato',
+        usuario,
+        tipo: 'ENTRADAS_CONTATO',
+        tipoLabel: 'Entradas de Contato',
+        unidade: 'leads',
+        valorAlvo: usuario.quantidadeEntradasContato,
+        valorRealizado: entradasContato.length,
+        window,
+      })
+
+      metasCards.push(card)
+      userScoreTotal += card.progressoPercentual
+      userMetasCount++
+    }
+
+    // 3. Meta de Diagnósticos Marcados
+    if (
+      usuario.ativarMetaDiagnosticos &&
+      (tipoFiltro === 'TODOS' || tipoFiltro === 'DIAGNOSTICOS')
+    ) {
+      const diagnosticos = await findLeadsPorEntradaEtapa({
+        usuarioId: usuario.id,
+        etapaId: etapas.diagnostico?.id,
+        window,
+      })
+
+      const card = buildMetaCard({
+        idPrefix: 'diagnostico',
+        usuario,
+        tipo: 'DIAGNOSTICOS',
+        tipoLabel: 'Diagnósticos Marcados',
+        unidade: 'diagnósticos',
+        valorAlvo: usuario.quantidadeDiagnosticos,
+        valorRealizado: diagnosticos.length,
+        window,
+      })
+
+      metasCards.push(card)
+      userScoreTotal += card.progressoPercentual
       userMetasCount++
     }
 
@@ -214,15 +417,13 @@ export const getMetasDashboardStats = async (query = {}) => {
     }
   }
 
-  // Ordenar ranking por maior média de progresso
-  const ranking = Array.from(rankingMap.values()).sort(
-    (a, b) => b.mediaProgresso - a.mediaProgresso
-  ).map((item, index) => ({
-    posicao: index + 1,
-    ...item,
-  }))
+  const ranking = Array.from(rankingMap.values())
+    .sort((a, b) => b.mediaProgresso - a.mediaProgresso)
+    .map((item, index) => ({
+      posicao: index + 1,
+      ...item,
+    }))
 
-  // Resumo Geral (KPIs)
   const totalMetas = metasCards.length
   const metasAtingidas = metasCards.filter((m) => m.progressoPercentual >= 100).length
   const metasEmAndamento = metasCards.filter((m) => m.progressoPercentual > 0 && m.progressoPercentual < 100).length
@@ -234,8 +435,8 @@ export const getMetasDashboardStats = async (query = {}) => {
 
   return {
     periodo: {
-      dataInicio,
-      dataFim,
+      dataInicio: filterBounds.startStr,
+      dataFim: filterBounds.endStr,
     },
     kpis: {
       totalMetas,
@@ -249,16 +450,15 @@ export const getMetasDashboardStats = async (query = {}) => {
   }
 }
 
-export const getMetasContribuicoes = async ({ usuarioId, tipoMeta, dataInicio, dataFim }) => {
+export const getMetasContribuicoes = async ({ usuarioId, tipoMeta, meses, dataInicio, dataFim }) => {
   if (!usuarioId) {
     const error = new Error('ID do usuário é obrigatório para consultar contribuições.')
     error.statusCode = 400
     throw error
   }
 
-  const bounds = getPeriodBounds({ dataInicio, dataFim })
-  const inicio = bounds.dataInicio
-  const fim = bounds.dataFim
+  const filterBounds = getPeriodBounds({ meses, dataInicio, dataFim })
+  const normalizedTipo = normalizeTipoMeta(tipoMeta)
 
   const usuario = await prisma.usuario.findUnique({
     where: { id: Number(usuarioId) },
@@ -278,19 +478,34 @@ export const getMetasContribuicoes = async ({ usuarioId, tipoMeta, dataInicio, d
     throw error
   }
 
-  // Se não foi informada data na query e o usuário tiver período salvo, usa o dele
-  const periodoInicio = dataInicio ? inicio : (usuario.metaPeriodoInicio || inicio)
-  const periodoFim = dataFim ? fim : (usuario.metaPeriodoFim ? new Date(`${usuario.metaPeriodoFim.toISOString().split('T')[0]}T23:59:59.999Z`) : fim)
+  const window = resolvePeriodoEfetivo(filterBounds, usuario)
+  if (!window) {
+    return {
+      usuario: {
+        id: usuario.id,
+        nome: usuario.nome,
+        cargo: usuario.cargo,
+        avatarUrl: usuario.avatarUrl,
+      },
+      tipoMeta: normalizedTipo,
+      periodo: {
+        dataInicio: filterBounds.startStr,
+        dataFim: filterBounds.endStr,
+      },
+      totalContribuicoes: 0,
+      contribuicoes: [],
+    }
+  }
 
   let contribuicoes = []
 
-  if (tipoMeta === 'LEADS' || tipoMeta === 'leads') {
+  if (normalizedTipo === 'LEADS') {
     const leads = await prisma.lead.findMany({
       where: {
         usuarioId: usuario.id,
         dataCadastro: {
-          gte: periodoInicio,
-          lte: periodoFim,
+          gte: window.dateStartUtc,
+          lte: window.dateEndUtc,
         },
       },
       select: {
@@ -302,7 +517,7 @@ export const getMetasContribuicoes = async ({ usuarioId, tipoMeta, dataInicio, d
         cidade: true,
         status: true,
         dataCadastro: true,
-        createdAt: true,
+        etapaFunil: { select: { nome: true } },
       },
       orderBy: { dataCadastro: 'desc' },
     })
@@ -311,8 +526,8 @@ export const getMetasContribuicoes = async ({ usuarioId, tipoMeta, dataInicio, d
       id: l.id,
       titulo: l.nome,
       subtitulo: l.empresa || 'Sem empresa',
-      status: l.status,
-      data: l.dataCadastro,
+      status: l.etapaFunil?.nome || l.status,
+      data: toDateOnlyInstant(l.dataCadastro),
       detalhes: {
         email: l.email,
         telefone: l.telefone,
@@ -320,66 +535,17 @@ export const getMetasContribuicoes = async ({ usuarioId, tipoMeta, dataInicio, d
       },
       tipo: 'LEAD',
     }))
-  } else {
-    // Negócios via histórico de responsabilidade
-    const historicos = await prisma.negocioResponsavelHistorico.findMany({
-      where: {
-        usuarioId: usuario.id,
-        entradaEm: { lte: periodoFim },
-        OR: [
-          { saidaEm: null },
-          { saidaEm: { gte: periodoInicio } },
-        ],
-        negocio: {
-          dataCriacao: {
-            gte: periodoInicio,
-            lte: periodoFim,
-          },
-        },
-      },
-      include: {
-        negocio: {
-          include: {
-            etapaFunil: {
-              select: {
-                id: true,
-                nome: true,
-              },
-            },
-            lead: {
-              select: {
-                id: true,
-                nome: true,
-                empresa: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        negocio: {
-          dataCriacao: 'desc',
-        },
-      },
-    })
+  } else if (normalizedTipo === 'ENTRADAS_CONTATO' || normalizedTipo === 'DIAGNOSTICOS') {
+    const etapas = await resolveEtapasMetas()
+    const etapaId = normalizedTipo === 'ENTRADAS_CONTATO'
+      ? etapas.entradaContato?.id
+      : etapas.diagnostico?.id
 
-    const vistos = new Set()
-    for (const h of historicos) {
-      if (h.negocio && !vistos.has(h.negocio.id)) {
-        vistos.add(h.negocio.id)
-        contribuicoes.push({
-          id: h.negocio.id,
-          titulo: h.negocio.titulo,
-          subtitulo: h.negocio.lead?.nome ? `${h.negocio.lead.nome} (${h.negocio.lead.empresa || 'Empresa não informada'})` : 'Sem lead associado',
-          status: h.negocio.etapaFunil?.nome || 'Etapa não definida',
-          valorEstimado: Number(h.negocio.valorEstimado || 0),
-          data: h.negocio.dataCriacao,
-          entradaEm: h.entradaEm,
-          saidaEm: h.saidaEm,
-          tipo: 'NEGOCIO',
-        })
-      }
-    }
+    contribuicoes = await findLeadsPorEntradaEtapa({
+      usuarioId: usuario.id,
+      etapaId,
+      window,
+    })
   }
 
   return {
@@ -389,13 +555,12 @@ export const getMetasContribuicoes = async ({ usuarioId, tipoMeta, dataInicio, d
       cargo: usuario.cargo,
       avatarUrl: usuario.avatarUrl,
     },
-    tipoMeta: tipoMeta.toUpperCase(),
+    tipoMeta: normalizedTipo,
     periodo: {
-      dataInicio: periodoInicio,
-      dataFim: periodoFim,
+      dataInicio: window.startStr,
+      dataFim: window.endStr,
     },
     totalContribuicoes: contribuicoes.length,
     contribuicoes,
   }
 }
-

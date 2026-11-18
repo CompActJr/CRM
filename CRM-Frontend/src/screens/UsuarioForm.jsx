@@ -7,6 +7,30 @@ import { useSession } from '../context/SessionContext'
 import { fetchCargos } from '../services/cargosService'
 import { createUsuario, fetchUsuarioById, updateUsuario, uploadUsuarioAvatar } from '../services/usuariosService'
 
+const MetaConfigItems = [
+  {
+    toggleField: 'ativarMetaLeads',
+    toggleLabel: 'Ativar Meta de Leads Mapeados',
+    qtyField: 'quantidadeLeads',
+    qtyLabel: 'Quantidade Alvo de Leads Mapeados',
+    placeholder: 'Ex: 300',
+  },
+  {
+    toggleField: 'ativarMetaEntradasContato',
+    toggleLabel: 'Ativar Meta de Entradas de Contato',
+    qtyField: 'quantidadeEntradasContato',
+    qtyLabel: 'Quantidade Alvo de Entradas de Contato',
+    placeholder: 'Ex: 80',
+  },
+  {
+    toggleField: 'ativarMetaDiagnosticos',
+    toggleLabel: 'Ativar Meta de Diagnósticos Marcados',
+    qtyField: 'quantidadeDiagnosticos',
+    qtyLabel: 'Quantidade Alvo de Diagnósticos Marcados',
+    placeholder: 'Ex: 30',
+  },
+]
+
 const EmptyForm = {
   nome: '',
   email: '',
@@ -15,9 +39,11 @@ const EmptyForm = {
   perfil: 'Usuário',
   avatar: null,
   ativarMetaLeads: false,
-  ativarMetasNegociacoes: false,
+  ativarMetaEntradasContato: false,
+  ativarMetaDiagnosticos: false,
   quantidadeLeads: 0,
-  quantidadeNegociacoes: 0,
+  quantidadeEntradasContato: 0,
+  quantidadeDiagnosticos: 0,
   metaPeriodoInicio: '',
   metaPeriodoFim: '',
 }
@@ -62,9 +88,11 @@ function UsuarioForm({ setScreen, usuarioId }) {
           perfil: usuario.perfil ?? 'Usuário',
           avatar: usuario.avatar ?? '',
           ativarMetaLeads: Boolean(usuario.ativarMetaLeads),
-          ativarMetasNegociacoes: Boolean(usuario.ativarMetasNegociacoes),
+          ativarMetaEntradasContato: Boolean(usuario.ativarMetaEntradasContato),
+          ativarMetaDiagnosticos: Boolean(usuario.ativarMetaDiagnosticos),
           quantidadeLeads: usuario.quantidadeLeads ?? 0,
-          quantidadeNegociacoes: usuario.quantidadeNegociacoes ?? 0,
+          quantidadeEntradasContato: usuario.quantidadeEntradasContato ?? 0,
+          quantidadeDiagnosticos: usuario.quantidadeDiagnosticos ?? 0,
           metaPeriodoInicio: usuario.metaPeriodoInicio ?? '',
           metaPeriodoFim: usuario.metaPeriodoFim ?? '',
         })
@@ -101,9 +129,11 @@ function UsuarioForm({ setScreen, usuarioId }) {
         cargo: form.cargo,
         perfil: form.perfil,
         ativarMetaLeads: Boolean(form.ativarMetaLeads),
-        ativarMetasNegociacoes: Boolean(form.ativarMetasNegociacoes),
+        ativarMetaEntradasContato: Boolean(form.ativarMetaEntradasContato),
+        ativarMetaDiagnosticos: Boolean(form.ativarMetaDiagnosticos),
         quantidadeLeads: Number(form.quantidadeLeads || 0),
-        quantidadeNegociacoes: Number(form.quantidadeNegociacoes || 0),
+        quantidadeEntradasContato: Number(form.quantidadeEntradasContato || 0),
+        quantidadeDiagnosticos: Number(form.quantidadeDiagnosticos || 0),
         metaPeriodoInicio: form.metaPeriodoInicio || null,
         metaPeriodoFim: form.metaPeriodoFim || null,
       }
@@ -249,69 +279,55 @@ function UsuarioForm({ setScreen, usuarioId }) {
                 <strong style={{ fontSize: '1rem' }}>Metas Comerciais</strong>
               </div>
 
-              <div className="formGrid">
-                <label className="inputGroup" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    name="ativarMetaLeads"
-                    checked={form.ativarMetaLeads}
-                    onChange={(e) => setForm((c) => ({ ...c, ativarMetaLeads: e.target.checked }))}
-                    style={{ width: '18px', height: '18px' }}
-                  />
-                  <span style={{ margin: 0, fontWeight: 500 }}>Ativar Meta de Leads</span>
-                </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {MetaConfigItems.map((metaItem) => (
+                  <div key={metaItem.toggleField} className="formGrid">
+                    <label className="inputGroup" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        name={metaItem.toggleField}
+                        checked={form[metaItem.toggleField]}
+                        onChange={(e) => setForm((c) => ({ ...c, [metaItem.toggleField]: e.target.checked }))}
+                        style={{ width: '18px', height: '18px' }}
+                      />
+                      <span style={{ margin: 0, fontWeight: 500 }}>{metaItem.toggleLabel}</span>
+                    </label>
 
-                {form.ativarMetaLeads && (
-                  <Field
-                    label="Quantidade Alvo de Leads"
-                    name="quantidadeLeads"
-                    type="number"
-                    min="0"
-                    placeholder="Ex: 300"
-                    value={form.quantidadeLeads}
-                    onChange={handleChange}
-                  />
-                )}
+                    {form[metaItem.toggleField] && (
+                      <Field
+                        label={metaItem.qtyLabel}
+                        name={metaItem.qtyField}
+                        type="number"
+                        min="0"
+                        placeholder={metaItem.placeholder}
+                        value={form[metaItem.qtyField]}
+                        onChange={handleChange}
+                      />
+                    )}
+                  </div>
+                ))}
 
-                <label className="inputGroup" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    name="ativarMetasNegociacoes"
-                    checked={form.ativarMetasNegociacoes}
-                    onChange={(e) => setForm((c) => ({ ...c, ativarMetasNegociacoes: e.target.checked }))}
-                    style={{ width: '18px', height: '18px' }}
-                  />
-                  <span style={{ margin: 0, fontWeight: 500 }}>Ativar Meta de Negociações</span>
-                </label>
-
-                {form.ativarMetasNegociacoes && (
-                  <Field
-                    label="Quantidade Alvo de Negociações"
-                    name="quantidadeNegociacoes"
-                    type="number"
-                    min="0"
-                    placeholder="Ex: 50"
-                    value={form.quantidadeNegociacoes}
-                    onChange={handleChange}
-                  />
-                )}
-
-                {(form.ativarMetaLeads || form.ativarMetasNegociacoes) && (
+                {(form.ativarMetaLeads || form.ativarMetaEntradasContato || form.ativarMetaDiagnosticos) && (
                   <>
-                    <Field
-                      label="Data Início da Meta"
-                      name="metaPeriodoInicio"
-                      type="date"
-                      value={form.metaPeriodoInicio}
-                      onChange={handleChange}
-                    />
-                    <Field
-                      label="Data Fim da Meta"
-                      name="metaPeriodoFim"
-                      type="date"
-                      value={form.metaPeriodoFim}
-                      onChange={handleChange}
-                    />
+                    <div className="formGrid">
+                      <Field
+                        label="Data Início da Meta (opcional)"
+                        name="metaPeriodoInicio"
+                        type="date"
+                        value={form.metaPeriodoInicio}
+                        onChange={handleChange}
+                      />
+                      <Field
+                        label="Data Fim da Meta (opcional)"
+                        name="metaPeriodoFim"
+                        type="date"
+                        value={form.metaPeriodoFim}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    <small style={{ color: 'var(--color-text-muted, #64748b)' }}>
+                      Deixe em branco para avaliar continuamente conforme o período selecionado nos painéis e relatórios.
+                    </small>
                   </>
                 )}
               </div>

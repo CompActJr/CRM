@@ -68,20 +68,16 @@ const buildUsuarioData = async (
 
   // Apenas administradores podem configurar e alterar metas comerciais
   if (!isUpdate || isAdmin) {
-    if (body.ativarMetaLeads !== undefined) {
-      data.ativarMetaLeads = Boolean(body.ativarMetaLeads)
+    for (const field of ['ativarMetaLeads', 'ativarMetaEntradasContato', 'ativarMetaDiagnosticos']) {
+      if (body[field] !== undefined) {
+        data[field] = Boolean(body[field])
+      }
     }
 
-    if (body.ativarMetasNegociacoes !== undefined) {
-      data.ativarMetasNegociacoes = Boolean(body.ativarMetasNegociacoes)
-    }
-
-    if (body.quantidadeLeads !== undefined) {
-      data.quantidadeLeads = Math.max(0, parseInt(body.quantidadeLeads, 10) || 0)
-    }
-
-    if (body.quantidadeNegociacoes !== undefined) {
-      data.quantidadeNegociacoes = Math.max(0, parseInt(body.quantidadeNegociacoes, 10) || 0)
+    for (const field of ['quantidadeLeads', 'quantidadeEntradasContato', 'quantidadeDiagnosticos']) {
+      if (body[field] !== undefined) {
+        data[field] = Math.max(0, parseInt(body[field], 10) || 0)
+      }
     }
 
     if (body.metaPeriodoInicio !== undefined) {
@@ -90,6 +86,12 @@ const buildUsuarioData = async (
 
     if (body.metaPeriodoFim !== undefined) {
       data.metaPeriodoFim = body.metaPeriodoFim ? new Date(body.metaPeriodoFim) : null
+    }
+
+    if (data.metaPeriodoInicio && data.metaPeriodoFim && data.metaPeriodoInicio > data.metaPeriodoFim) {
+      const error = new Error(ErrorMessages.invalidDataRange)
+      error.statusCode = 400
+      throw error
     }
   }
 

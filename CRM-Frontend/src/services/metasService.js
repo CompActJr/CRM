@@ -23,10 +23,11 @@ export async function fetchMetasDashboard(params = {}) {
   return apiRequest(`/metas/dashboard${queryString ? `?${queryString}` : ''}`)
 }
 
-export async function fetchMetasContribuicoes({ usuarioId, tipoMeta, dataInicio, dataFim }) {
+export async function fetchMetasContribuicoes({ usuarioId, tipoMeta, meses, dataInicio, dataFim }) {
   const query = new URLSearchParams()
   if (usuarioId) query.append('usuarioId', usuarioId)
   if (tipoMeta) query.append('tipoMeta', tipoMeta)
+  if (meses && meses !== 'custom') query.append('meses', meses)
   if (dataInicio) query.append('dataInicio', dataInicio)
   if (dataFim) query.append('dataFim', dataFim)
 

@@ -51,6 +51,7 @@ export const buildRelatorioPdfBuffer = (relatorio) => new Promise((resolve, reje
 
   const filtros = relatorio.filtros ?? {}
   const filtrosAtivos = [
+    filtros.tipoMeta ? `Meta: ${filtros.tipoMeta}` : null,
     filtros.nomeLead ? `Lead: ${filtros.nomeLead}` : null,
     filtros.empresa ? `Empresa: ${filtros.empresa}` : null,
     filtros.cidade ? `Cidade: ${filtros.cidade}` : null,
@@ -129,16 +130,30 @@ export const buildRelatorioPdfBuffer = (relatorio) => new Promise((resolve, reje
     doc.text('Progresso', tableX + colVendedor + colAlvo, metasTableY + 8, { width: colProgresso - 10, align: 'right' })
     doc.y = metasTableY + rowHeight
 
+    const metasRowHeight = 34
     relatorio.metas.metas.forEach((item, index) => {
-      ensureSpace(doc, rowHeight + 6)
+      ensureSpace(doc, metasRowHeight + 6)
       const y = doc.y
-      if (index % 2 === 0) doc.rect(tableX, y, pageWidth, rowHeight).fill('#fbfdff')
-      doc.strokeColor(colors.border).moveTo(tableX, y + rowHeight).lineTo(tableX + pageWidth, y + rowHeight).stroke()
-      doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(`${item.usuarioNome} (${item.tipoLabel})`, tableX + 10, y + 8, { width: colVendedor - 12 })
-      doc.text(`${item.valorRealizado} / ${item.valorAlvo} ${item.unidade}`, tableX + colVendedor, y + 8, { width: colAlvo - 12 })
+      if (index % 2 === 0) doc.rect(tableX, y, pageWidth, metasRowHeight).fill('#fbfdff')
+      doc.strokeColor(colors.border).moveTo(tableX, y + metasRowHeight).lineTo(tableX + pageWidth, y + metasRowHeight).stroke()
+      doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(
+        `${item.usuarioNome} (${item.tipoLabel})`,
+        tableX + 10,
+        y + 6,
+        { width: colVendedor - 12, lineBreak: false, ellipsis: true }
+      )
+      if (item.periodoInicio && item.periodoFim) {
+        doc.font('Helvetica').fontSize(7.5).fillColor(colors.muted).text(
+          `Período: ${formatDateBr(item.periodoInicio)} a ${formatDateBr(item.periodoFim)}`,
+          tableX + 10,
+          y + 19,
+          { width: colVendedor - 12, lineBreak: false, ellipsis: true }
+        )
+      }
+      doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(`${item.valorRealizado} / ${item.valorAlvo} ${item.unidade}`, tableX + colVendedor, y + 11, { width: colAlvo - 12 })
       doc.font('Helvetica-Bold').fillColor(item.progressoPercentual >= 100 ? colors.green : colors.blue)
-        .text(`${item.progressoPercentual}%`, tableX + colVendedor + colAlvo, y + 8, { width: colProgresso - 10, align: 'right' })
-      doc.y += rowHeight
+        .text(`${item.progressoPercentual}%`, tableX + colVendedor + colAlvo, y + 11, { width: colProgresso - 10, align: 'right' })
+      doc.y += metasRowHeight
     })
   }
 

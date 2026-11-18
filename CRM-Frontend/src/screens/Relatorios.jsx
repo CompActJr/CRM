@@ -24,9 +24,17 @@ const formatPeriod = (periodo) => {
   return `${format(periodo.dataInicio)} a ${format(periodo.dataFim)}`
 }
 
+const TipoMetaOptions = [
+  { value: 'todos', label: 'Todas as metas' },
+  { value: 'leads', label: 'Meta de Leads Mapeados' },
+  { value: 'entradas_contato', label: 'Meta de Entradas de Contato' },
+  { value: 'diagnosticos', label: 'Meta de Diagnósticos Marcados' },
+]
+
 function Relatorios() {
   const [period, setPeriod] = useState(getDefaultPeriod)
   const [usuarioId, setUsuarioId] = useState('todos')
+  const [tipoMeta, setTipoMeta] = useState('todos')
   const [usuarios, setUsuarios] = useState([])
   const [opcoesLead, setOpcoesLead] = useState({ empresas: [], cidades: [], nichos: [], status: [] })
   const [filtrosLead, setFiltrosLead] = useState({ nomeLead: '', empresa: '', cidade: '', nicho: '', status: '' })
@@ -42,7 +50,7 @@ function Relatorios() {
     fetchRelatorioOpcoes().then(setOpcoesLead).catch(() => setOpcoesLead({ empresas: [], cidades: [], nichos: [], status: [] }))
   }, [])
 
-  const buildParams = () => ({ ...period, usuarioId, ...filtrosLead })
+  const buildParams = () => ({ ...period, usuarioId, tipoMeta, ...filtrosLead })
 
   const handleGerar = async (event) => {
     event.preventDefault()
@@ -89,6 +97,9 @@ function Relatorios() {
   const renderFilterOptions = (items) => items.map((item) => <option key={item} value={item}>{item}</option>)
   const appliedLeadFilters = filtrosAplicados
     ? [
+        filtrosAplicados.tipoMeta &&
+          filtrosAplicados.tipoMeta !== 'todos' &&
+          `Meta: ${TipoMetaOptions.find((opt) => opt.value === filtrosAplicados.tipoMeta)?.label || filtrosAplicados.tipoMeta}`,
         filtrosAplicados.nomeLead && `Lead: ${filtrosAplicados.nomeLead}`,
         filtrosAplicados.empresa && `Empresa: ${filtrosAplicados.empresa}`,
         filtrosAplicados.cidade && `Cidade: ${filtrosAplicados.cidade}`,
@@ -143,6 +154,12 @@ function Relatorios() {
           <span>Status</span>
           <select value={filtrosLead.status} onChange={(e) => updateLeadFilter('status', e.target.value)}>
             <option value="">Todos os status</option>{renderFilterOptions(opcoesLead.status)}
+          </select>
+        </label>
+        <label>
+          <span>Tipo de meta</span>
+          <select value={tipoMeta} onChange={(e) => setTipoMeta(e.target.value)}>
+            {TipoMetaOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
           </select>
         </label>
         <button type="submit" className="primaryBtn reportGenerateBtn" disabled={loading || exporting}>
@@ -228,8 +245,11 @@ function Relatorios() {
                           <strong style={{ fontSize: '0.875rem', display: 'block', color: 'var(--color-text, #0f172a)' }}>
                             {item.usuarioNome}
                           </strong>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', display: 'block' }}>
                             {item.tipoLabel}
+                            {item.periodoInicio && item.periodoFim
+                              ? ` · ${formatPeriod({ dataInicio: item.periodoInicio, dataFim: item.periodoFim })}`
+                              : ''}
                           </span>
                         </div>
                         <div style={{ textAlign: 'right' }}>

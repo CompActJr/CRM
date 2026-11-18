@@ -11,10 +11,11 @@ export const getDashboardStats = async (request, response, next) => {
 
 export const getContribuicoes = async (request, response, next) => {
   try {
-    const { usuarioId, tipoMeta, dataInicio, dataFim } = request.query
+    const { usuarioId, tipoMeta, meses, dataInicio, dataFim } = request.query
     const contribuicoes = await metasService.getMetasContribuicoes({
       usuarioId,
       tipoMeta,
+      meses,
       dataInicio,
       dataFim,
     })

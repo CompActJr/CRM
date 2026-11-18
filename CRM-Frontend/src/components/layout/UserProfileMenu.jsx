@@ -14,6 +14,43 @@ import { isAdministrador } from '../../utils/userAccess'
 import { getPerfilLabel, getUserInitials } from '../../utils/userDisplay'
 import ModalMeuPerfil from '../usuarios/ModalMeuPerfil'
 
+const StatusMetaRegra = 'Status: Atingida (≥ 100%), Em Andamento (> 0% e < 100%) e Não Iniciada (0 registros).'
+
+const MetasDesempenhoDocs = [
+  {
+    titulo: 'Metas Individuais de Leads Mapeados',
+    descricao:
+      'Mede o progresso de mapeamento de novos leads do usuário em relação ao alvo cadastrado em seu perfil comercial.',
+    formula: 'Progresso (%) = (Leads Mapeados no Período ÷ Meta de Leads Mapeados) × 100',
+    regras: [
+      'Considera os leads cadastrados pelo responsável principal (data de cadastro) dentro da interseção entre o filtro selecionado e a vigência configurada na meta.',
+      StatusMetaRegra,
+    ],
+  },
+  {
+    titulo: 'Metas Individuais de Entradas de Contato',
+    descricao:
+      'Avalia a quantidade de leads distintos sob responsabilidade do consultor que avançaram para a etapa Entrada de Contato no período.',
+    formula: 'Progresso (%) = (Entradas de Contato no Período ÷ Meta de Entradas de Contato) × 100',
+    regras: [
+      'Evita contagem duplicada caso um lead retorne e entre novamente na etapa dentro do mesmo período.',
+      'Considera todos os responsáveis vinculados ao lead na data da movimentação pelo histórico de responsáveis, respeitando a interseção entre o filtro e a vigência da meta.',
+      StatusMetaRegra,
+    ],
+  },
+  {
+    titulo: 'Metas Individuais de Diagnósticos Marcados',
+    descricao:
+      'Avalia a quantidade de leads distintos sob responsabilidade do consultor que entraram na etapa Diagnóstico no período.',
+    formula: 'Progresso (%) = (Diagnósticos Marcados no Período ÷ Meta de Diagnósticos) × 100',
+    regras: [
+      'Evita contagem duplicada caso um lead retorne e entre novamente na etapa dentro do mesmo período.',
+      'Considera todos os responsáveis vinculados ao lead na data da movimentação pelo histórico de responsáveis, respeitando a interseção entre o filtro e a vigência da meta.',
+      StatusMetaRegra,
+    ],
+  },
+]
+
 function UserAvatar({ user, size, className = '' }) {
   const [imgError, setImgError] = useState(false)
 
@@ -252,51 +289,37 @@ function UserProfileMenu({ currentUser, onLogout, setScreen, onUpdateUser }) {
             <div style={{ overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '14px', flex: 1, fontSize: '14px', color: 'var(--color-text-tertiary, #334155)', lineHeight: 1.5 }}>
               {aboutTab === 'desempenho' && (
                 <>
-                  <div className="propostaForm">
-                    <h4 style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text, #1e293b)' }}>
-                      <Target size={16} color="#2563eb" /> Metas Individuais de Leads
-                    </h4>
-                    <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--color-text-secondary, #475569)' }}>
-                      Mede o progresso de prospecção do usuário em relação ao alvo cadastrado em seu perfil comercial.
-                    </p>
-                    <div style={{ background: 'var(--color-bg-alt, #f1f5f9)', padding: '8px 12px', borderRadius: '4px', fontFamily: 'monospace', fontSize: '13px', marginBottom: '8px' }}>
-                      Progresso (%) = (Leads Cadastrados no Período ÷ Meta de Leads) × 100
+                  {MetasDesempenhoDocs.map((metaDoc) => (
+                    <div key={metaDoc.titulo} className="propostaForm">
+                      <h4 style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text, #1e293b)' }}>
+                        <Target size={16} color="#2563eb" /> {metaDoc.titulo}
+                      </h4>
+                      <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--color-text-secondary, #475569)' }}>
+                        {metaDoc.descricao}
+                      </p>
+                      <div style={{ background: 'var(--color-bg-alt, #f1f5f9)', padding: '8px 12px', borderRadius: '4px', fontFamily: 'monospace', fontSize: '13px', marginBottom: '8px' }}>
+                        {metaDoc.formula}
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '13px', color: 'var(--color-text-muted, #64748b)' }}>
+                        {metaDoc.regras.map((regra) => (
+                          <li key={regra}>{regra}</li>
+                        ))}
+                      </ul>
                     </div>
-                    <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '13px', color: 'var(--color-text-muted, #64748b)' }}>
-                      <li><strong>Atingida:</strong> Progresso ≥ 100%.</li>
-                      <li><strong>Em Andamento:</strong> Progresso &gt; 0% e &lt; 100%.</li>
-                      <li><strong>Não Iniciada:</strong> 0 leads cadastrados no período.</li>
-                    </ul>
-                  </div>
-
-                  <div className="propostaForm">
-                    <h4 style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text, #1e293b)' }}>
-                      <Target size={16} color="#2563eb" /> Metas Individuais de Negociações
-                    </h4>
-                    <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--color-text-secondary, #475569)' }}>
-                      Avalia a quantidade de negociações distintas sob responsabilidade do usuário no período.
-                    </p>
-                    <div style={{ background: 'var(--color-bg-alt, #f1f5f9)', padding: '8px 12px', borderRadius: '4px', fontFamily: 'monospace', fontSize: '13px', marginBottom: '8px' }}>
-                      Progresso (%) = (Negócios Atribuídos no Período ÷ Meta de Negócios) × 100
-                    </div>
-                    <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '13px', color: 'var(--color-text-muted, #64748b)' }}>
-                      <li>Considera negócios vinculados ao usuário através do histórico de responsáveis no período selecionado.</li>
-                      <li>Exibe também o valor financeiro total estimado das negociações sob gestão.</li>
-                    </ul>
-                  </div>
+                  ))}
 
                   <div className="propostaForm">
                     <h4 style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text, #1e293b)' }}>
                       <TrendingUp size={16} color="#059669" /> Tempo Médio por Etapa
                     </h4>
                     <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--color-text-secondary, #475569)' }}>
-                      Indica a agilidade do ciclo de vendas monitorando quantos dias, em média, as oportunidades permanecem em cada etapa do funil.
+                      Indica a agilidade do ciclo de vendas monitorando quantos dias, em média, os leads e negócios permanecem em cada etapa do funil.
                     </p>
                     <div style={{ background: 'var(--color-bg-alt, #f1f5f9)', padding: '8px 12px', borderRadius: '4px', fontFamily: 'monospace', fontSize: '13px', marginBottom: '8px' }}>
-                      Tempo Médio = Soma dos dias de permanência na etapa ÷ Quantidade de negócios que passaram pela etapa
+                      Tempo Médio = Soma dos dias de permanência na etapa ÷ Quantidade de registros que passaram pela etapa
                     </div>
                     <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted, #64748b)' }}>
-                      Calculado automaticamente a partir do histórico de movimentações entre etapas.
+                      Calculado automaticamente a partir do histórico de movimentações de leads e negócios entre etapas.
                     </p>
                   </div>
 
