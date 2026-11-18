@@ -15,7 +15,7 @@ import {
   updateNegocio,
 } from '../services/negociosService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
-import { ETAPA_PERDIDA } from '../utils/funilDrag'
+import { ETAPA_PERDIDA, hasValidValorEstimado, isEtapaVendida } from '../utils/funilDrag'
 import { formatValorFromAmount, maskValorInput, parseValorInputToAmount } from '../utils/currencyInput'
 
 const EmptyForm = {
@@ -123,6 +123,18 @@ function NegocioForm({ setScreen, negocioId }) {
   const getEtapaNome = (etapaId) =>
     etapas.find((etapa) => String(etapa.id) === String(etapaId))?.nome ?? ''
 
+  const etapaOriginal = useMemo(
+    () => etapas.find((etapa) => String(etapa.id) === String(etapaOriginalId)) ?? null,
+    [etapas, etapaOriginalId]
+  )
+  const isOriginalPosVenda =
+    isEditing && (isEtapaVendida(etapaOriginal?.nome) || etapaOriginal?.ordem === 6)
+
+  const etapasDisponiveis = useMemo(() => {
+    if (!isOriginalPosVenda) return etapas
+    return etapas.filter((etapa) => etapa.nome !== ETAPA_PERDIDA)
+  }, [etapas, isOriginalPosVenda])
+
   const salvarNegocio = async (payload) => {
     if (isEditing) {
       await updateNegocio(negocioId, payload)
@@ -146,13 +158,19 @@ function NegocioForm({ setScreen, negocioId }) {
       return
     }
 
+    const valorEstimado = parseValorInputToAmount(form.valorEstimado)
+    if (!hasValidValorEstimado(valorEstimado)) {
+      setError('Informe um valor estimado maior que zero.')
+      return
+    }
+
     const payload = {
       leadId: Number(form.leadId),
       titulo: form.titulo,
       responsaveisIds: form.responsaveisIds,
       usuarioId: form.responsaveisIds[0],
       etapaFunilId: Number(form.etapaFunilId),
-      valorEstimado: parseValorInputToAmount(form.valorEstimado),
+      valorEstimado,
     }
 
     const etapaAlterada = isEditing && form.etapaFunilId !== etapaOriginalId
@@ -300,7 +318,7 @@ function NegocioForm({ setScreen, negocioId }) {
               label="Etapa do funil"
               placeholder="Selecione uma etapa"
               searchPlaceholder="Buscar etapa..."
-              options={etapas.map((etapa) => ({
+              options={etapasDisponiveis.map((etapa) => ({
                 value: etapa.id,
                 label: etapa.nome,
               }))}
@@ -336,7 +354,11 @@ function NegocioForm({ setScreen, negocioId }) {
       )}
       {perdidaModal && (
         <ModalMarcarPerdida
-          negocio={{ id: negocioId, titulo: form.titulo }}
+          negocio={{
+            id: negocioId,
+            titulo: form.titulo,
+            valorEstimado: pendingPayload?.valorEstimado ?? parseValorInputToAmount(form.valorEstimado),
+          }}
           currentUser={currentUser}
           onClose={handlePerdidaClose}
           onSuccess={handlePerdidaSuccess}

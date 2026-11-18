@@ -31,3 +31,9 @@ export const marcarNegocioPerdida = (id, payload) =>
     method: 'POST',
     body: JSON.stringify(payload),
   })
+
+export const ganharNegocio = (id, payload) =>
+  apiRequest(`/negocios/${id}/ganhar`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })

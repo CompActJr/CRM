@@ -11,6 +11,20 @@ export const EtapasFunilDefault = [
   { nome: 'Pós Venda', ordem: 6 },
 ]
 
+export const isEtapaPosVenda = (etapa) => {
+  if (!etapa) return false
+  if (etapa.ordem === 6) return true
+  const lower = (etapa.nome || '').toLowerCase()
+  return (
+    lower.includes('pós venda') ||
+    lower.includes('pos venda') ||
+    lower.includes('pós-venda') ||
+    lower.includes('fechado') ||
+    lower.includes('ganho') ||
+    lower.includes('vendido')
+  )
+}
+
 export const ErrorMessages = {
   invalidLeadId: 'ID do lead inválido',
   leadNotFound: 'Lead não encontrado',
@@ -37,6 +51,9 @@ export const ErrorMessages = {
   invalidEtapaFunilId: 'Etapa do funil inválida',
   etapaFunilNotFound: 'Etapa do funil não encontrada',
   invalidValorEstimado: 'Valor estimado inválido',
+  valorEstimadoRequired: 'Valor estimado é obrigatório e deve ser maior que zero',
+  valorEstimadoRequiredForPerda: 'Preencha o valor estimado do negócio antes de marcá-lo como perdido',
+  leadEtapaPropostaRequiresNegocio: 'Para avançar para a fase de Proposta ou superior, crie um negócio com valor estimado.',
   invalidUsuarioIdParam: 'ID do usuário inválido',
   usuarioNotFound: 'Usuário não encontrado',
   usuarioNomeRequired: 'Nome é obrigatório',
@@ -79,6 +96,12 @@ export const ErrorMessages = {
   cargoInUse: 'Cargo vinculado a usuários e não pode ser excluído',
   negocioJaPerdida: 'Negocio já está marcada como perdida',
   etapaPerdidaNotFound: 'Etapa "Perdida" não configurada no funil',
+  etapaPosVendaNotFound: 'Etapa de Pós Venda / Fechado não configurada no funil',
+  valorProjetoRequired: 'Informe o valor do projeto maior que zero',
+  negocioNaoEstaEmProposta: 'A conversão antecipada só pode ser realizada na etapa de Proposta',
+  negocioJaPerdidaGanho: 'Negócio perdido não pode ser marcado como ganho',
+  negocioPosVendaNaoPodeSerPerdido: 'Negócios na etapa de Pós Venda / Fechado não podem ser marcados como perdidos',
+  leadPosVendaNaoPodeSerPerdido: 'Leads na etapa de Pós Venda / Fechado não podem ser desqualificados',
   invalidTarefaId: 'ID da tarefa inválido',
   tarefaNotFound: 'Tarefa não encontrada',
   tarefaTituloRequired: 'Título da tarefa é obrigatório',

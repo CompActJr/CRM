@@ -4,6 +4,7 @@ import ModalGerenciarMotivosPerda from './ModalGerenciarMotivosPerda'
 import { fetchMotivosPerda } from '../../services/motivosPerdaService'
 import { marcarNegocioPerdida } from '../../services/negociosService'
 import { mudarEtapaLead } from '../../services/leadsService'
+import { hasValidValorEstimado } from '../../utils/funilDrag'
 
 function ModalMarcarPerdida({ negocio, currentUser, onClose, onSuccess }) {
   const [motivos, setMotivos] = useState([])
@@ -14,6 +15,8 @@ function ModalMarcarPerdida({ negocio, currentUser, onClose, onSuccess }) {
   const [showGerenciar, setShowGerenciar] = useState(false)
 
   const isAdmin = currentUser?.perfilAcesso === 'Administrador'
+  const isLead = negocio?.tipoCard === 'lead'
+  const isNegocioSemValor = !isLead && !hasValidValorEstimado(negocio?.valorEstimado)
 
   const loadMotivos = useCallback(async () => {
     setLoading(true)
@@ -38,6 +41,10 @@ function ModalMarcarPerdida({ negocio, currentUser, onClose, onSuccess }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (isNegocioSemValor) {
+      setError('Preencha o valor estimado do negócio antes de marcá-lo como perdido.')
+      return
+    }
     if (!motivoPerdaId) {
       setError('Selecione um motivo de perda')
       return
@@ -45,7 +52,7 @@ function ModalMarcarPerdida({ negocio, currentUser, onClose, onSuccess }) {
     setSaving(true)
     setError('')
     try {
-      if (negocio.tipoCard === 'lead') {
+      if (isLead) {
         await mudarEtapaLead(negocio.leadId, {
           motivoPerdaId: Number(motivoPerdaId),
           status: 'Inativo',
@@ -54,6 +61,9 @@ function ModalMarcarPerdida({ negocio, currentUser, onClose, onSuccess }) {
         await marcarNegocioPerdida(negocio.id, {
           motivoPerdaId: Number(motivoPerdaId),
           usuarioId: currentUser?.id,
+          ...(typeof negocio?.valorEstimado === 'number'
+            ? { valorEstimado: negocio.valorEstimado }
+            : {}),
         })
       }
       onSuccess()
@@ -122,6 +132,11 @@ function ModalMarcarPerdida({ negocio, currentUser, onClose, onSuccess }) {
               </p>
             )}
 
+            {isNegocioSemValor && (
+              <p className="formError">
+                Preencha o valor estimado do negócio antes de marcá-lo como perdido.
+              </p>
+            )}
             {error && <p className="formError">{error}</p>}
             <div className="modalActions">
               <button type="button" className="secondaryBtn" onClick={onClose}>
@@ -130,7 +145,7 @@ function ModalMarcarPerdida({ negocio, currentUser, onClose, onSuccess }) {
               <button
                 type="submit"
                 className="dangerBtn"
-                disabled={saving || loading || motivos.length === 0}
+                disabled={saving || loading || motivos.length === 0 || isNegocioSemValor}
               >
                 {saving ? 'Salvando...' : 'Confirmar perda'}
               </button>

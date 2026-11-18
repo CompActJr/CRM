@@ -15,6 +15,7 @@ import FunilColuna from '../components/funil/FunilColuna'
 import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
 import ModalMudancaEtapaFunil from '../components/negocios/ModalMudancaEtapaFunil'
 import ModalCriarNegocioProposta from '../components/negocios/ModalCriarNegocioProposta'
+import ModalGanharLead from '../components/negocios/ModalGanharLead'
 import { fetchEtapasFunil } from '../services/etapasService'
 import { fetchNegociosFunil, updateNegocio } from '../services/negociosService'
 import { mudarEtapaLead } from '../services/leadsService'
@@ -26,6 +27,8 @@ import {
   resolveEtapaDestino,
   getFunilCardDisplayTitle,
   getTemperaturaInfo,
+  hasValidValorEstimado,
+  isEtapaProposta,
   isEtapaVendida,
   isTituloGenerico,
 } from '../utils/funilDrag'
@@ -110,6 +113,7 @@ function Funil({
   const [perdidaModal, setPerdidaModal] = useState(null)
   const [mudancaEtapaModal, setMudancaEtapaModal] = useState(null)
   const [criarNegocioModal, setCriarNegocioModal] = useState(null)
+  const [ganharModal, setGanharModal] = useState(null)
   const [users, setUsers] = useState([])
 
   const sensors = useSensors(
@@ -215,11 +219,22 @@ function Funil({
     const ordemDestino = etapaOrdemPorNome[etapaDestino]
     if (!etapaDestino || !etapaOrigem) return false
     if (etapaDestino === etapaOrigem) return false
-    if (etapaDestino === ETAPA_PERDIDA) return true
+    if (etapaDestino === ETAPA_PERDIDA) {
+      return !(isEtapaVendida(etapaOrigem) || ordemOrigem === 6)
+    }
 
     // Negócios só podem existir a partir da fase de Proposta (ordem >= 4)
     if (card?.tipoCard === 'negocio' && ordemDestino < 4) {
       return false
+    }
+
+    // Conversão antecipada: de Proposta (4) direto para Pós Venda / Fechado (6)
+    if (
+      card?.tipoCard === 'negocio' &&
+      isEtapaProposta(etapaOrigem, ordemOrigem) &&
+      (isEtapaVendida(etapaDestino) || ordemDestino === 6)
+    ) {
+      return true
     }
 
     if (ordemDestino === ordemOrigem + 1) return true
@@ -229,7 +244,7 @@ function Funil({
   const handleDragEnd = async (event) => {
     setActiveCard(null)
     const { active, over } = event
-    if (!over || mudancaEtapaModal || perdidaModal || criarNegocioModal) return
+    if (!over || mudancaEtapaModal || perdidaModal || criarNegocioModal || ganharModal) return
 
     const etapaDestino = resolveEtapaDestino(over.id, funil, etapasAtivas)
     const etapaOrigem = findEtapaOrigem(active.id, funil, etapasAtivas)
@@ -240,7 +255,9 @@ function Funil({
     const ordemDestino = etapaOrdemPorNome[etapaDestino]
 
     if (!podeMudarEtapa(card, etapaOrigem, etapaDestino)) {
-      if (card.tipoCard === 'negocio' && ordemDestino < 4) {
+      if (etapaDestino === ETAPA_PERDIDA && (isEtapaVendida(etapaOrigem) || ordemOrigem === 6)) {
+        setError('Negócios na etapa de Pós Venda não podem ser marcados como perdidos.')
+      } else if (card.tipoCard === 'negocio' && ordemDestino < 4) {
         setError('Negócios só podem existir a partir da fase de Proposta.')
       } else if (ordemDestino !== undefined && ordemOrigem !== undefined && ordemDestino < ordemOrigem) {
         setError('Não é possível retroceder etapas arrastando. Para voltar de etapa, utilize a edição.')
@@ -273,6 +290,27 @@ function Funil({
     }
 
     // Se o card for um NEGÓCIO:
+    if (
+      isEtapaProposta(etapaOrigem, ordemOrigem) &&
+      (isEtapaVendida(etapaDestino) || ordemDestino === 6)
+    ) {
+      setGanharModal({
+        negocio: card,
+        etapaDestino,
+        etapaFunilId: etapaIdPorNome[etapaDestino],
+      })
+      return
+    }
+
+    if (!hasValidValorEstimado(card.valorEstimado)) {
+      setError(
+        etapaDestino === ETAPA_PERDIDA
+          ? 'Preencha o valor estimado do negócio antes de marcá-lo como perdido.'
+          : 'Preencha o valor estimado do negócio antes de avançar de etapa.'
+      )
+      return
+    }
+
     if (etapaDestino === ETAPA_PERDIDA) {
       setPerdidaModal({ negocio: card, etapaOrigem })
       return
@@ -458,6 +496,19 @@ function Funil({
           onClose={() => setCriarNegocioModal(null)}
           onSuccess={async () => {
             setCriarNegocioModal(null)
+            await loadFunil({ silent: true })
+          }}
+        />
+      )}
+      {ganharModal && (
+        <ModalGanharLead
+          negocio={ganharModal.negocio}
+          etapaDestinoNome={ganharModal.etapaDestino}
+          etapaFunilId={ganharModal.etapaFunilId}
+          currentUser={currentUser}
+          onClose={() => setGanharModal(null)}
+          onSuccess={async () => {
+            setGanharModal(null)
             await loadFunil({ silent: true })
           }}
         />

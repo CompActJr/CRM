@@ -12,10 +12,15 @@ export const formatCurrencyBr = (value) => {
 
 export const parseValorEstimado = (value) => {
   if (value === undefined || value === null || value === '') return 0
-  if (typeof value === 'number') return value
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
 
-  const normalized = String(value)
-    .replace(/[R$\s]/g, '')
+  const cleaned = String(value).replace(/[R$\s]/g, '')
+  if (/^-?\d+(\.\d{1,2})?$/.test(cleaned)) {
+    const parsedDecimal = Number(cleaned)
+    return Number.isNaN(parsedDecimal) ? null : parsedDecimal
+  }
+
+  const normalized = cleaned
     .replace(/\./g, '')
     .replace(',', '.')
 

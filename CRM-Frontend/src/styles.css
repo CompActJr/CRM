@@ -1077,7 +1077,8 @@ textarea {
 
 .primaryBtn,
 .secondaryBtn,
-.dangerBtn {
+.dangerBtn,
+.successBtn {
   border: none;
   border-radius: 4px;
   padding: 12px 16px;
@@ -1104,7 +1105,13 @@ textarea {
   color: white;
 }
 
-.dangerBtn:disabled {
+.successBtn {
+  background: #16a34a;
+  color: white;
+}
+
+.dangerBtn:disabled,
+.successBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

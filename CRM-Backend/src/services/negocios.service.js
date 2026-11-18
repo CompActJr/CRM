@@ -1,7 +1,7 @@
-import { ErrorMessages } from '../config/constants.js'
+import { ErrorMessages, isEtapaPosVenda } from '../config/constants.js'
 import prisma from '../lib/prisma.js'
 import { TransactionOptions } from '../lib/transaction.js'
-import { parseValorEstimado } from '../utils/currency.js'
+import { formatCurrencyBr, parseValorEstimado } from '../utils/currency.js'
 import { mapNegocioToResponse, negocioInclude } from '../utils/negocioMapper.js'
 import { parseUsuarioIdFilter } from '../utils/usuarioFilter.js'
 import {
@@ -55,6 +55,11 @@ const buildNegocioData = async (body) => {
   const valorEstimado = parseValorEstimado(body.valorEstimado)
   if (valorEstimado === null) {
     const error = new Error(ErrorMessages.invalidValorEstimado)
+    error.statusCode = 400
+    throw error
+  }
+  if (valorEstimado <= 0) {
+    const error = new Error(ErrorMessages.valorEstimadoRequired)
     error.statusCode = 400
     throw error
   }
@@ -468,7 +473,26 @@ export const deleteNegocio = async (idParam, usuarioIdParam = null) => {
   }, TransactionOptions)
 }
 
-export const marcarNegocioComoPerdida = async (idParam, body) => {
+const resolveValidUsuarioId = async (...candidateIds) => {
+  for (const rawId of candidateIds) {
+    const parsedId = parseRelationId(rawId)
+    if (!parsedId) continue
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: parsedId },
+      select: { id: true },
+    })
+    if (usuario) return usuario.id
+  }
+
+  const fallbackUser = await prisma.usuario.findFirst({
+    where: { ativo: true },
+    select: { id: true },
+    orderBy: { id: 'asc' },
+  })
+  return fallbackUser?.id ?? null
+}
+
+export const marcarNegocioComoPerdida = async (idParam, body, usuarioIdHeader = null) => {
   const id = parseNegocioId(idParam)
   if (!id) {
     const error = new Error(ErrorMessages.invalidNegocioId)
@@ -485,7 +509,11 @@ export const marcarNegocioComoPerdida = async (idParam, body) => {
 
   const existing = await prisma.negocio.findUnique({
     where: { id },
-    include: { responsaveis: { select: { id: true }, take: 1 } },
+    include: {
+      etapaFunil: true,
+      responsaveis: { select: { id: true }, take: 1 },
+      lead: { select: { usuarioId: true } },
+    },
   })
   if (!existing) {
     const error = new Error(ErrorMessages.negocioNotFound)
@@ -495,6 +523,32 @@ export const marcarNegocioComoPerdida = async (idParam, body) => {
 
   if (existing.motivoPerdaId) {
     const error = new Error(ErrorMessages.negocioJaPerdida)
+    error.statusCode = 400
+    throw error
+  }
+
+  if (isEtapaPosVenda(existing.etapaFunil)) {
+    const error = new Error(ErrorMessages.negocioPosVendaNaoPodeSerPerdido)
+    error.statusCode = 400
+    throw error
+  }
+
+  let valorAtualizado
+  if (body.valorEstimado !== undefined) {
+    const parsedValor = parseValorEstimado(body.valorEstimado)
+    if (parsedValor === null) {
+      const error = new Error(ErrorMessages.invalidValorEstimado)
+      error.statusCode = 400
+      throw error
+    }
+    if (parsedValor <= 0) {
+      const error = new Error(ErrorMessages.valorEstimadoRequiredForPerda)
+      error.statusCode = 400
+      throw error
+    }
+    valorAtualizado = parsedValor
+  } else if (Number(existing.valorEstimado ?? 0) <= 0) {
+    const error = new Error(ErrorMessages.valorEstimadoRequiredForPerda)
     error.statusCode = 400
     throw error
   }
@@ -516,7 +570,12 @@ export const marcarNegocioComoPerdida = async (idParam, body) => {
     throw error
   }
 
-  const usuarioId = parseRelationId(body.usuarioId) ?? existing.responsaveis?.[0]?.id ?? null
+  const usuarioId = await resolveValidUsuarioId(
+    body.usuarioId,
+    usuarioIdHeader,
+    existing.responsaveis?.[0]?.id,
+    existing.lead?.usuarioId
+  )
 
   const negocio = await prisma.$transaction(async (tx) => {
     await registrarMudancaEtapa(tx, id, etapaPerdida.id)
@@ -526,6 +585,7 @@ export const marcarNegocioComoPerdida = async (idParam, body) => {
       data: {
         motivoPerdaId,
         etapaFunilId: etapaPerdida.id,
+        ...(valorAtualizado !== undefined ? { valorEstimado: valorAtualizado } : {}),
       },
       include: negocioInclude,
     })
@@ -535,6 +595,114 @@ export const marcarNegocioComoPerdida = async (idParam, body) => {
         data: {
           tipo: 'Registro',
           descricao: `Negocio marcada como perdida. Motivo: ${motivo.nome}`,
+          dataInteracao: new Date(),
+          leadId: existing.leadId,
+          negocioId: id,
+          usuarioId,
+        },
+      })
+    }
+
+    return updated
+  }, TransactionOptions)
+
+  return mapNegocioToResponse(negocio)
+}
+
+export const ganharNegocio = async (idParam, body = {}, usuarioIdHeader = null) => {
+  const id = parseNegocioId(idParam)
+  if (!id) {
+    const error = new Error(ErrorMessages.invalidNegocioId)
+    error.statusCode = 400
+    throw error
+  }
+
+  const valorInput = body.valorEstimado ?? body.valorProjeto
+  const valorProjeto = parseValorEstimado(valorInput)
+  if (valorProjeto === null || !Number.isFinite(valorProjeto) || valorProjeto <= 0) {
+    const error = new Error(
+      valorProjeto === null ? ErrorMessages.invalidValorEstimado : ErrorMessages.valorProjetoRequired
+    )
+    error.statusCode = 400
+    throw error
+  }
+
+  const existing = await prisma.negocio.findUnique({
+    where: { id },
+    include: {
+      etapaFunil: true,
+      responsaveis: { select: { id: true }, take: 1 },
+      lead: { select: { usuarioId: true } },
+    },
+  })
+  if (!existing) {
+    const error = new Error(ErrorMessages.negocioNotFound)
+    error.statusCode = 404
+    throw error
+  }
+
+  if (existing.motivoPerdaId) {
+    const error = new Error(ErrorMessages.negocioJaPerdidaGanho)
+    error.statusCode = 400
+    throw error
+  }
+
+  const emProposta =
+    existing.etapaFunil?.ordem === 4 ||
+    existing.etapaFunil?.nome?.toLowerCase().includes('proposta')
+  if (!emProposta) {
+    const error = new Error(ErrorMessages.negocioNaoEstaEmProposta)
+    error.statusCode = 400
+    throw error
+  }
+
+  const etapas = await prisma.etapaFunil.findMany({ orderBy: { ordem: 'asc' } })
+  const requestedEtapaId = parseRelationId(body.etapaFunilId)
+  const etapaSolicitada = requestedEtapaId
+    ? etapas.find((etapa) => etapa.id === requestedEtapaId)
+    : null
+  const etapaPosVenda =
+    (etapaSolicitada && isEtapaPosVenda(etapaSolicitada)
+      ? etapaSolicitada
+      : null) ||
+    etapas.find((etapa) => isEtapaPosVenda(etapa))
+
+  if (!etapaPosVenda) {
+    const error = new Error(ErrorMessages.etapaPosVendaNotFound)
+    error.statusCode = 400
+    throw error
+  }
+
+  const usuarioId = await resolveValidUsuarioId(
+    body.usuarioId,
+    usuarioIdHeader,
+    existing.responsaveis?.[0]?.id,
+    existing.lead?.usuarioId
+  )
+
+  const negocio = await prisma.$transaction(async (tx) => {
+    await registrarMudancaEtapa(tx, id, etapaPosVenda.id)
+
+    const updated = await tx.negocio.update({
+      where: { id },
+      data: {
+        valorEstimado: valorProjeto,
+        etapaFunilId: etapaPosVenda.id,
+        motivoPerdaId: null,
+      },
+      include: negocioInclude,
+    })
+
+    await tx.lead.update({
+      where: { id: existing.leadId },
+      data: { etapaFunilId: etapaPosVenda.id },
+    })
+
+    if (usuarioId) {
+      await tx.interacao.create({
+        data: {
+          tipo: 'Registro',
+          descricao: `Conversão antecipada: negócio ganho na etapa de Proposta e movido para "${etapaPosVenda.nome}". Valor do projeto: ${formatCurrencyBr(valorProjeto)}.`,
           dataInteracao: new Date(),
           leadId: existing.leadId,
           negocioId: id,

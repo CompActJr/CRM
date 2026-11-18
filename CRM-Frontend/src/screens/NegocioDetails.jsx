@@ -6,12 +6,14 @@ import {
   Download,
   FileText,
   RotateCcw,
+  Trophy,
   XCircle,
 } from 'lucide-react'
 import PainelInteracoes from '../components/interacoes/PainelInteracoes'
 import PainelPropostas from '../components/propostas/PainelPropostas'
 import PainelTarefas from '../components/tarefas/PainelTarefas'
 import PainelTimeline from '../components/timeline/PainelTimeline'
+import ModalGanharLead from '../components/negocios/ModalGanharLead'
 import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
 import ModalMudancaEtapaFunil from '../components/negocios/ModalMudancaEtapaFunil'
 import Header from '../components/layout/Header'
@@ -19,7 +21,13 @@ import { fetchPropostasByNegocio, downloadPropostaPdf } from '../services/propos
 import { fetchNegocioById, updateNegocio } from '../services/negociosService'
 import { fetchEtapasFunil } from '../services/etapasService'
 import { createInteracaoForNegocio } from '../services/interacoesService'
-import { buildUpdatePayload } from '../utils/funilDrag'
+import {
+  buildUpdatePayload,
+  findEtapaPosVenda,
+  hasValidValorEstimado,
+  isEtapaProposta,
+  isEtapaVendida,
+} from '../utils/funilDrag'
 
 
 function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', currentUser }) {
@@ -29,8 +37,10 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
   const [propostas, setPropostas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [stageError, setStageError] = useState('')
 
   const [showPerdaModal, setShowPerdaModal] = useState(false)
+  const [showGanharModal, setShowGanharModal] = useState(false)
   const [mudancaEtapaModal, setMudancaEtapaModal] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [downloadingPdf, setDownloadingPdf] = useState(false)
@@ -43,6 +53,7 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
     }
     setLoading(true)
     setError('')
+    setStageError('')
 
     try {
       const [data, propostasData, etapasData] = await Promise.all([
@@ -89,6 +100,12 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
 
   const currentOrdem = currentEtapa?.ordem ?? 4
   const isNegocioPerdido = Boolean(negocio?.perdida || negocio?.motivoPerdaId)
+  const etapaPosVenda = useMemo(() => findEtapaPosVenda(etapas), [etapas])
+  const isPosVenda =
+    !isNegocioPerdido &&
+    (isEtapaVendida(currentEtapa?.nome || negocio?.etapa) || currentOrdem === 6)
+  const isEmProposta =
+    !isNegocioPerdido && isEtapaProposta(currentEtapa?.nome || negocio?.etapa, currentOrdem)
 
   const proximaEtapa = useMemo(() => {
     if (isNegocioPerdido) return null
@@ -97,6 +114,16 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
 
   const handleAvancarPara = (targetEtapa) => {
     if (!targetEtapa || !negocio) return
+    if (isEmProposta && (isEtapaVendida(targetEtapa.nome) || targetEtapa.ordem === 6)) {
+      setStageError('')
+      setShowGanharModal(true)
+      return
+    }
+    if (!hasValidValorEstimado(negocio.valorEstimado)) {
+      setStageError('Preencha o valor estimado do negócio antes de avançar de etapa.')
+      return
+    }
+    setStageError('')
     setMudancaEtapaModal({
       etapaOrigem: isNegocioPerdido ? 'Perdida' : currentEtapa?.nome || 'Etapa anterior',
       etapaDestino: targetEtapa.nome,
@@ -107,6 +134,11 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
   const handleReativarNegocio = () => {
     const primeiraEtapa = dealStages[0]
     if (!primeiraEtapa) return
+    if (!hasValidValorEstimado(negocio?.valorEstimado)) {
+      setStageError('Preencha o valor estimado do negócio antes de reativá-lo.')
+      return
+    }
+    setStageError('')
     setMudancaEtapaModal({
       etapaOrigem: 'Perdida',
       etapaDestino: primeiraEtapa.nome,
@@ -117,6 +149,7 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
   const handleConfirmMudancaEtapa = async (interacao) => {
     if (!mudancaEtapaModal || !negocio) return
     setActionLoading(true)
+    setStageError('')
     try {
       await updateNegocio(
         negocio.id,
@@ -133,7 +166,8 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
       setMudancaEtapaModal(null)
       await loadNegocio()
     } catch (err) {
-      setError(err.message)
+      setStageError(err.message)
+      throw err
     } finally {
       setActionLoading(false)
     }
@@ -233,6 +267,18 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
               </button>
             ) : (
               <>
+                {isEmProposta && etapaPosVenda && (
+                  <button
+                    type="button"
+                    className="successBtn"
+                    onClick={() => setShowGanharModal(true)}
+                    disabled={actionLoading}
+                  >
+                    <Trophy size={16} />
+                    Ganhar lead
+                  </button>
+                )}
+
                 {proximaEtapa && (
                   <button
                     type="button"
@@ -245,15 +291,17 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  className="secondaryBtn"
-                  onClick={() => setShowPerdaModal(true)}
-                  title="Marcar negócio como perdido"
-                >
-                  <XCircle size={16} />
-                  Marcar como perdida
-                </button>
+                {!isPosVenda && (
+                  <button
+                    type="button"
+                    className="secondaryBtn"
+                    onClick={() => setShowPerdaModal(true)}
+                    title="Marcar negócio como perdido"
+                  >
+                    <XCircle size={16} />
+                    Marcar como perdida
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -293,6 +341,7 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
             )
           })}
         </div>
+        {stageError && <p className="formError">{stageError}</p>}
       </section>
 
       <div className="leadDetailsLayout">
@@ -378,7 +427,7 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
 
           </div>
 
-          {!negocio.perdida && (
+          {!negocio.perdida && !isPosVenda && (
 
             <button type="button" className="dangerBtn full" onClick={() => setShowPerdaModal(true)}>
 
@@ -585,6 +634,20 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
           currentUser={currentUser}
           onClose={() => setShowPerdaModal(false)}
           onSuccess={handlePerdidaSuccess}
+        />
+      )}
+
+      {showGanharModal && (
+        <ModalGanharLead
+          negocio={negocio}
+          etapaDestinoNome={etapaPosVenda?.nome}
+          etapaFunilId={etapaPosVenda?.id}
+          currentUser={currentUser}
+          onClose={() => setShowGanharModal(false)}
+          onSuccess={async () => {
+            setShowGanharModal(false)
+            await loadNegocio()
+          }}
         />
       )}
 
