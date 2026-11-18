@@ -8,3 +8,12 @@ export const login = async (request, response, next) => {
     next(error)
   }
 }
+
+export const me = async (request, response, next) => {
+  try {
+    const usuario = await authService.getSessionUsuario(request.headers['x-usuario-id'])
+    response.json({ usuario })
+  } catch (error) {
+    next(error)
+  }
+}

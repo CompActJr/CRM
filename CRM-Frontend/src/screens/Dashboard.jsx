@@ -216,7 +216,7 @@ function Dashboard({ onViewLead, onViewNegocio }) {
           </div>
 
           {!metasStats || metasStats.metas.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 12px', color: '#64748b' }}>
+            <div style={{ textAlign: 'center', padding: '24px 12px', color: 'var(--color-text-muted, #64748b)' }}>
               <p>Nenhuma meta comercial ativa encontrada para este período.</p>
               <a href="#/metas" className="secondaryBtn" style={{ marginTop: '8px', display: 'inline-block', textDecoration: 'none' }}>
                 Configurar Metas
@@ -287,8 +287,8 @@ function Dashboard({ onViewLead, onViewNegocio }) {
                 </small>
               </div>
 
-              <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', fontSize: '13px', color: '#64748b' }}>
-                <span>Total de Metas: <strong style={{ color: '#1e293b' }}>{metasStats.kpis.totalMetas}</strong></span>
+              <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--color-border-subtle, #f1f5f9)', fontSize: '13px', color: 'var(--color-text-muted, #64748b)' }}>
+                <span>Total de Metas: <strong style={{ color: 'var(--color-text, #1e293b)' }}>{metasStats.kpis.totalMetas}</strong></span>
                 <span>·</span>
                 <span>Metas Batidas: <strong style={{ color: '#16a34a' }}>{metasStats.kpis.metasAtingidas}</strong></span>
               </div>
@@ -308,7 +308,7 @@ function Dashboard({ onViewLead, onViewNegocio }) {
           </div>
 
           {!metasStats || metasStats.ranking.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 12px', color: '#64748b' }}>
+            <div style={{ textAlign: 'center', padding: '24px 12px', color: 'var(--color-text-muted, #64748b)' }}>
               <p>Nenhum dado de desempenho de metas disponível.</p>
             </div>
           ) : (
@@ -316,10 +316,10 @@ function Dashboard({ onViewLead, onViewNegocio }) {
               {metasStats.ranking.slice(0, 5).map((user) => (
                 <div key={user.usuarioId} className="leadStatusRow" style={{ gridTemplateColumns: '160px 1fr 50px' }}>
                   <div className="leadStatusInfo">
-                    <span style={{ fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--color-text, #1e293b)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       #{user.posicao} {user.nome}
                     </span>
-                    <small style={{ color: '#64748b' }}>{user.cargo || 'Vendedor'}</small>
+                    <small style={{ color: 'var(--color-text-muted, #64748b)' }}>{user.cargo || 'Vendedor'}</small>
                   </div>
                   <div className="leadStatusBar">
                     <div
@@ -335,7 +335,7 @@ function Dashboard({ onViewLead, onViewNegocio }) {
                       }}
                     />
                   </div>
-                  <strong style={{ fontSize: '13px', color: user.mediaProgresso >= 100 ? '#16a34a' : '#1e293b' }}>
+                  <strong style={{ fontSize: '13px', color: user.mediaProgresso >= 100 ? '#16a34a' : 'var(--color-text, #1e293b)' }}>
                     {user.mediaProgresso}%
                   </strong>
                 </div>

@@ -8,7 +8,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { ArrowUp, ArrowDown, Plus } from 'lucide-react'
+import { ArrowUp, ArrowDown, Maximize2, Minimize2, Plus } from 'lucide-react'
 import Header from '../components/layout/Header'
 import FiltroResponsavel from '../components/filtros/FiltroResponsavel'
 import FunilColuna from '../components/funil/FunilColuna'
@@ -37,10 +37,31 @@ import {fetchUsuariosOpcoes} from "../services/usuariosService";
 
 const etapasSemTempoMedio = new Set(['Fechado', 'Perdida', 'Pós Venda', 'Pos Venda', 'Pós-Venda', 'Ganho', 'Vendido'])
 
-function FunilOverlayCard({ negocio }) {
+function FunilOverlayCard({ negocio, isMinimized = false }) {
   const isLead = negocio?.tipoCard === 'lead'
   const isVendido = isEtapaVendida(negocio?.etapa)
   const temperatura = getTemperaturaInfo(negocio?.diasNaEtapa)
+  const displayTitle = getFunilCardDisplayTitle(negocio)
+
+  if (isMinimized) {
+    return (
+      <div className="opCard opCardOverlay opCardMinimized">
+        <div className="opCardMiniRow">
+          <div className="opCardMiniContent">
+            {!isVendido && negocio?.diasNaEtapa !== undefined && (
+              <span className={`opCardTempDot ${temperatura.key}`} />
+            )}
+            <div className="opCardMiniText">
+              <strong className="opCardMiniTitle">{displayTitle}</strong>
+              {(negocio?.valor || isLead) && (
+                <span className="opCardMiniMeta">{isLead ? 'Lead' : negocio.valor}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="opCard opCardOverlay">
@@ -107,6 +128,7 @@ function Funil({
   })
   const [responsavelFilter, setResponsavelFilter] = useState({})
   const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false)
+  const [isCardsMinimized, setIsCardsMinimized] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeCard, setActiveCard] = useState(null)
@@ -350,6 +372,15 @@ function Funil({
           {!isAdvancedFiltersOpen ? <ArrowDown size={18} /> : <ArrowUp size={18} /> }
           Filtros avançados
         </button>
+        <button
+          type="button"
+          onClick={() => setIsCardsMinimized((value) => !value)}
+          className="secondaryBtn"
+          aria-pressed={isCardsMinimized}
+        >
+          {isCardsMinimized ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
+          {isCardsMinimized ? 'Expandir cards' : 'Minimizar cards'}
+        </button>
         <button type="button" className="primaryBtn" onClick={onNewNegocio}>
           <Plus size={18} />
           Novo Negócio
@@ -464,6 +495,7 @@ function Funil({
                     isPerdida={isPerdida}
                     diasMedios={diasMedios}
                     showTempoMedio={!etapasSemTempoMedio.has(etapa)}
+                    isMinimized={isCardsMinimized}
                     onViewNegocio={onViewNegocio}
                     onEditNegocio={onEditNegocio}
                     onViewLead={onViewLead}
@@ -474,7 +506,7 @@ function Funil({
             </section>
           </div>
           <DragOverlay dropAnimation={null}>
-            {activeCard ? <FunilOverlayCard negocio={activeCard} /> : null}
+            {activeCard ? <FunilOverlayCard negocio={activeCard} isMinimized={isCardsMinimized} /> : null}
           </DragOverlay>
         </DndContext>
       )}

@@ -24,6 +24,7 @@ import {
   parseNavigationPath,
 } from './utils/appNavigation'
 import { clearSessionUser, loadSessionUser, saveSessionUser } from './utils/authSession'
+import { fetchCurrentSession } from './services/authService'
 import { adminOnlyScreens, isAdministrador } from './utils/userAccess'
 import './styles.css'
 
@@ -253,17 +254,47 @@ function App() {
     setSessionUser(usuario)
   }
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     clearSessionUser()
     setSessionUser(null)
     window.history.replaceState(null, '', window.location.pathname)
-  }
+  }, [])
 
-  const handleUpdateSessionUser = (updatedUser) => {
-    const nextUser = { ...sessionUser, ...updatedUser }
-    saveSessionUser(nextUser)
-    setSessionUser(nextUser)
-  }
+  const handleUpdateSessionUser = useCallback((updatedUser) => {
+    setSessionUser((current) => {
+      const nextUser = { ...current, ...updatedUser }
+      saveSessionUser(nextUser)
+      return nextUser
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!sessionUser?.id) return
+    let active = true
+    fetchCurrentSession()
+      .then((data) => {
+        if (!active || !data?.usuario) return
+        const fresh = data.usuario
+        if (
+          fresh.id !== sessionUser.id ||
+          fresh.nome !== sessionUser.nome ||
+          fresh.email !== sessionUser.email ||
+          fresh.cargo !== sessionUser.cargo ||
+          fresh.perfilAcesso !== sessionUser.perfilAcesso ||
+          fresh.avatarUrl !== sessionUser.avatarUrl
+        ) {
+          handleUpdateSessionUser(fresh)
+        }
+      })
+      .catch((requestError) => {
+        if (active && requestError?.status === 401) {
+          handleLogout()
+        }
+      })
+    return () => {
+      active = false
+    }
+  }, [sessionUser?.id, handleLogout, handleUpdateSessionUser])
 
   return sessionUser ? (
     <AppShell

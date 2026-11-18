@@ -25,7 +25,9 @@ export const apiRequest = async (path, options = {}) => {
   const data = await response.json().catch(() => ({}))
 
   if (!response.ok) {
-    throw new Error(data.message || 'Erro na requisição')
+    const error = new Error(data.message || 'Erro na requisição')
+    error.status = response.status
+    throw error
   }
 
   return data

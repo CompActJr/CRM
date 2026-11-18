@@ -426,7 +426,7 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
                     {/* Detalhe extra se for negociação */}
                     {meta.tipo === 'NEGOCIACOES' && meta.valorTotalEstimado > 0 && (
                       <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #64748b)' }}>
-                        Volume total em pipeline: <strong style={{ color: '#0f172a' }}>{formatValorFromAmount(meta.valorTotalEstimado)}</strong>
+                        Volume total em pipeline: <strong style={{ color: 'var(--color-text-strong, #0f172a)' }}>{formatValorFromAmount(meta.valorTotalEstimado)}</strong>
                       </div>
                     )}
 
@@ -486,13 +486,13 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
                         gap: '16px',
                         padding: '12px 16px',
                         borderRadius: '8px',
-                        background: item.posicao === 1 ? '#fefce8' : 'var(--color-bg-alt, #f8fafc)',
-                        border: item.posicao === 1 ? '1px solid #fef08a' : '1px solid transparent',
+                        background: item.posicao === 1 ? 'var(--color-surface-alt, #fefce8)' : 'var(--color-bg-alt, #f8fafc)',
+                        border: item.posicao === 1 ? '1px solid #eab308' : '1px solid transparent',
                       }}
                     >
                       {/* Posição */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
-                        {medalIcon || <span style={{ color: '#64748b' }}>#{item.posicao}</span>}
+                        {medalIcon || <span style={{ color: 'var(--color-text-muted, #64748b)' }}>#{item.posicao}</span>}
                       </div>
 
                       {/* Usuário */}
@@ -527,7 +527,7 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
                         <div style={{
                           flex: 1,
                           height: '10px',
-                          background: '#e2e8f0',
+                          background: 'var(--color-secondary-bg, #e2e8f0)',
                           borderRadius: '999px',
                           overflow: 'hidden',
                         }}>
@@ -621,7 +621,8 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
                             display: 'inline-block',
                             padding: '2px 8px',
                             borderRadius: '12px',
-                            background: '#f1f5f9',
+                            background: 'var(--color-bg-alt, #f1f5f9)',
+                            color: 'var(--color-text, #1e293b)',
                             fontSize: '0.8rem',
                             fontWeight: 500,
                           }}>

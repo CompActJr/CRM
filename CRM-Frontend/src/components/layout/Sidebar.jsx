@@ -1,6 +1,30 @@
-import { BarChart3, BriefcaseBusiness, KanbanSquare, LayoutDashboard, Presentation, Target, UserCog, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { BarChart3, BriefcaseBusiness, KanbanSquare, LayoutDashboard, Moon, Presentation, Sun, Target, UserCog, Users } from 'lucide-react'
 import { isAdministrador } from '../../utils/userAccess'
 import logoImage from '../../assets/Logo.png'
+
+const THEME_STORAGE_KEY = 'color-scheme'
+
+const getStoredScheme = () => {
+  try {
+    const value = localStorage.getItem(THEME_STORAGE_KEY)
+    return value === 'light' || value === 'dark' ? value : null
+  } catch {
+    return null
+  }
+}
+
+const getSystemScheme = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light'
+
+const syncColorSchemeMeta = (scheme) => {
+  const meta = document.querySelector('meta[name="color-scheme"]')
+  if (meta) {
+    meta.setAttribute('content', scheme ?? 'light dark')
+  }
+}
 
 const navItems = [
   ['dashboard', LayoutDashboard, 'Dashboard'],
@@ -15,6 +39,60 @@ const navItems = [
 
 function Sidebar({ screen, setScreen, currentUser }) {
   const visibleNavItems = navItems.filter((item) => !item[3] || isAdministrador(currentUser))
+  const [storedScheme, setStoredScheme] = useState(getStoredScheme)
+  const [systemScheme, setSystemScheme] = useState(getSystemScheme)
+
+  const resolvedScheme = storedScheme ?? systemScheme
+  const isDark = resolvedScheme === 'dark'
+
+  useEffect(() => {
+    syncColorSchemeMeta(storedScheme)
+  }, [storedScheme])
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
+    const handleMediaChange = (event) => {
+      setSystemScheme(event.matches ? 'dark' : 'light')
+    }
+    const handleStorageChange = (event) => {
+      if (event.key === THEME_STORAGE_KEY) {
+        setStoredScheme(event.newValue === 'light' || event.newValue === 'dark' ? event.newValue : null)
+      }
+    }
+
+    mediaQuery?.addEventListener('change', handleMediaChange)
+    window.addEventListener('storage', handleStorageChange)
+    return () => {
+      mediaQuery?.removeEventListener('change', handleMediaChange)
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [])
+
+  const handleToggleTheme = () => {
+    const currentSystem = getSystemScheme()
+    const currentRendered = storedScheme ?? currentSystem
+    const target = currentRendered === 'dark' ? 'light' : 'dark'
+
+    if (target !== currentSystem) {
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, target)
+      } catch {
+        // Ignora erro caso armazenamento esteja bloqueado
+      }
+      setStoredScheme(target)
+      syncColorSchemeMeta(target)
+      return
+    }
+
+    try {
+      localStorage.removeItem(THEME_STORAGE_KEY)
+    } catch {
+      // Ignora erro caso armazenamento esteja bloqueado
+    }
+    setStoredScheme(null)
+    syncColorSchemeMeta(null)
+  }
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -38,6 +116,24 @@ function Sidebar({ screen, setScreen, currentUser }) {
           </button>
         ))}
       </nav>
+      <div className="sidebarFooter">
+        <button
+          type="button"
+          className="navItem themeToggleBtn"
+          onClick={handleToggleTheme}
+          aria-label={isDark ? 'Alternar para modo claro' : 'Alternar para modo escuro'}
+          aria-pressed={isDark}
+        >
+          <span className="themeOptionLight">
+            <Moon size={18} />
+            <span>Modo escuro</span>
+          </span>
+          <span className="themeOptionDark">
+            <Sun size={18} />
+            <span>Modo claro</span>
+          </span>
+        </button>
+      </div>
     </aside>
   )
 }

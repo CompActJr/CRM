@@ -245,7 +245,7 @@ function Relatorios() {
                           </span>
                         </div>
                       </div>
-                      <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
+                      <div style={{ width: '100%', height: '6px', background: 'var(--color-secondary-bg, #e2e8f0)', borderRadius: '999px', overflow: 'hidden' }}>
                         <div
                           style={{
                             width: `${Math.min(100, item.progressoPercentual)}%`,

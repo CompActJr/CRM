@@ -8,6 +8,7 @@ function FunilColuna({
   isPerdida,
   diasMedios,
   showTempoMedio,
+  isMinimized = false,
   onViewNegocio,
   onEditNegocio,
   onViewLead,
@@ -33,6 +34,7 @@ function FunilColuna({
           key={negocio.id}
           negocio={negocio}
           etapa={etapa}
+          isMinimized={isMinimized}
           onViewNegocio={onViewNegocio}
           onEditNegocio={onEditNegocio}
           onViewLead={onViewLead}
