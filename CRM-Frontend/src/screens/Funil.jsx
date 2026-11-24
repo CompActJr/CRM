@@ -18,7 +18,7 @@ import ModalCriarNegocioProposta from '../components/negocios/ModalCriarNegocioP
 import ModalGanharLead from '../components/negocios/ModalGanharLead'
 import { fetchEtapasFunil } from '../services/etapasService'
 import { fetchNegociosFunil, updateNegocio } from '../services/negociosService'
-import { mudarEtapaLead } from '../services/leadsService'
+import { fetchLeads, mudarEtapaLead } from '../services/leadsService'
 import { createInteracaoForNegocio } from '../services/interacoesService'
 import {
   ETAPA_PERDIDA,
@@ -32,8 +32,8 @@ import {
   isEtapaVendida,
   isTituloGenerico,
 } from '../utils/funilDrag'
-import SearchableSelect from "../components/common/SearchableSelect";
-import {fetchUsuariosOpcoes} from "../services/usuariosService";
+import SearchableSelect, { buildUniqueSelectOptions } from '../components/common/SearchableSelect'
+import { fetchUsuariosOpcoes } from '../services/usuariosService'
 
 const etapasSemTempoMedio = new Set(['Fechado', 'Perdida', 'Pós Venda', 'Pos Venda', 'Pós-Venda', 'Ganho', 'Vendido'])
 
@@ -137,6 +137,7 @@ function Funil({
   const [criarNegocioModal, setCriarNegocioModal] = useState(null)
   const [ganharModal, setGanharModal] = useState(null)
   const [users, setUsers] = useState([])
+  const [leadOptionsSource, setLeadOptionsSource] = useState([])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -163,8 +164,22 @@ function Funil({
 
   useEffect(() => {
     loadFunil()
-    fetchUsuariosOpcoes().then(setUsers).catch(() => {})
   }, [loadFunil])
+
+  useEffect(() => {
+    fetchUsuariosOpcoes().then(setUsers).catch(() => {})
+    fetchLeads().then(setLeadOptionsSource).catch(() => {})
+  }, [])
+
+  const nomeOptions = useMemo(
+    () => buildUniqueSelectOptions(leadOptionsSource, 'nome'),
+    [leadOptionsSource]
+  )
+
+  const empresaOptions = useMemo(
+    () => buildUniqueSelectOptions(leadOptionsSource, 'empresa'),
+    [leadOptionsSource]
+  )
 
   const etapasAtivas = useMemo(() => {
     const ordenadas = etapas.map((etapa) => etapa.nome)
@@ -389,18 +404,19 @@ function Funil({
       {isAdvancedFiltersOpen && (
       <section className="filtersPanel">
         <div className="formGrid">
-          <label className="inputGroup">
-            <span>Nome</span>
-            <input
-                value={filters.nome}
-                onChange={(event) =>
-                    setFilters({
-                      ...filters,
-                      nome: event.target.value,
-                    })
-                }
-            />
-          </label>
+          <SearchableSelect
+            label="Nome"
+            placeholder="Todos os leads"
+            searchPlaceholder="Buscar por nome..."
+            options={nomeOptions}
+            value={filters.nome}
+            onChange={(value) =>
+              setFilters({
+                ...filters,
+                nome: value,
+              })
+            }
+          />
           <label className="inputGroup">
             <span>CNPJ</span>
             <input
@@ -413,52 +429,47 @@ function Funil({
                 }
             />
           </label>
-          <label className="inputGroup">
-            <span>Empresa</span>
-            <input
-                value={filters.empresa}
-                onChange={(event) =>
-                    setFilters({
-                      ...filters,
-                      empresa: event.target.value,
-                    })
-                }
-            />
-          </label>
-          <label className="inputGroup">
-            <span>Temperatura</span>
-            <SearchableSelect
-                options={[
-                  { value: 'Quente', label: 'Quente' },
-                  { value: 'Morno', label: 'Morno' },
-                  { value: 'Frio', label: 'Frio' },
-                ]}
-                value={filters.temperatura}
-                onChange={(value) =>
-                    setFilters({
-                      ...filters,
-                      temperatura: value,
-                    })
-                }
-                placeholder="Selecione a temperatura"
-            />
-          </label>
-          <label className="inputGroup">
-            <span>Responsável</span>
-
-            <SearchableSelect
-                options={users.map((user) => ({ value: user.id.toString(), label: user.nome }))}
-                value={filters.usuarioId}
-                onChange={(value) =>
-                    setFilters({
-                      ...filters,
-                      usuarioId: value,
-                    })
-                }
-                placeholder="Selecione o responsável"
-            />
-
-          </label>
+          <SearchableSelect
+            label="Empresa"
+            placeholder="Todas as empresas"
+            searchPlaceholder="Buscar empresa..."
+            options={empresaOptions}
+            value={filters.empresa}
+            onChange={(value) =>
+              setFilters({
+                ...filters,
+                empresa: value,
+              })
+            }
+          />
+          <SearchableSelect
+            label="Temperatura"
+            options={[
+              { value: 'Quente', label: 'Quente' },
+              { value: 'Morno', label: 'Morno' },
+              { value: 'Frio', label: 'Frio' },
+            ]}
+            value={filters.temperatura}
+            onChange={(value) =>
+              setFilters({
+                ...filters,
+                temperatura: value,
+              })
+            }
+            placeholder="Selecione a temperatura"
+          />
+          <SearchableSelect
+            label="Responsável"
+            options={users.map((user) => ({ value: user.id.toString(), label: user.nome }))}
+            value={filters.usuarioId}
+            onChange={(value) =>
+              setFilters({
+                ...filters,
+                usuarioId: value,
+              })
+            }
+            placeholder="Selecione o responsável"
+          />
           <button onClick={applyFilters} className="primaryBtn fullLine">
             Filtrar
           </button>

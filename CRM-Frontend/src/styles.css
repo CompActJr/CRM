@@ -2613,6 +2613,7 @@ th {
 .searchableSelectContainer {
   position: relative;
   user-select: none;
+  min-width: 0;
 }
 
 .searchableSelectLabel {
@@ -2620,6 +2621,10 @@ th {
   font-weight: 700;
   color: var(--color-text-tertiary);
   margin-bottom: 2px;
+}
+
+.searchableSelectRequired {
+  color: #ef4444;
 }
 
 .searchableSelectTrigger {
@@ -2636,6 +2641,12 @@ th {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.searchableSelectContainer.compact .searchableSelectTrigger {
+  min-height: 40px;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
 .searchableSelectTrigger:hover {
   border-color: var(--color-text-subtle);
 }
@@ -2646,14 +2657,25 @@ th {
   outline: none;
 }
 
+.searchableSelectTrigger.error {
+  border-color: #ef4444;
+}
+
 .searchableSelectTrigger.disabled {
   background: var(--color-bg-alt);
   cursor: not-allowed;
   opacity: 0.7;
 }
 
+.searchableSelectError {
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+}
+
 .searchableSelectValueArea {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -2662,12 +2684,22 @@ th {
 }
 
 .searchableSelectPlaceholder {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--color-text-subtle);
   font-size: 14px;
   font-weight: 400;
 }
 
 .searchableSelectSingleValue {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--color-text);
   font-size: 14px;
   font-weight: 500;
@@ -2839,7 +2871,8 @@ th {
   color: var(--color-text-tertiary);
 }
 
-.searchableSelectOption:hover {
+.searchableSelectOption:hover,
+.searchableSelectOption.highlighted {
   background: var(--color-bg-alt);
 }
 
@@ -2847,6 +2880,10 @@ th {
   background: #eff6ff;
   color: #1d4ed8;
   font-weight: 600;
+}
+
+.searchableSelectOption.selected.highlighted {
+  background: #dbeafe;
 }
 
 .optionTextCol {
@@ -2878,6 +2915,33 @@ th {
   text-align: center;
   color: var(--color-text-subtle);
   font-size: 13px;
+}
+
+.searchableSelectContainer.compact .searchableSelectDropdown {
+  min-width: 240px;
+}
+
+.toolbar .searchableSelectContainer,
+.timelineFilters .searchableSelectContainer,
+.funilSummaryToolbar .searchableSelectContainer {
+  min-width: 220px;
+  flex: 0 0 auto;
+}
+
+.reportFilters .searchableSelectContainer {
+  gap: 6px;
+}
+
+.reportFilters .searchableSelectLabel {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: 0;
+}
+
+.reportFilters .searchableSelectTrigger {
+  border-radius: 10px;
+  min-height: 41px;
+  padding: 6px 12px;
 }
 
 .funilSummaryToolbar {
@@ -3193,5 +3257,185 @@ th {
   .funilSummaryCount {
     text-align: left;
     font-size: 28px;
+  }
+}
+
+.termometroPanel {
+  margin-bottom: 20px;
+}
+
+.termometroHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.termometroTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.termometroTitleGroup h2 {
+  margin: 0;
+}
+
+.termometroSubtitle {
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.termometroIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.termometroActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.termometroSyncBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.termometroSpin {
+  animation: reportSpin 0.8s linear infinite;
+}
+
+.termometroProgressWrap {
+  margin-bottom: 18px;
+}
+
+.termometroProgress {
+  --progress-bar-radius: 999px;
+  --progress-bar-fill: #f59e0b;
+  appearance: none;
+  border: 0 solid;
+  overflow: clip;
+  width: 100%;
+  height: 14px;
+  border-radius: var(--progress-bar-radius);
+  background: var(--color-secondary-bg);
+  display: block;
+}
+
+.termometroProgress.isProgress {
+  --progress-bar-fill: var(--color-primary);
+}
+
+.termometroProgress.isSuccess {
+  --progress-bar-fill: #16a34a;
+}
+
+.termometroProgress::-webkit-progress-bar {
+  background: transparent;
+}
+
+.termometroProgress::-webkit-progress-value {
+  background: var(--progress-bar-fill);
+  border-radius: var(--progress-bar-radius);
+  transition: inline-size 0.3s ease;
+}
+
+.termometroProgress::-moz-progress-bar {
+  background: var(--progress-bar-fill);
+  border-radius: var(--progress-bar-radius);
+  transition: inline-size 0.3s ease;
+}
+
+.termometroScale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.termometroMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 4px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.termometroMetricItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.termometroMetricItem span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.termometroMetricItem strong {
+  color: var(--color-text-strong);
+  font-size: 22px;
+}
+
+.termometroMetricItem strong.termometroValueAlcancado {
+  color: #16a34a;
+}
+
+.termometroMetricItem strong.termometroValueGap {
+  color: var(--color-text);
+}
+
+.termometroFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.termometroWarn {
+  color: #d97706;
+}
+
+.termometroEmpty {
+  padding: 16px;
+  border-radius: 4px;
+  background: var(--color-surface-alt);
+  border: 1px dashed var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.termometroEmpty p {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.termometroEmpty small {
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 640px) {
+  .termometroMetrics {
+    grid-template-columns: 1fr;
   }
 }

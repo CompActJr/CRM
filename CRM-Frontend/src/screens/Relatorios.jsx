@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BarChart3, CheckCircle2, Download, RefreshCw, Target, Users } from 'lucide-react'
 import Header from '../components/layout/Header'
+import SearchableSelect, { buildUniqueSelectOptions } from '../components/common/SearchableSelect'
 import { downloadRelatorioExcel, downloadRelatorioPdf, fetchRelatorio, fetchRelatorioOpcoes } from '../services/relatoriosService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
 
@@ -36,7 +37,7 @@ function Relatorios() {
   const [usuarioId, setUsuarioId] = useState('todos')
   const [tipoMeta, setTipoMeta] = useState('todos')
   const [usuarios, setUsuarios] = useState([])
-  const [opcoesLead, setOpcoesLead] = useState({ empresas: [], cidades: [], nichos: [], status: [] })
+  const [opcoesLead, setOpcoesLead] = useState({ nomes: [], empresas: [], cidades: [], nichos: [], status: [] })
   const [filtrosLead, setFiltrosLead] = useState({ nomeLead: '', empresa: '', cidade: '', nicho: '', status: '' })
   const [relatorio, setRelatorio] = useState(null)
   const [filtrosAplicados, setFiltrosAplicados] = useState(null)
@@ -47,8 +48,18 @@ function Relatorios() {
 
   useEffect(() => {
     fetchUsuariosOpcoes().then(setUsuarios).catch(() => setUsuarios([]))
-    fetchRelatorioOpcoes().then(setOpcoesLead).catch(() => setOpcoesLead({ empresas: [], cidades: [], nichos: [], status: [] }))
+    fetchRelatorioOpcoes().then(setOpcoesLead).catch(() => setOpcoesLead({ nomes: [], empresas: [], cidades: [], nichos: [], status: [] }))
   }, [])
+
+  const nomeLeadOptions = useMemo(
+    () => buildUniqueSelectOptions(opcoesLead.nomes ?? [], (nome) => nome),
+    [opcoesLead.nomes]
+  )
+
+  const empresaOptions = useMemo(
+    () => buildUniqueSelectOptions(opcoesLead.empresas ?? [], (empresa) => empresa),
+    [opcoesLead.empresas]
+  )
 
   const buildParams = () => ({ ...period, usuarioId, tipoMeta, ...filtrosLead })
 
@@ -121,23 +132,34 @@ function Relatorios() {
           <span>Data final</span>
           <input type="date" value={period.dataFim} min={period.dataInicio || undefined} onChange={(e) => updatePeriod('dataFim', e.target.value)} required />
         </label>
-        <label>
-          <span>Responsável</span>
-          <select value={usuarioId} onChange={(e) => setUsuarioId(e.target.value)}>
-            <option value="todos">Todos os responsáveis</option>
-            {usuarios.map((usuario) => <option key={usuario.id} value={usuario.id}>{usuario.nome}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>Nome do lead</span>
-          <input type="search" value={filtrosLead.nomeLead} onChange={(e) => updateLeadFilter('nomeLead', e.target.value)} placeholder="Pesquisar pelo nome" />
-        </label>
-        <label>
-          <span>Empresa</span>
-          <select value={filtrosLead.empresa} onChange={(e) => updateLeadFilter('empresa', e.target.value)}>
-            <option value="">Todas as empresas</option>{renderFilterOptions(opcoesLead.empresas)}
-          </select>
-        </label>
+        <SearchableSelect
+          label="Responsável"
+          placeholder="Todos os responsáveis"
+          searchPlaceholder="Buscar responsável..."
+          options={usuarios.map((usuario) => ({
+            value: String(usuario.id),
+            label: usuario.nome,
+          }))}
+          value={usuarioId}
+          emptyValue="todos"
+          onChange={(val) => setUsuarioId(val || 'todos')}
+        />
+        <SearchableSelect
+          label="Nome do lead"
+          placeholder="Todos os leads"
+          searchPlaceholder="Pesquisar pelo nome..."
+          options={nomeLeadOptions}
+          value={filtrosLead.nomeLead}
+          onChange={(val) => updateLeadFilter('nomeLead', val)}
+        />
+        <SearchableSelect
+          label="Empresa"
+          placeholder="Todas as empresas"
+          searchPlaceholder="Buscar empresa..."
+          options={empresaOptions}
+          value={filtrosLead.empresa}
+          onChange={(val) => updateLeadFilter('empresa', val)}
+        />
         <label>
           <span>Cidade</span>
           <select value={filtrosLead.cidade} onChange={(e) => updateLeadFilter('cidade', e.target.value)}>

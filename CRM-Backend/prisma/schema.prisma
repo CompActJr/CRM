@@ -294,3 +294,20 @@ model NegocioResponsavelHistorico {
   @@index([entradaEm])
   @@map("negocio_responsavel_historico")
 }
+
+model TermometroMej {
+  id                 Int       @id @default(autoincrement())
+  ano                Int       @unique
+  alcancado          Decimal   @default(0) @db.Decimal(12, 2)
+  meta               Decimal   @default(0) @db.Decimal(12, 2)
+  gap                Decimal   @default(0) @db.Decimal(12, 2)
+  percentual         Decimal   @default(0) @db.Decimal(6, 2)
+  coletadoEm         DateTime? @map("coletado_em")
+  ultimoStatusColeta String    @default("PENDENTE") @map("ultimo_status_coleta") @db.VarChar(20)
+  ultimoErro         String?   @map("ultimo_erro") @db.Text
+  ultimaTentativaEm  DateTime? @map("ultima_tentativa_em")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@map("termometro_mej")
+}

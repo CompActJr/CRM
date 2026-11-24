@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Download, Edit, PenLine, Plus, Trash2, X } from 'lucide-react'
+import SearchableSelect from '../common/SearchableSelect'
 import {
   createProposta,
   deleteProposta,
@@ -135,6 +136,10 @@ function PainelPropostas({ negocioId, currentUser, onPropostasChange }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (!form.usuarioId) {
+      setError('Selecione um responsável.')
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -249,17 +254,18 @@ function PainelPropostas({ negocioId, currentUser, onPropostasChange }) {
                   ))}
                 </select>
               </label>
-              <label className="inputGroup">
-                <span>Responsável</span>
-                <select name="usuarioId" value={form.usuarioId} onChange={handleChange} required>
-                  <option value="">Selecione</option>
-                  {usuarios.map((usuario) => (
-                    <option key={usuario.id} value={usuario.id}>
-                      {usuario.nome}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SearchableSelect
+                label="Responsável"
+                placeholder="Selecione o responsável"
+                searchPlaceholder="Buscar responsável..."
+                options={usuarios.map((usuario) => ({
+                  value: String(usuario.id),
+                  label: usuario.nome,
+                }))}
+                value={form.usuarioId}
+                onChange={(val) => setForm((previous) => ({ ...previous, usuarioId: val }))}
+                required
+              />
             </div>
           )}
 

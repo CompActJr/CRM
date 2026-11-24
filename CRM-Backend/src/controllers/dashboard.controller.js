@@ -17,3 +17,21 @@ export const getAtividades = async (request, response, next) => {
     next(error)
   }
 }
+
+export const getTermometroMej = async (request, response, next) => {
+  try {
+    const termometro = await dashboardService.getTermometroMej(request.query.ano)
+    response.json(termometro)
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const syncTermometroMej = async (_request, response, next) => {
+  try {
+    const termometro = await dashboardService.triggerTermometroSync()
+    response.json(termometro)
+  } catch (error) {
+    next(error)
+  }
+}

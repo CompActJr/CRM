@@ -8,7 +8,7 @@ import {
   fetchLeads,
   importLeads,
 } from '../services/leadsService'
-import SearchableSelect from '../components/common/SearchableSelect'
+import SearchableSelect, { buildUniqueSelectOptions } from '../components/common/SearchableSelect'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
 
 const ImportRules = {
@@ -42,6 +42,7 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
   const [importSummary, setImportSummary] = useState(null)
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
   const [users, setUsers] = useState([])
+  const [leadOptionsSource, setLeadOptionsSource] = useState([])
 
   const loadLeads = useCallback(async () => {
     setLoading(true)
@@ -49,12 +50,23 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
     try {
       const data = await fetchLeads()
       setLeads(data)
+      setLeadOptionsSource(data)
     } catch (requestError) {
       setError(requestError.message)
     } finally {
       setLoading(false)
     }
   }, [])
+
+  const nomeOptions = useMemo(
+    () => buildUniqueSelectOptions(leadOptionsSource, 'nome'),
+    [leadOptionsSource]
+  )
+
+  const empresaOptions = useMemo(
+    () => buildUniqueSelectOptions(leadOptionsSource, 'empresa'),
+    [leadOptionsSource]
+  )
 
   useEffect(() => {
     loadLeads()
@@ -148,18 +160,19 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
       {isAdvancedFiltersOpen && (
         <section className="filtersPanel">
           <div className="formGrid">
-            <label className="inputGroup">
-              <span>Nome</span>
-              <input
-                value={filters.nome}
-                onChange={(event) =>
-                  setFilters({
-                    ...filters,
-                    nome: event.target.value,
-                  })
-                }
-              />
-            </label>
+            <SearchableSelect
+              label="Nome"
+              placeholder="Todos os leads"
+              searchPlaceholder="Buscar por nome..."
+              options={nomeOptions}
+              value={filters.nome}
+              onChange={(value) =>
+                setFilters({
+                  ...filters,
+                  nome: value,
+                })
+              }
+            />
 
             <label className="inputGroup">
               <span>CNPJ</span>
@@ -174,34 +187,32 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
               />
             </label>
 
-            <label className="inputGroup">
-              <span>Empresa</span>
-              <input
-                value={filters.empresa}
-                onChange={(event) =>
-                  setFilters({
-                    ...filters,
-                    empresa: event.target.value,
-                  })
-                }
-              />
-            </label>
-            <label className="inputGroup">
-              <span>Responsável</span>
-              
-              <SearchableSelect
-                options={users.map((user) => ({ value: user.id.toString(), label: user.nome }))}
-                value={filters.usuarioId}
-                onChange={(value) =>
-                  setFilters({
-                    ...filters,
-                    usuarioId: value,
-                  })
-                }
-                placeholder="Selecione o responsável"
-              />
+            <SearchableSelect
+              label="Empresa"
+              placeholder="Todas as empresas"
+              searchPlaceholder="Buscar empresa..."
+              options={empresaOptions}
+              value={filters.empresa}
+              onChange={(value) =>
+                setFilters({
+                  ...filters,
+                  empresa: value,
+                })
+              }
+            />
 
-            </label>
+            <SearchableSelect
+              label="Responsável"
+              options={users.map((user) => ({ value: user.id.toString(), label: user.nome }))}
+              value={filters.usuarioId}
+              onChange={(value) =>
+                setFilters({
+                  ...filters,
+                  usuarioId: value,
+                })
+              }
+              placeholder="Selecione o responsável"
+            />
             <label className="inputGroup">
               <span>Cidade</span>
               <input
@@ -252,24 +263,22 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
                   }
               />
             </label>
-            <label className="inputGroup">
-              <span>Status</span>
-              <SearchableSelect   
-                options={[
-                  { value: '', label: 'Todos' },
-                  { value: 'Ativo', label: 'Ativo' },
-                  { value: 'Inativo', label: 'Inativo' },
-                ]}
-                value={filters.status}
-                onChange={(value) =>
-                  setFilters({
-                    ...filters,
-                    status: value,
-                  })
-                }
-                placeholder="Selecione o status"
-              />
-            </label>
+            <SearchableSelect
+              label="Status"
+              options={[
+                { value: '', label: 'Todos' },
+                { value: 'Ativo', label: 'Ativo' },
+                { value: 'Inativo', label: 'Inativo' },
+              ]}
+              value={filters.status}
+              onChange={(value) =>
+                setFilters({
+                  ...filters,
+                  status: value,
+                })
+              }
+              placeholder="Selecione o status"
+            />
             <button onClick={applyFilters} className="primaryBtn fullLine">
               Filtrar
             </button>

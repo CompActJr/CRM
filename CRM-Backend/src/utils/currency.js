@@ -27,3 +27,17 @@ export const parseValorEstimado = (value) => {
   const parsed = Number(normalized)
   return Number.isNaN(parsed) ? null : parsed
 }
+
+export const parseCurrencyBr = (value) => {
+  if (value === undefined || value === null || value === '') return null
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+
+  const cleaned = String(value)
+    .replace(/[R$\s]/g, '')
+    .replace(/\./g, '')
+    .replace(',', '.')
+
+  if (!/^-?\d+(\.\d+)?$/.test(cleaned)) return null
+  const parsed = Number(cleaned)
+  return Number.isFinite(parsed) ? parsed : null
+}

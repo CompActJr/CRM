@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import Metric from '../components/common/Metric'
+import SearchableSelect from '../components/common/SearchableSelect'
 import { fetchMetasContribuicoes, fetchMetasDashboard } from '../services/metasService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
 
@@ -248,20 +249,17 @@ function MetasDashboard({ onViewLead, onViewNegocio, onEditUsuario, setScreen })
           </>
         )}
 
-        <label>
-          <span>Vendedor</span>
-          <select
-            value={usuarioId}
-            onChange={(e) => setUsuarioId(e.target.value)}
-          >
-            <option value="">Todos os vendedores</option>
-            {usuariosOpcoes.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.nome}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SearchableSelect
+          label="Vendedor"
+          placeholder="Todos os vendedores"
+          searchPlaceholder="Buscar vendedor por nome..."
+          options={usuariosOpcoes.map((u) => ({
+            value: String(u.id),
+            label: u.nome,
+          }))}
+          value={usuarioId ? String(usuarioId) : ''}
+          onChange={setUsuarioId}
+        />
 
         <label>
           <span>Tipo de Meta</span>

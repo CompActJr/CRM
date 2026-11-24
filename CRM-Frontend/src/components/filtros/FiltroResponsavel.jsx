@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { fetchUsuariosOpcoes } from '../../services/usuariosService'
+import SearchableSelect from '../common/SearchableSelect'
 
 const FilterLabels = {
   all: 'Todos os responsáveis',
 }
 
-function FiltroResponsavel({ value, onChange }) {
+function FiltroResponsavel({ value, onChange, placeholder = FilterLabels.all }) {
   const [usuarios, setUsuarios] = useState([])
 
   useEffect(() => {
@@ -23,14 +24,17 @@ function FiltroResponsavel({ value, onChange }) {
   }, [])
 
   return (
-    <select value={value} onChange={(event) => onChange(event.target.value)}>
-      <option value="">{FilterLabels.all}</option>
-      {usuarios.map((usuario) => (
-        <option key={usuario.id} value={usuario.id}>
-          {usuario.nome}
-        </option>
-      ))}
-    </select>
+    <SearchableSelect
+      options={usuarios.map((usuario) => ({
+        value: String(usuario.id),
+        label: usuario.nome,
+      }))}
+      value={value ? String(value) : ''}
+      onChange={onChange}
+      placeholder={placeholder}
+      searchPlaceholder="Buscar responsável..."
+      compact
+    />
   )
 }
 

@@ -19,3 +19,14 @@ export async function fetchDashboardAtividades() {
   return apiRequest('/dashboard/atividades')
 }
 
+export async function fetchTermometroMej(ano) {
+  const query = ano ? `?ano=${encodeURIComponent(ano)}` : ''
+  return apiRequest(`/dashboard/termometro-mej${query}`)
+}
+
+export async function syncTermometroMej() {
+  return apiRequest('/dashboard/termometro-mej/sync', {
+    method: 'POST',
+  })
+}
+
