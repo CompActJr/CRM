@@ -1324,8 +1324,14 @@ th {
 
 .actions {
   display: flex;
+  align-items: center;
   gap: 12px;
   color: var(--color-primary);
+}
+
+.actions svg {
+  flex-shrink: 0;
+  cursor: pointer;
 }
 
 .tag {
@@ -1855,6 +1861,27 @@ th {
 
 .reportFilters .primaryBtn {
   white-space: nowrap;
+}
+
+.reportFilters .reportCheckboxLabel {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  align-self: end;
+  min-height: 41px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.reportFilters input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+  border-radius: 4px;
+  accent-color: var(--color-primary);
+  flex: 0 0 auto;
+  cursor: pointer;
 }
 
 .reportGenerateBtn {
@@ -3312,6 +3339,17 @@ th {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.termometroSyncBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.termometroSyncQuota {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 .termometroSpin {

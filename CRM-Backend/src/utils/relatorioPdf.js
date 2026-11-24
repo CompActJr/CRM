@@ -1,171 +1,394 @@
 import PDFDocument from 'pdfkit'
 
+const MARGIN = 44
+
 const colors = {
-  ink: '#172554',
+  text: '#0f172a',
+  secondary: '#334155',
   muted: '#64748b',
-  border: '#e2e8f0',
-  pale: '#f8fafc',
-  blue: '#2563eb',
-  green: '#15803d',
-  amber: '#b45309',
+  rule: '#cbd5e1',
+  hairline: '#e2e8f0',
 }
 
 const formatDateBr = (isoDate) => {
+  if (!isoDate || !isoDate.includes('-')) return isoDate || '-'
   const [year, month, day] = isoDate.split('-')
   return `${day}/${month}/${year}`
 }
 
-const drawSectionTitle = (doc, title) => {
-  doc.moveDown(0.8)
-  doc.font('Helvetica-Bold').fontSize(12).fillColor(colors.ink).text(title)
-  doc.moveDown(0.45)
-}
-
-const drawMetric = (doc, x, y, width, label, value, caption, color) => {
-  doc.roundedRect(x, y, width, 78, 8).fillAndStroke('#ffffff', colors.border)
-  doc.font('Helvetica').fontSize(8).fillColor(colors.muted).text(label, x + 12, y + 12, { width: width - 24 })
-  doc.font('Helvetica-Bold').fontSize(20).fillColor(color).text(String(value), x + 12, y + 29)
-  doc.font('Helvetica').fontSize(7.5).fillColor(colors.muted).text(caption, x + 12, y + 57, { width: width - 24 })
-}
-
-const ensureSpace = (doc, height) => {
-  if (doc.y + height > doc.page.height - doc.page.margins.bottom) doc.addPage()
-}
-
-export const buildRelatorioPdfBuffer = (relatorio) => new Promise((resolve, reject) => {
-  const doc = new PDFDocument({ size: 'A4', margin: 44, bufferPages: true })
-  const chunks = []
-  doc.on('data', (chunk) => chunks.push(chunk))
-  doc.on('end', () => resolve(Buffer.concat(chunks)))
-  doc.on('error', reject)
-
-  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right
-  doc.rect(0, 0, doc.page.width, 116).fill(colors.ink)
-  doc.font('Helvetica-Bold').fontSize(21).fillColor('#ffffff').text('Relatório comercial', 44, 36)
-  doc.font('Helvetica').fontSize(10).fillColor('#dbeafe').text('CRM Compact.Jr', 44, 66)
-  doc.font('Helvetica-Bold').fontSize(9).fillColor('#ffffff').text(
-    `Período: ${formatDateBr(relatorio.periodo.dataInicio)} a ${formatDateBr(relatorio.periodo.dataFim)}`,
-    44, 87
-  )
-  doc.y = 137
-
-  const filtros = relatorio.filtros ?? {}
-  const filtrosAtivos = [
-    filtros.tipoMeta ? `Meta: ${filtros.tipoMeta}` : null,
-    filtros.nomeLead ? `Lead: ${filtros.nomeLead}` : null,
-    filtros.empresa ? `Empresa: ${filtros.empresa}` : null,
-    filtros.cidade ? `Cidade: ${filtros.cidade}` : null,
-    filtros.nicho ? `Nicho: ${filtros.nicho}` : null,
-    filtros.status ? `Status: ${filtros.status}` : null,
-  ].filter(Boolean)
-  const alturaFiltros = filtrosAtivos.length > 0 ? 78 : 43
-  doc.roundedRect(44, doc.y, pageWidth, alturaFiltros, 7).fill(colors.pale)
-  doc.font('Helvetica').fontSize(9).fillColor(colors.muted).text('RESPONSÁVEL', 57, doc.y + 8)
-  doc.font('Helvetica-Bold').fontSize(11).fillColor(colors.ink).text(relatorio.responsavel, 57, doc.y + 21, { width: pageWidth - 26 })
-  if (filtrosAtivos.length > 0) {
-    doc.font('Helvetica').fontSize(8).fillColor(colors.muted)
-      .text(`Filtros: ${filtrosAtivos.join(' | ')}`, 57, doc.y + 40, { width: pageWidth - 26 })
-  }
-  doc.y += alturaFiltros + 15
-
-  drawSectionTitle(doc, 'Indicadores do período')
-  const metrics = [
-    ['Leads no período', relatorio.leadsNoPeriodo, 'novos leads', colors.blue],
-    ['Oportunidades criadas', relatorio.oportunidadesCriadas, 'no período', colors.blue],
-    ['Oportunidades abertas', relatorio.oportunidadesAbertas, 'em andamento', colors.amber],
-    ['Oportunidades fechadas', relatorio.oportunidadesFechadas, 'concluídas com sucesso', colors.green],
-    ['Taxa de conversão', `${relatorio.taxaConversao}%`, 'fechadas / criadas', colors.green],
-  ]
-  const gap = 9
-  const cardWidth = (pageWidth - gap * 2) / 3
-  const startY = doc.y
-  metrics.forEach((metric, index) => {
-    const row = Math.floor(index / 3)
-    const column = index % 3
-    drawMetric(doc, 44 + column * (cardWidth + gap), startY + row * 88, cardWidth, ...metric)
+const formatDateTimeBr = (value) => {
+  if (!value) return 'Ainda não sincronizado'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Data indisponível'
+  return date.toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    dateStyle: 'short',
+    timeStyle: 'short',
   })
-  doc.y = startY + 2 * 88 + 4
+}
 
-  ensureSpace(doc, 100)
-  drawSectionTitle(doc, 'Tempo médio por etapa')
-  const tableX = 44
-  const tableY = doc.y
-  const col1 = pageWidth * 0.68
-  const rowHeight = 25
-  doc.rect(tableX, tableY, pageWidth, rowHeight).fill(colors.pale)
-  doc.font('Helvetica-Bold').fontSize(9).fillColor(colors.ink)
-  doc.text('Etapa', tableX + 10, tableY + 8, { width: col1 - 12 })
-  doc.text('Tempo médio', tableX + col1, tableY + 8, { width: pageWidth - col1 - 10, align: 'right' })
-  doc.y = tableY + rowHeight
+const drawRule = (doc, y, width, color = colors.hairline, lineWidth = 0.5) => {
+  doc
+    .save()
+    .lineWidth(lineWidth)
+    .strokeColor(color)
+    .moveTo(MARGIN, y)
+    .lineTo(MARGIN + width, y)
+    .stroke()
+    .restore()
+}
 
-  const stages = relatorio.tempoMedioPorEtapa ?? []
-  if (stages.length === 0) {
-    doc.font('Helvetica').fontSize(9).fillColor(colors.muted).text('Não há etapas para exibir neste relatório.', tableX + 10, doc.y + 9)
-    doc.y += rowHeight
-  } else {
-    stages.forEach((item, index) => {
-      ensureSpace(doc, rowHeight + 6)
-      const y = doc.y
-      if (index % 2 === 0) doc.rect(tableX, y, pageWidth, rowHeight).fill('#fbfdff')
-      doc.strokeColor(colors.border).moveTo(tableX, y + rowHeight).lineTo(tableX + pageWidth, y + rowHeight).stroke()
-      doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(item.etapa, tableX + 10, y + 8, { width: col1 - 12 })
-      doc.text(`${item.diasMedio} dias`, tableX + col1, y + 8, { width: pageWidth - col1 - 10, align: 'right' })
-      doc.y += rowHeight
-    })
+const ensureSpace = (doc, neededHeight) => {
+  const bottomLimit = doc.page.height - MARGIN - 24
+  if (doc.y + neededHeight > bottomLimit) {
+    doc.addPage()
+    doc.y = MARGIN
+    return true
   }
+  return false
+}
 
-  if (relatorio.metas?.metas?.length) {
-    ensureSpace(doc, 80)
-    drawSectionTitle(doc, 'Metas comerciais no período')
+const drawSectionTitle = (doc, title, pageWidth) => {
+  ensureSpace(doc, 48)
+  doc.y += 14
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(10)
+    .fillColor(colors.text)
+    .text(title.toUpperCase(), MARGIN, doc.y, { characterSpacing: 0.4 })
+  const ruleY = doc.y + 4
+  drawRule(doc, ruleY, pageWidth, colors.text, 0.8)
+  doc.y = ruleY + 10
+}
 
-    const metasTableY = doc.y
-    const colVendedor = pageWidth * 0.45
-    const colAlvo = pageWidth * 0.30
-    const colProgresso = pageWidth - colVendedor - colAlvo
+const drawSummaryStrip = (doc, items, pageWidth) => {
+  const stripHeight = 52
+  ensureSpace(doc, stripHeight + 8)
 
-    doc.rect(tableX, metasTableY, pageWidth, rowHeight).fill(colors.pale)
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(colors.ink)
-    doc.text('Vendedor / Meta', tableX + 10, metasTableY + 8, { width: colVendedor - 12 })
-    doc.text('Alvo vs Realizado', tableX + colVendedor, metasTableY + 8, { width: colAlvo - 12 })
-    doc.text('Progresso', tableX + colVendedor + colAlvo, metasTableY + 8, { width: colProgresso - 10, align: 'right' })
-    doc.y = metasTableY + rowHeight
+  const startY = doc.y
+  const colWidth = pageWidth / items.length
 
-    const metasRowHeight = 34
-    relatorio.metas.metas.forEach((item, index) => {
-      ensureSpace(doc, metasRowHeight + 6)
-      const y = doc.y
-      if (index % 2 === 0) doc.rect(tableX, y, pageWidth, metasRowHeight).fill('#fbfdff')
-      doc.strokeColor(colors.border).moveTo(tableX, y + metasRowHeight).lineTo(tableX + pageWidth, y + metasRowHeight).stroke()
-      doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(
-        `${item.usuarioNome} (${item.tipoLabel})`,
-        tableX + 10,
-        y + 6,
-        { width: colVendedor - 12, lineBreak: false, ellipsis: true }
+  items.forEach((item, index) => {
+    const x = MARGIN + index * colWidth
+    const innerWidth = colWidth - 10
+
+    if (index > 0) {
+      doc
+        .save()
+        .lineWidth(0.5)
+        .strokeColor(colors.hairline)
+        .moveTo(x - 4, startY + 2)
+        .lineTo(x - 4, startY + stripHeight - 6)
+        .stroke()
+        .restore()
+    }
+
+    doc
+      .font('Helvetica')
+      .fontSize(7.5)
+      .fillColor(colors.muted)
+      .text(item.label, x, startY, { width: innerWidth, lineBreak: false, ellipsis: true })
+
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(15)
+      .fillColor(colors.text)
+      .text(String(item.value), x, startY + 14, { width: innerWidth, lineBreak: false, ellipsis: true })
+
+    if (item.caption) {
+      doc
+        .font('Helvetica')
+        .fontSize(7)
+        .fillColor(colors.muted)
+        .text(item.caption, x, startY + 35, { width: innerWidth, lineBreak: false, ellipsis: true })
+    }
+  })
+
+  drawRule(doc, startY + stripHeight, pageWidth, colors.hairline, 0.5)
+  doc.y = startY + stripHeight + 6
+}
+
+const drawTableHeader = (doc, columns, pageWidth) => {
+  const headerY = doc.y
+  columns.forEach((col) => {
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(7.5)
+      .fillColor(colors.muted)
+      .text(col.label.toUpperCase(), col.x, headerY, {
+        width: col.width,
+        align: col.align || 'left',
+        lineBreak: false,
+      })
+  })
+  const ruleY = headerY + 14
+  drawRule(doc, ruleY, pageWidth, colors.rule, 0.75)
+  doc.y = ruleY + 6
+}
+
+export const buildRelatorioPdfBuffer = (relatorio) =>
+  new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: MARGIN, bufferPages: true })
+    const chunks = []
+    doc.on('data', (chunk) => chunks.push(chunk))
+    doc.on('end', () => resolve(Buffer.concat(chunks)))
+    doc.on('error', reject)
+
+    const pageWidth = doc.page.width - MARGIN * 2
+
+    // Cabeçalho minimalista
+    const headerTop = MARGIN
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(16)
+      .fillColor(colors.text)
+      .text('Relatório Comercial', MARGIN, headerTop)
+
+    doc
+      .font('Helvetica')
+      .fontSize(8.5)
+      .fillColor(colors.muted)
+      .text('CRM CompAct.Jr', MARGIN, headerTop + 20)
+
+    const rightColX = MARGIN + pageWidth * 0.5
+    const rightColWidth = pageWidth * 0.5
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(8.5)
+      .fillColor(colors.text)
+      .text(
+        `Período: ${formatDateBr(relatorio.periodo.dataInicio)} a ${formatDateBr(relatorio.periodo.dataFim)}`,
+        rightColX,
+        headerTop + 3,
+        { width: rightColWidth, align: 'right' }
       )
-      if (item.periodoInicio && item.periodoFim) {
-        doc.font('Helvetica').fontSize(7.5).fillColor(colors.muted).text(
-          `Período: ${formatDateBr(item.periodoInicio)} a ${formatDateBr(item.periodoFim)}`,
-          tableX + 10,
-          y + 19,
-          { width: colVendedor - 12, lineBreak: false, ellipsis: true }
-        )
-      }
-      doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(`${item.valorRealizado} / ${item.valorAlvo} ${item.unidade}`, tableX + colVendedor, y + 11, { width: colAlvo - 12 })
-      doc.font('Helvetica-Bold').fillColor(item.progressoPercentual >= 100 ? colors.green : colors.blue)
-        .text(`${item.progressoPercentual}%`, tableX + colVendedor + colAlvo, y + 11, { width: colProgresso - 10, align: 'right' })
-      doc.y += metasRowHeight
+
+    doc
+      .font('Helvetica')
+      .fontSize(8)
+      .fillColor(colors.muted)
+      .text(`Gerado em ${new Date().toLocaleDateString('pt-BR')}`, rightColX, headerTop + 18, {
+        width: rightColWidth,
+        align: 'right',
+      })
+
+    const headerRuleY = headerTop + 38
+    drawRule(doc, headerRuleY, pageWidth, colors.text, 1)
+    doc.y = headerRuleY + 12
+
+    // Parâmetros e filtros (esquemático, sem caixas)
+    const filtros = relatorio.filtros ?? {}
+    const filtrosAtivos = [
+      filtros.tipoMeta ? `Meta: ${filtros.tipoMeta}` : null,
+      filtros.nomeLead ? `Lead: ${filtros.nomeLead}` : null,
+      filtros.empresa ? `Empresa: ${filtros.empresa}` : null,
+      filtros.cidade ? `Cidade: ${filtros.cidade}` : null,
+      filtros.nicho ? `Nicho: ${filtros.nicho}` : null,
+      filtros.status ? `Status: ${filtros.status}` : null,
+      relatorio.termometroMej ? 'Termômetro MEJ: Sim' : null,
+    ].filter(Boolean)
+
+    const metaY = doc.y
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(colors.muted).text('Responsável:', MARGIN, metaY, {
+      continued: true,
     })
-  }
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(colors.text).text(` ${relatorio.responsavel}`)
 
-  const range = doc.bufferedPageRange()
-  for (let index = range.start; index < range.start + range.count; index += 1) {
-    doc.switchToPage(index)
-    const footerY = doc.page.height - 30
-    doc.moveTo(44, footerY - 8).lineTo(doc.page.width - 44, footerY - 8).strokeColor(colors.border).stroke()
-    doc.font('Helvetica').fontSize(7).fillColor(colors.muted)
-      .text(`Relatório gerado em ${new Date().toLocaleDateString('pt-BR')}`, 44, footerY, { width: pageWidth / 2 })
-      .text(`Página ${index + 1} de ${range.count}`, 44 + pageWidth / 2, footerY, { width: pageWidth / 2, align: 'right' })
-  }
+    if (filtrosAtivos.length > 0) {
+      doc.y += 2
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8)
+        .fillColor(colors.muted)
+        .text('Filtros:', MARGIN, doc.y, { continued: true })
+      doc
+        .font('Helvetica')
+        .fontSize(8)
+        .fillColor(colors.secondary)
+        .text(` ${filtrosAtivos.join('  ·  ')}`, { width: pageWidth })
+    }
 
-  doc.end()
-})
+    drawRule(doc, doc.y + 8, pageWidth, colors.hairline, 0.5)
+    doc.y += 14
+
+    // Indicadores do período
+    drawSectionTitle(doc, 'Indicadores do período', pageWidth)
+    const negociosCriados = relatorio.negociosCriadas ?? relatorio.oportunidadesCriadas ?? 0
+    const negociosAbertos = relatorio.negociosAbertas ?? relatorio.oportunidadesAbertas ?? 0
+    const negociosFechados = relatorio.negociosFechadas ?? relatorio.oportunidadesFechadas ?? 0
+
+    drawSummaryStrip(
+      doc,
+      [
+        { label: 'Leads no período', value: relatorio.leadsNoPeriodo ?? 0, caption: 'cadastrados' },
+        { label: 'Negócios criados', value: negociosCriados, caption: 'no período' },
+        { label: 'Negócios abertos', value: negociosAbertos, caption: 'em andamento' },
+        { label: 'Negócios fechados', value: negociosFechados, caption: 'concluídos' },
+        { label: 'Taxa de conversão', value: `${relatorio.taxaConversao ?? 0}%`, caption: 'fechados / criados' },
+      ],
+      pageWidth
+    )
+
+    // Tempo médio por etapa
+    drawSectionTitle(doc, 'Tempo médio por etapa', pageWidth)
+    const stageCols = [
+      { label: 'Etapa', x: MARGIN, width: pageWidth * 0.72, align: 'left' },
+      { label: 'Tempo médio', x: MARGIN + pageWidth * 0.72, width: pageWidth * 0.28, align: 'right' },
+    ]
+    const stages = relatorio.tempoMedioPorEtapa ?? []
+
+    if (stages.length === 0) {
+      doc
+        .font('Helvetica')
+        .fontSize(8.5)
+        .fillColor(colors.muted)
+        .text('Não há etapas para exibir neste relatório.', MARGIN, doc.y)
+      doc.y += 14
+    } else {
+      drawTableHeader(doc, stageCols, pageWidth)
+      const rowHeight = 20
+      stages.forEach((item) => {
+        if (ensureSpace(doc, rowHeight + 4)) {
+          drawTableHeader(doc, stageCols, pageWidth)
+        }
+        const y = doc.y
+        doc
+          .font('Helvetica')
+          .fontSize(8.5)
+          .fillColor(colors.text)
+          .text(item.etapa, stageCols[0].x, y + 2, { width: stageCols[0].width - 8, lineBreak: false, ellipsis: true })
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(8.5)
+          .fillColor(colors.secondary)
+          .text(`${item.diasMedio} dias`, stageCols[1].x, y + 2, { width: stageCols[1].width, align: 'right', lineBreak: false })
+
+        drawRule(doc, y + rowHeight - 2, pageWidth, colors.hairline, 0.4)
+        doc.y = y + rowHeight
+      })
+    }
+
+    // Metas comerciais
+    if (relatorio.metas?.metas?.length) {
+      drawSectionTitle(doc, 'Metas comerciais no período', pageWidth)
+      const metaCols = [
+        { label: 'Vendedor', x: MARGIN, width: pageWidth * 0.25, align: 'left' },
+        { label: 'Meta', x: MARGIN + pageWidth * 0.25, width: pageWidth * 0.27, align: 'left' },
+        { label: 'Período', x: MARGIN + pageWidth * 0.52, width: pageWidth * 0.20, align: 'left' },
+        { label: 'Realizado / Alvo', x: MARGIN + pageWidth * 0.72, width: pageWidth * 0.16, align: 'right' },
+        { label: 'Progresso', x: MARGIN + pageWidth * 0.88, width: pageWidth * 0.12, align: 'right' },
+      ]
+
+      drawTableHeader(doc, metaCols, pageWidth)
+      const rowHeight = 21
+      relatorio.metas.metas.forEach((item) => {
+        if (ensureSpace(doc, rowHeight + 4)) {
+          drawTableHeader(doc, metaCols, pageWidth)
+        }
+        const y = doc.y
+        const periodoStr =
+          item.periodoInicio && item.periodoFim
+            ? `${formatDateBr(item.periodoInicio)} a ${formatDateBr(item.periodoFim)}`
+            : '-'
+
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(8.5)
+          .fillColor(colors.text)
+          .text(item.usuarioNome, metaCols[0].x, y + 2, { width: metaCols[0].width - 6, lineBreak: false, ellipsis: true })
+        doc
+          .font('Helvetica')
+          .fontSize(8)
+          .fillColor(colors.secondary)
+          .text(item.tipoLabel, metaCols[1].x, y + 2, { width: metaCols[1].width - 6, lineBreak: false, ellipsis: true })
+        doc
+          .font('Helvetica')
+          .fontSize(7.5)
+          .fillColor(colors.muted)
+          .text(periodoStr, metaCols[2].x, y + 3, { width: metaCols[2].width - 6, lineBreak: false, ellipsis: true })
+        doc
+          .font('Helvetica')
+          .fontSize(8.5)
+          .fillColor(colors.text)
+          .text(`${item.valorRealizado} / ${item.valorAlvo}`, metaCols[3].x, y + 2, {
+            width: metaCols[3].width,
+            align: 'right',
+            lineBreak: false,
+          })
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(8.5)
+          .fillColor(colors.text)
+          .text(`${item.progressoPercentual}%`, metaCols[4].x, y + 2, {
+            width: metaCols[4].width,
+            align: 'right',
+            lineBreak: false,
+          })
+
+        drawRule(doc, y + rowHeight - 2, pageWidth, colors.hairline, 0.4)
+        doc.y = y + rowHeight
+      })
+    }
+
+    // Termômetro MEJ
+    if (relatorio.termometroMej) {
+      const tm = relatorio.termometroMej
+      drawSectionTitle(doc, `Termômetro MEJ · Faturamento ${tm.ano}`, pageWidth)
+
+      if (!tm.disponivel) {
+        doc
+          .font('Helvetica')
+          .fontSize(8.5)
+          .fillColor(colors.muted)
+          .text('Nenhuma leitura do Portal Brasil Júnior foi salva até o momento.', MARGIN, doc.y)
+        doc.y += 14
+      } else {
+        const percentualNum = Number(tm.percentual ?? 0)
+        const percentualText = `${percentualNum.toFixed(1).replace('.', ',')}%`
+
+        drawSummaryStrip(
+          doc,
+          [
+            { label: 'Faturamento alcançado', value: tm.alcancadoFormatado, caption: 'Portal Brasil Júnior' },
+            { label: 'Meta anual', value: tm.metaFormatada, caption: `exercício ${tm.ano}` },
+            { label: 'Gap para a meta', value: tm.gapFormatado, caption: 'restante' },
+            { label: 'Percentual atingido', value: percentualText, caption: 'da meta anual' },
+          ],
+          pageWidth
+        )
+
+        doc
+          .font('Helvetica')
+          .fontSize(7.5)
+          .fillColor(colors.muted)
+          .text(`Última atualização: ${formatDateTimeBr(tm.coletadoEm)}`, MARGIN, doc.y)
+        doc.y += 10
+      }
+    }
+
+    // Rodapé em todas as páginas
+    const range = doc.bufferedPageRange()
+    for (let index = range.start; index < range.start + range.count; index += 1) {
+      doc.switchToPage(index)
+      const prevBottom = doc.page.margins.bottom
+      doc.page.margins.bottom = 0
+      const footerY = doc.page.height - 28
+      drawRule(doc, footerY - 8, pageWidth, colors.hairline, 0.5)
+      doc
+        .font('Helvetica')
+        .fontSize(7.5)
+        .fillColor(colors.muted)
+        .text('CRM CompAct.Jr · Relatório Comercial', MARGIN, footerY, {
+          width: pageWidth / 2,
+          lineBreak: false,
+        })
+        .text(`Página ${index + 1} de ${range.count}`, MARGIN + pageWidth / 2, footerY, {
+          width: pageWidth / 2,
+          align: 'right',
+          lineBreak: false,
+        })
+      doc.page.margins.bottom = prevBottom
+    }
+
+    doc.end()
+  })

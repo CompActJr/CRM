@@ -17,6 +17,17 @@ const formatDateBr = (isoDate) => {
   return `${day}/${month}/${year}`
 }
 
+const formatDateTimeBr = (value) => {
+  if (!value) return 'Ainda não sincronizado'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Data indisponível'
+  return date.toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
+}
+
 const applyBorder = (cell) => {
   cell.border = {
     top: { style: 'thin', color: { argb: Styles.borderColor } },
@@ -258,6 +269,77 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
       })
       currentRow += 1
     })
+  }
+
+  if (relatorio.termometroMej) {
+    const tm = relatorio.termometroMej
+    currentRow += 1
+
+    mergeAndStyleRow(sheet, currentRow, 1, 3, `Termômetro MEJ — Faturamento ${tm.ano}`, (cell) => {
+      cell.font = { name: Styles.fontName, bold: true, size: 12, color: { argb: Styles.sectionFont } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.sectionFill } }
+      cell.alignment = { horizontal: 'left', vertical: 'middle' }
+    })
+    currentRow += 1
+
+    if (!tm.disponivel) {
+      mergeAndStyleRow(
+        sheet,
+        currentRow,
+        1,
+        3,
+        'Nenhuma leitura do Portal Brasil Júnior foi salva até o momento.',
+        (cell) => {
+          cell.font = { name: Styles.fontName, size: 11, color: { argb: Styles.sectionFont } }
+          cell.alignment = { horizontal: 'left', vertical: 'middle' }
+        }
+      )
+      currentRow += 1
+    } else {
+      const tmHeaderRow = sheet.getRow(currentRow)
+      tmHeaderRow.getCell(1).value = 'Métrica'
+      tmHeaderRow.getCell(2).value = 'Valor'
+      sheet.mergeCells(currentRow, 2, currentRow, 3)
+      forEachCellInRange(sheet, currentRow, 1, 3, (cell) => {
+        cell.font = { name: Styles.fontName, bold: true, size: 11, color: { argb: Styles.sectionFont } }
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.headerFill } }
+        cell.alignment = { horizontal: 'center', vertical: 'middle' }
+        applyBorder(cell)
+      })
+      tmHeaderRow.height = 24
+      currentRow += 1
+
+      const percentualNum = Number(tm.percentual ?? 0)
+      const tmRows = [
+        ['Faturamento alcançado', tm.alcancadoFormatado],
+        ['Meta anual', tm.metaFormatada],
+        ['Gap para a meta', tm.gapFormatado],
+        ['Percentual atingido', `${percentualNum.toFixed(1).replace('.', ',')}%`],
+        ['Última atualização', formatDateTimeBr(tm.coletadoEm)],
+      ]
+
+      tmRows.forEach(([label, value], index) => {
+        const row = sheet.getRow(currentRow)
+        row.getCell(1).value = label
+        row.getCell(2).value = value
+        sheet.mergeCells(currentRow, 2, currentRow, 3)
+
+        const isZebra = index % 2 === 0
+        forEachCellInRange(sheet, currentRow, 1, 3, (cell, col) => {
+          cell.font = { name: Styles.fontName, size: 11, color: { argb: Styles.sectionFont } }
+          if (isZebra) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.zebraFill } }
+          }
+          cell.alignment = {
+            horizontal: col === 1 ? 'left' : 'center',
+            vertical: 'middle',
+          }
+          applyBorder(cell)
+        })
+        row.height = 22
+        currentRow += 1
+      })
+    }
   }
 
   sheet.pageSetup = {

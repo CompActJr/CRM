@@ -306,6 +306,8 @@ model TermometroMej {
   ultimoStatusColeta String    @default("PENDENTE") @map("ultimo_status_coleta") @db.VarChar(20)
   ultimoErro         String?   @map("ultimo_erro") @db.Text
   ultimaTentativaEm  DateTime? @map("ultima_tentativa_em")
+  sincronizacoesManuaisDia      Int     @default(0) @map("sincronizacoes_manuais_dia")
+  ultimaSincronizacaoManualData String? @map("ultima_sincronizacao_manual_data") @db.VarChar(10)
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 

@@ -124,10 +124,12 @@ function Negocios({ setScreen, onNewNegocio, onEditNegocio, onViewNegocio }) {
                     <td>{negocio.responsavel}</td>
                     <td>{negocio.etapa}</td>
                     <td>{negocio.valor}</td>
-                    <td className="actions">
-                      <Eye size={16} onClick={() => onViewNegocio(negocio.id)} />
-                      <Edit size={16} onClick={() => onEditNegocio(negocio.id)} />
-                      <Trash2 size={16} onClick={() => handleDelete(negocio)} />
+                    <td>
+                      <div className="actions">
+                        <Eye size={16} onClick={() => onViewNegocio(negocio.id)} />
+                        <Edit size={16} onClick={() => onEditNegocio(negocio.id)} />
+                        <Trash2 size={16} onClick={() => handleDelete(negocio)} />
+                      </div>
                     </td>
                   </tr>
                 ))
