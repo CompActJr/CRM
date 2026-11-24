@@ -24,6 +24,7 @@ import tarefasRoutes from './routes/tarefas.routes.js'
 import propostasRoutes from './routes/propostas.routes.js'
 import usuariosRoutes from './routes/usuarios.routes.js'
 import metasRoutes from './routes/metas.routes.js'
+import { startTermometroScheduler } from './jobs/termometroScheduler.js'
 
 const app = express()
 
@@ -84,4 +85,5 @@ app.use(errorHandler)
 
 app.listen(Config.port, () => {
   console.log(`API rodando em http://localhost:${Config.port}`)
+  startTermometroScheduler()
 })

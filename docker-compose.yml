@@ -11,6 +11,11 @@ services:
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       SUPABASE_AVATARS_BUCKET: ${SUPABASE_AVATARS_BUCKET}
+      PORTAL_BJ_EMAIL: ${PORTAL_BJ_EMAIL:-}
+      PORTAL_BJ_SENHA: ${PORTAL_BJ_SENHA:-}
+      PORTAL_BJ_URL: ${PORTAL_BJ_URL:-https://portal.brasiljunior.org.br/ejs/compact-jr-2025/perfil?ejId=compact-jr-2025&year=2026}
+      PORTAL_BJ_ANO: ${PORTAL_BJ_ANO:-2026}
+      PORTAL_BJ_CRON: ${PORTAL_BJ_CRON:-0 7,19 * * *}
       PORT: 3333
     ports:
       - "3333:3333"

@@ -1,5 +1,30 @@
 export const Config = {
-  port: Number(process.env.PORT) || 3333,
+  get port() {
+    return Number(process.env.PORT) || 3333
+  },
+  portalBj: {
+    get email() {
+      return process.env.PORTAL_BJ_EMAIL || ''
+    },
+    get senha() {
+      return process.env.PORTAL_BJ_SENHA || ''
+    },
+    get url() {
+      return (
+        process.env.PORTAL_BJ_URL ||
+        'https://portal.brasiljunior.org.br/ejs/compact-jr-2025/perfil?ejId=compact-jr-2025&year=2026'
+      )
+    },
+    get ano() {
+      return Number(process.env.PORTAL_BJ_ANO) || 2026
+    },
+    get cron() {
+      return process.env.PORTAL_BJ_CRON || '0 7,19 * * *'
+    },
+    get chromiumPath() {
+      return process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || ''
+    },
+  },
 }
 
 export const EtapasFunilDefault = [

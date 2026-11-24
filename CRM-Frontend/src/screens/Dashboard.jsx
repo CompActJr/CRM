@@ -2,7 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 import { ChevronDown, ChevronUp, Target, TrendingUp } from 'lucide-react'
 import Header from '../components/layout/Header'
 import Metric from '../components/common/Metric'
-import { fetchDashboardAtividades, fetchDashboardStats } from '../services/dashboardService'
+import TermometroMejCard from '../components/dashboard/TermometroMejCard'
+import { useSession } from '../context/SessionContext'
+import { isAdministrador } from '../utils/userAccess'
+import {
+  fetchDashboardAtividades,
+  fetchDashboardStats,
+  fetchTermometroMej,
+  syncTermometroMej,
+} from '../services/dashboardService'
 import { fetchMetasDashboard } from '../services/metasService'
 
 const PeriodoOptions = [
@@ -14,8 +22,14 @@ const PeriodoOptions = [
 ]
 
 function Dashboard({ onViewLead, onViewNegocio }) {
+  const currentUser = useSession()
+  const isAdmin = isAdministrador(currentUser)
   const [stats, setStats] = useState(null)
   const [metasStats, setMetasStats] = useState(null)
+  const [termometro, setTermometro] = useState(null)
+  const [termometroLoading, setTermometroLoading] = useState(true)
+  const [termometroSyncing, setTermometroSyncing] = useState(false)
+  const [termometroSyncError, setTermometroSyncError] = useState('')
   const [atividades, setAtividades] = useState([])
   const [atividadesMinimizadas, setAtividadesMinimizadas] = useState(false)
   const [meses, setMeses] = useState(6)
@@ -65,6 +79,30 @@ function Dashboard({ onViewLead, onViewNegocio }) {
     }
   }, [])
 
+  const loadTermometro = useCallback(async () => {
+    setTermometroLoading(true)
+    try {
+      setTermometro(await fetchTermometroMej())
+    } catch {
+      setTermometro(null)
+    } finally {
+      setTermometroLoading(false)
+    }
+  }, [])
+
+  const handleSyncTermometro = async () => {
+    setTermometroSyncing(true)
+    setTermometroSyncError('')
+    try {
+      const updated = await syncTermometroMej()
+      setTermometro(updated)
+    } catch (requestError) {
+      setTermometroSyncError(requestError.message || 'Erro ao sincronizar Termômetro MEJ.')
+    } finally {
+      setTermometroSyncing(false)
+    }
+  }
+
   useEffect(() => {
     loadStats()
   }, [loadStats])
@@ -76,6 +114,10 @@ function Dashboard({ onViewLead, onViewNegocio }) {
   useEffect(() => {
     loadAtividades()
   }, [loadAtividades])
+
+  useEffect(() => {
+    loadTermometro()
+  }, [loadTermometro])
 
   const renderChartTitle = () => {
     if (!stats) return ''
@@ -158,6 +200,14 @@ function Dashboard({ onViewLead, onViewNegocio }) {
           change={`${stats.negociosEmAndamento?.quantidade ?? 0} negócios em andamento`}
         />
       </section>
+      <TermometroMejCard
+        termometro={termometro}
+        loading={termometroLoading}
+        syncing={termometroSyncing}
+        syncError={termometroSyncError}
+        isAdmin={isAdmin}
+        onSync={handleSyncTermometro}
+      />
       <section className="gridTwo">
         <div className="panel">
           <h2>{renderChartTitle()}</h2>

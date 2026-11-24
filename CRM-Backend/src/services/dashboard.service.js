@@ -1,5 +1,7 @@
+import { Config } from '../config/constants.js'
 import prisma from '../lib/prisma.js'
 import { formatCurrencyBr } from '../utils/currency.js'
+import { syncTermometroMej } from './portalBjScraper.service.js'
 import {
   buildEtapaEvento,
   buildInteracaoEvento,
@@ -400,5 +402,74 @@ const buildLeadsChartData = (leads, periodInfo) => {
     count: item.count,
     height: item.count === 0 || maxCount === 0 ? 0 : Math.max(18, Math.round((item.count / maxCount) * 100)),
   }))
+}
+
+const SYNC_COOLDOWN_MS = 5 * 60 * 1000
+
+const formatTermometroDto = (record, ano) => {
+  if (!record || !record.coletadoEm) {
+    return {
+      disponivel: false,
+      ano,
+      alcancado: 0,
+      meta: 0,
+      gap: 0,
+      percentual: 0,
+      alcancadoFormatado: formatCurrencyBr(0),
+      metaFormatada: formatCurrencyBr(0),
+      gapFormatado: formatCurrencyBr(0),
+      coletadoEm: null,
+      ultimoStatusColeta: record?.ultimoStatusColeta ?? 'PENDENTE',
+      ultimoErro: record?.ultimoErro ?? null,
+      ultimaTentativaEm: record?.ultimaTentativaEm ?? null,
+    }
+  }
+
+  const alcancado = Number(record.alcancado || 0)
+  const meta = Number(record.meta || 0)
+  const gap = Number(record.gap || 0)
+  const percentual = Number(record.percentual || 0)
+
+  return {
+    disponivel: true,
+    ano: record.ano,
+    alcancado,
+    meta,
+    gap,
+    percentual,
+    alcancadoFormatado: formatCurrencyBr(alcancado),
+    metaFormatada: formatCurrencyBr(meta),
+    gapFormatado: formatCurrencyBr(gap),
+    coletadoEm: record.coletadoEm,
+    ultimoStatusColeta: record.ultimoStatusColeta,
+    ultimoErro: record.ultimoErro,
+    ultimaTentativaEm: record.ultimaTentativaEm,
+  }
+}
+
+export const getTermometroMej = async (anoParam) => {
+  const ano = Number(anoParam) || Config.portalBj.ano
+  const record = await prisma.termometroMej.findUnique({ where: { ano } })
+  return formatTermometroDto(record, ano)
+}
+
+export const triggerTermometroSync = async () => {
+  const ano = Config.portalBj.ano
+  const existing = await prisma.termometroMej.findUnique({ where: { ano } })
+
+  if (existing?.ultimaTentativaEm) {
+    const elapsed = Date.now() - new Date(existing.ultimaTentativaEm).getTime()
+    if (elapsed < SYNC_COOLDOWN_MS) {
+      const remainingMinutes = Math.ceil((SYNC_COOLDOWN_MS - elapsed) / 60000)
+      const error = new Error(
+        `Aguarde ${remainingMinutes} min antes de sincronizar o Termômetro MEJ novamente.`
+      )
+      error.statusCode = 429
+      throw error
+    }
+  }
+
+  await syncTermometroMej()
+  return getTermometroMej(ano)
 }
 
