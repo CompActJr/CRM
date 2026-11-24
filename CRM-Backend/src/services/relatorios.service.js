@@ -5,6 +5,7 @@ import { buildRelatorioExcelBuffer } from '../utils/relatorioExcel.js'
 import { buildRelatorioPdfBuffer } from '../utils/relatorioPdf.js'
 import { calcularTempoMedioPorEtapa } from './negocioEtapaHistorico.service.js'
 import { getMetasDashboardStats, normalizeTipoMeta } from './metas.service.js'
+import { getTermometroMej } from './dashboard.service.js'
 
 const TipoMetaLabels = {
   LEADS: 'Meta de Leads Mapeados',
@@ -63,6 +64,10 @@ const parseRelatorioFilters = (query) => {
     cidade: query.cidade?.trim() || null,
     nicho: query.nicho?.trim() || null,
     status: ['Ativo', 'Inativo'].includes(query.status) ? query.status : null,
+    incluirTermometro:
+      query.incluirTermometro === 'true' ||
+      query.incluirTermometro === '1' ||
+      query.incluirTermometro === true,
   }
 }
 
@@ -148,6 +153,7 @@ export const gerarRelatorio = async (query) => {
     negociosFechadas,
     tempoMedioPorEtapa,
     metasResult,
+    termometroMej,
   ] = await Promise.all([
     prisma.lead.count({ where: leadWhere }),
     prisma.negocio.findMany({
@@ -178,6 +184,7 @@ export const gerarRelatorio = async (query) => {
       usuarioId: filters.usuarioId || undefined,
       tipoMeta: filters.tipoMeta,
     }).catch(() => null),
+    filters.incluirTermometro ? getTermometroMej().catch(() => null) : Promise.resolve(null),
   ])
 
   const totalNegocios = negociosNoPeriodo.length
@@ -211,6 +218,7 @@ export const gerarRelatorio = async (query) => {
     taxaConversao,
     tempoMedioPorEtapa,
     metas: metasResult,
+    termometroMej,
   }
 }
 

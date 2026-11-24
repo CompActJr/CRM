@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { BarChart3, CheckCircle2, Download, RefreshCw, Target, Users } from 'lucide-react'
 import Header from '../components/layout/Header'
 import SearchableSelect, { buildUniqueSelectOptions } from '../components/common/SearchableSelect'
+import TermometroMejCard from '../components/dashboard/TermometroMejCard'
 import { downloadRelatorioExcel, downloadRelatorioPdf, fetchRelatorio, fetchRelatorioOpcoes } from '../services/relatoriosService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
 
@@ -36,6 +37,7 @@ function Relatorios() {
   const [period, setPeriod] = useState(getDefaultPeriod)
   const [usuarioId, setUsuarioId] = useState('todos')
   const [tipoMeta, setTipoMeta] = useState('todos')
+  const [incluirTermometro, setIncluirTermometro] = useState(false)
   const [usuarios, setUsuarios] = useState([])
   const [opcoesLead, setOpcoesLead] = useState({ nomes: [], empresas: [], cidades: [], nichos: [], status: [] })
   const [filtrosLead, setFiltrosLead] = useState({ nomeLead: '', empresa: '', cidade: '', nicho: '', status: '' })
@@ -61,7 +63,13 @@ function Relatorios() {
     [opcoesLead.empresas]
   )
 
-  const buildParams = () => ({ ...period, usuarioId, tipoMeta, ...filtrosLead })
+  const buildParams = () => ({
+    ...period,
+    usuarioId,
+    tipoMeta,
+    ...filtrosLead,
+    ...(incluirTermometro ? { incluirTermometro: 'true' } : {}),
+  })
 
   const handleGerar = async (event) => {
     event.preventDefault()
@@ -116,6 +124,7 @@ function Relatorios() {
         filtrosAplicados.cidade && `Cidade: ${filtrosAplicados.cidade}`,
         filtrosAplicados.nicho && `Nicho: ${filtrosAplicados.nicho}`,
         filtrosAplicados.status && `Status: ${filtrosAplicados.status}`,
+        filtrosAplicados.incluirTermometro && 'Termômetro MEJ',
       ].filter(Boolean)
     : []
 
@@ -184,6 +193,14 @@ function Relatorios() {
             {TipoMetaOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
           </select>
         </label>
+        <label className="reportCheckboxLabel">
+          <input
+            type="checkbox"
+            checked={incluirTermometro}
+            onChange={(e) => setIncluirTermometro(e.target.checked)}
+          />
+          <span>Incluir métricas do Termômetro MEJ</span>
+        </label>
         <button type="submit" className="primaryBtn reportGenerateBtn" disabled={loading || exporting}>
           {loading ? <RefreshCw size={18} className="reportSpinner" /> : <BarChart3 size={18} />}
           {loading ? 'Gerando...' : 'Gerar relatório'}
@@ -224,6 +241,14 @@ function Relatorios() {
             <article className="metric reportMetric"><div className="reportMetricIcon green"><CheckCircle2 size={19} /></div><span>Negócios fechados</span><strong>{relatorio.negociosFechadas}</strong><small>concluídos com sucesso</small></article>
             <article className="metric reportMetric"><div className="reportMetricIcon green"><CheckCircle2 size={19} /></div><span>Taxa de conversão</span><strong>{relatorio.taxaConversao}%</strong><small>fechadas / criadas no período</small></article>
           </section>
+
+          {relatorio.termometroMej && (
+            <TermometroMejCard
+              termometro={relatorio.termometroMej}
+              loading={false}
+              isAdmin={false}
+            />
+          )}
 
           <section className="gridTwo reportDetailsGrid">
             <div className="panel">

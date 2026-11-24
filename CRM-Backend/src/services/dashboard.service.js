@@ -1,7 +1,7 @@
 import { Config } from '../config/constants.js'
 import prisma from '../lib/prisma.js'
 import { formatCurrencyBr } from '../utils/currency.js'
-import { syncTermometroMej } from './portalBjScraper.service.js'
+import { isTermometroSyncRunning, syncTermometroMej } from './portalBjScraper.service.js'
 import {
   buildEtapaEvento,
   buildInteracaoEvento,
@@ -405,8 +405,26 @@ const buildLeadsChartData = (leads, periodInfo) => {
 }
 
 const SYNC_COOLDOWN_MS = 5 * 60 * 1000
+const DAILY_MANUAL_SYNC_LIMIT = 2
+
+const getTodayBrDate = (date = new Date()) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(date)
+
+const getManualSyncUsage = (record, todayBr = getTodayBrDate()) => {
+  const usadasHoje =
+    record?.ultimaSincronizacaoManualData === todayBr
+      ? Number(record.sincronizacoesManuaisDia || 0)
+      : 0
+  return {
+    sincronizacoesManuaisHoje: usadasHoje,
+    limiteSincronizacoesDia: DAILY_MANUAL_SYNC_LIMIT,
+    sincronizacoesRestantesHoje: Math.max(0, DAILY_MANUAL_SYNC_LIMIT - usadasHoje),
+  }
+}
 
 const formatTermometroDto = (record, ano) => {
+  const usage = getManualSyncUsage(record)
+
   if (!record || !record.coletadoEm) {
     return {
       disponivel: false,
@@ -422,6 +440,7 @@ const formatTermometroDto = (record, ano) => {
       ultimoStatusColeta: record?.ultimoStatusColeta ?? 'PENDENTE',
       ultimoErro: record?.ultimoErro ?? null,
       ultimaTentativaEm: record?.ultimaTentativaEm ?? null,
+      ...usage,
     }
   }
 
@@ -444,6 +463,7 @@ const formatTermometroDto = (record, ano) => {
     ultimoStatusColeta: record.ultimoStatusColeta,
     ultimoErro: record.ultimoErro,
     ultimaTentativaEm: record.ultimaTentativaEm,
+    ...usage,
   }
 }
 
@@ -454,8 +474,32 @@ export const getTermometroMej = async (anoParam) => {
 }
 
 export const triggerTermometroSync = async () => {
+  if (isTermometroSyncRunning()) {
+    const error = new Error('Sincronização do Termômetro MEJ já está em andamento.')
+    error.statusCode = 409
+    throw error
+  }
+
+  if (!Config.portalBj.email || !Config.portalBj.senha) {
+    const error = new Error(
+      'Credenciais do Portal BJ não configuradas (PORTAL_BJ_EMAIL / PORTAL_BJ_SENHA).'
+    )
+    error.statusCode = 400
+    throw error
+  }
+
   const ano = Config.portalBj.ano
+  const todayBr = getTodayBrDate()
   const existing = await prisma.termometroMej.findUnique({ where: { ano } })
+  const usage = getManualSyncUsage(existing, todayBr)
+
+  if (usage.sincronizacoesRestantesHoje <= 0) {
+    const error = new Error(
+      `Limite diário de ${DAILY_MANUAL_SYNC_LIMIT} sincronizações manuais do Termômetro MEJ atingido. Tente novamente amanhã.`
+    )
+    error.statusCode = 429
+    throw error
+  }
 
   if (existing?.ultimaTentativaEm) {
     const elapsed = Date.now() - new Date(existing.ultimaTentativaEm).getTime()
@@ -468,6 +512,19 @@ export const triggerTermometroSync = async () => {
       throw error
     }
   }
+
+  await prisma.termometroMej.upsert({
+    where: { ano },
+    create: {
+      ano,
+      sincronizacoesManuaisDia: 1,
+      ultimaSincronizacaoManualData: todayBr,
+    },
+    update: {
+      sincronizacoesManuaisDia: usage.sincronizacoesManuaisHoje + 1,
+      ultimaSincronizacaoManualData: todayBr,
+    },
+  })
 
   await syncTermometroMej()
   return getTermometroMej(ano)

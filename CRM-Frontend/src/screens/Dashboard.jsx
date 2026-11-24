@@ -91,6 +91,7 @@ function Dashboard({ onViewLead, onViewNegocio }) {
   }, [])
 
   const handleSyncTermometro = async () => {
+    if (!isAdmin) return
     setTermometroSyncing(true)
     setTermometroSyncError('')
     try {
@@ -98,6 +99,7 @@ function Dashboard({ onViewLead, onViewNegocio }) {
       setTermometro(updated)
     } catch (requestError) {
       setTermometroSyncError(requestError.message || 'Erro ao sincronizar Termômetro MEJ.')
+      fetchTermometroMej().then(setTermometro).catch(() => {})
     } finally {
       setTermometroSyncing(false)
     }

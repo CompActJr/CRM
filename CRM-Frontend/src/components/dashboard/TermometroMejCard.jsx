@@ -30,6 +30,12 @@ function TermometroMejCard({
   const percentual = Number(termometro?.percentual ?? 0)
   const clampedPercentual = Math.max(0, Math.min(100, percentual))
   const toneClass = getProgressToneClass(percentual)
+  const limiteDiario = Number(termometro?.limiteSincronizacoesDia ?? 2)
+  const restantesHoje =
+    termometro?.sincronizacoesRestantesHoje !== undefined
+      ? Number(termometro.sincronizacoesRestantesHoje)
+      : limiteDiario
+  const limitReached = restantesHoje <= 0
 
   return (
     <section className="panel termometroPanel" aria-labelledby="termometro-mej-title">
@@ -53,15 +59,31 @@ function TermometroMejCard({
             </span>
           )}
           {isAdmin && (
-            <button
-              type="button"
-              className="secondaryBtn termometroSyncBtn"
-              onClick={onSync}
-              disabled={syncing || loading}
-            >
-              <RefreshCw size={15} className={syncing ? 'termometroSpin' : ''} />
-              {syncing ? 'Sincronizando...' : 'Sincronizar agora'}
-            </button>
+            <>
+              <span className="termometroSyncQuota">
+                {limitReached
+                  ? `Limite diário atingido (${limiteDiario}/${limiteDiario})`
+                  : `${restantesHoje}/${limiteDiario} sinc. restantes hoje`}
+              </span>
+              <button
+                type="button"
+                className="secondaryBtn termometroSyncBtn"
+                onClick={onSync}
+                disabled={syncing || loading || limitReached}
+                title={
+                  limitReached
+                    ? 'Limite diário de 2 sincronizações atingido'
+                    : 'Sincronizar dados com o Portal Brasil Júnior'
+                }
+              >
+                <RefreshCw size={15} className={syncing ? 'termometroSpin' : ''} />
+                {syncing
+                  ? 'Sincronizando...'
+                  : limitReached
+                    ? 'Limite diário atingido'
+                    : 'Sincronizar agora'}
+              </button>
+            </>
           )}
         </div>
       </div>
