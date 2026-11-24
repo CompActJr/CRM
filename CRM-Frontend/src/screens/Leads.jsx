@@ -399,7 +399,7 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
                 <th style={{ minWidth: '110px' }}>Nicho</th>
                 <th style={{ minWidth: '120px' }}>Data de cadastro</th>
                 <th style={{ minWidth: '90px' }}>Status</th>
-                <th style={{ minWidth: '90px' }}>Ações</th>
+                <th style={{ minWidth: '108px' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -435,10 +435,12 @@ function Leads({ setScreen, onEditLead, onNewLead, onViewLead }) {
                     <td>
                       <span className={lead.status === 'Ativo' ? 'tag ok' : 'tag danger'}>{lead.status}</span>
                     </td>
-                    <td className="actions">
-                      <Eye size={16} onClick={() => onViewLead(lead.id)} />
-                      <Edit size={16} onClick={() => onEditLead(lead.id)} />
-                      <Trash2 size={16} onClick={() => handleDelete(lead)} />
+                    <td>
+                      <div className="actions">
+                        <Eye size={16} onClick={() => onViewLead(lead.id)} />
+                        <Edit size={16} onClick={() => onEditLead(lead.id)} />
+                        <Trash2 size={16} onClick={() => handleDelete(lead)} />
+                      </div>
                     </td>
                   </tr>
                 ))

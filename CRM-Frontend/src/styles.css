@@ -1324,8 +1324,14 @@ th {
 
 .actions {
   display: flex;
+  align-items: center;
   gap: 12px;
   color: var(--color-primary);
+}
+
+.actions svg {
+  flex-shrink: 0;
+  cursor: pointer;
 }
 
 .tag {
