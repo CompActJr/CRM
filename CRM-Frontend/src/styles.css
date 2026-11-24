@@ -2613,6 +2613,7 @@ th {
 .searchableSelectContainer {
   position: relative;
   user-select: none;
+  min-width: 0;
 }
 
 .searchableSelectLabel {
@@ -2620,6 +2621,10 @@ th {
   font-weight: 700;
   color: var(--color-text-tertiary);
   margin-bottom: 2px;
+}
+
+.searchableSelectRequired {
+  color: #ef4444;
 }
 
 .searchableSelectTrigger {
@@ -2636,6 +2641,12 @@ th {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.searchableSelectContainer.compact .searchableSelectTrigger {
+  min-height: 40px;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
 .searchableSelectTrigger:hover {
   border-color: var(--color-text-subtle);
 }
@@ -2646,14 +2657,25 @@ th {
   outline: none;
 }
 
+.searchableSelectTrigger.error {
+  border-color: #ef4444;
+}
+
 .searchableSelectTrigger.disabled {
   background: var(--color-bg-alt);
   cursor: not-allowed;
   opacity: 0.7;
 }
 
+.searchableSelectError {
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+}
+
 .searchableSelectValueArea {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -2662,12 +2684,22 @@ th {
 }
 
 .searchableSelectPlaceholder {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--color-text-subtle);
   font-size: 14px;
   font-weight: 400;
 }
 
 .searchableSelectSingleValue {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--color-text);
   font-size: 14px;
   font-weight: 500;
@@ -2839,7 +2871,8 @@ th {
   color: var(--color-text-tertiary);
 }
 
-.searchableSelectOption:hover {
+.searchableSelectOption:hover,
+.searchableSelectOption.highlighted {
   background: var(--color-bg-alt);
 }
 
@@ -2847,6 +2880,10 @@ th {
   background: #eff6ff;
   color: #1d4ed8;
   font-weight: 600;
+}
+
+.searchableSelectOption.selected.highlighted {
+  background: #dbeafe;
 }
 
 .optionTextCol {
@@ -2878,6 +2915,33 @@ th {
   text-align: center;
   color: var(--color-text-subtle);
   font-size: 13px;
+}
+
+.searchableSelectContainer.compact .searchableSelectDropdown {
+  min-width: 240px;
+}
+
+.toolbar .searchableSelectContainer,
+.timelineFilters .searchableSelectContainer,
+.funilSummaryToolbar .searchableSelectContainer {
+  min-width: 220px;
+  flex: 0 0 auto;
+}
+
+.reportFilters .searchableSelectContainer {
+  gap: 6px;
+}
+
+.reportFilters .searchableSelectLabel {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: 0;
+}
+
+.reportFilters .searchableSelectTrigger {
+  border-radius: 10px;
+  min-height: 41px;
+  padding: 6px 12px;
 }
 
 .funilSummaryToolbar {

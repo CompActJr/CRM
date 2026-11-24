@@ -225,13 +225,15 @@ export const exportarRelatorioExcel = async (query) => {
 }
 
 export const obterOpcoesRelatorio = async () => {
-  const [empresas, cidades, nichos] = await Promise.all([
+  const [nomes, empresas, cidades, nichos] = await Promise.all([
+    prisma.lead.findMany({ select: { nome: true }, distinct: ['nome'], orderBy: { nome: 'asc' } }),
     prisma.lead.findMany({ where: { empresa: { not: null } }, select: { empresa: true }, distinct: ['empresa'], orderBy: { empresa: 'asc' } }),
     prisma.lead.findMany({ where: { cidade: { not: null } }, select: { cidade: true }, distinct: ['cidade'], orderBy: { cidade: 'asc' } }),
     prisma.lead.findMany({ where: { nicho: { not: null } }, select: { nicho: true }, distinct: ['nicho'], orderBy: { nicho: 'asc' } }),
   ])
 
   return {
+    nomes: nomes.map(({ nome }) => nome).filter(Boolean),
     empresas: empresas.map(({ empresa }) => empresa).filter(Boolean),
     cidades: cidades.map(({ cidade }) => cidade).filter(Boolean),
     nichos: nichos.map(({ nicho }) => nicho).filter(Boolean),
