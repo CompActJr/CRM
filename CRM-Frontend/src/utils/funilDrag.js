@@ -1,4 +1,5 @@
-export const ETAPA_PERDIDA = 'Perdida'
+export const isEtapaPerdida = (nomeEtapa) =>
+  nomeEtapa?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase() === 'perdida'
 
 export const isEtapaVendida = (nomeEtapa) => {
   if (!nomeEtapa) return false

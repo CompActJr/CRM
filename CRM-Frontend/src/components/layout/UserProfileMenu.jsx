@@ -328,7 +328,7 @@ function UserProfileMenu({ currentUser, onLogout, setScreen, onUpdateUser }) {
                       Valor Total de Negócios em Andamento
                     </h4>
                     <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--color-text-secondary, #475569)' }}>
-                      Pipeline ativo atual: soma do valor estimado de todos os negócios que estão em etapas abertas do funil (desconsiderando etapas finais de "Fechado" e "Perdida").
+                      Pipeline ativo atual: soma do valor estimado dos negócios em etapas abertas do funil, sem incluir negócios marcados como perdidos ou fechados.
                     </p>
                   </div>
                 </>
@@ -380,7 +380,7 @@ function UserProfileMenu({ currentUser, onLogout, setScreen, onUpdateUser }) {
                     </p>
                     <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '13px', color: 'var(--color-text-muted, #64748b)' }}>
                       <li><strong>Descarte de Lead:</strong> O lead recebe o status <em>Inativo</em> e sai do fluxo ativo de abordagem.</li>
-                      <li><strong>Negócio Perdido:</strong> A oportunidade é movida para a etapa <em>Perdida</em> com data de encerramento registrada.</li>
+                      <li><strong>Negócio Perdido:</strong> A oportunidade é marcada como perdida com o motivo selecionado; a etapa atual do funil é mantida.</li>
                     </ul>
                   </div>
 

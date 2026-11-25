@@ -8,6 +8,7 @@ const colors = {
   blue: '#2563eb',
   green: '#15803d',
   amber: '#b45309',
+  red: '#dc2626',
 }
 
 const formatDateBr = (isoDate) => {
@@ -33,6 +34,9 @@ const ensureSpace = (doc, height) => {
 }
 
 export const buildRelatorioPdfBuffer = (relatorio) => new Promise((resolve, reject) => {
+  const visualizacaoPerdas = relatorio.visualizacaoPerdas ?? 'tudo'
+  const mostrarEstatisticasComerciais = visualizacaoPerdas !== 'apenas_perdas'
+  const mostrarEstatisticasPerdas = visualizacaoPerdas !== 'sem_perdas'
   const doc = new PDFDocument({ size: 'A4', margin: 44, bufferPages: true })
   const chunks = []
   doc.on('data', (chunk) => chunks.push(chunk))
@@ -57,6 +61,7 @@ export const buildRelatorioPdfBuffer = (relatorio) => new Promise((resolve, reje
     filtros.cidade ? `Cidade: ${filtros.cidade}` : null,
     filtros.nicho ? `Nicho: ${filtros.nicho}` : null,
     filtros.status ? `Status: ${filtros.status}` : null,
+    filtros.visualizacaoPerdas ? `Visualização: ${filtros.visualizacaoPerdas}` : null,
   ].filter(Boolean)
   const alturaFiltros = filtrosAtivos.length > 0 ? 78 : 43
   doc.roundedRect(44, doc.y, pageWidth, alturaFiltros, 7).fill(colors.pale)
@@ -68,13 +73,20 @@ export const buildRelatorioPdfBuffer = (relatorio) => new Promise((resolve, reje
   }
   doc.y += alturaFiltros + 15
 
-  drawSectionTitle(doc, 'Indicadores do período')
+  drawSectionTitle(doc, visualizacaoPerdas === 'apenas_perdas' ? 'Estatísticas de perdas' : 'Indicadores do período')
   const metrics = [
-    ['Leads no período', relatorio.leadsNoPeriodo, 'novos leads', colors.blue],
-    ['Oportunidades criadas', relatorio.oportunidadesCriadas, 'no período', colors.blue],
-    ['Oportunidades abertas', relatorio.oportunidadesAbertas, 'em andamento', colors.amber],
-    ['Oportunidades fechadas', relatorio.oportunidadesFechadas, 'concluídas com sucesso', colors.green],
-    ['Taxa de conversão', `${relatorio.taxaConversao}%`, 'fechadas / criadas', colors.green],
+    ...(mostrarEstatisticasComerciais
+      ? [
+          ['Leads no período', relatorio.leadsNoPeriodo, 'novos leads', colors.blue],
+          ['Oportunidades criadas', relatorio.oportunidadesCriadas, 'no período', colors.blue],
+          ['Oportunidades abertas', relatorio.oportunidadesAbertas, 'em andamento', colors.amber],
+          ['Oportunidades fechadas', relatorio.oportunidadesFechadas, 'concluídas com sucesso', colors.green],
+          ['Taxa de conversão', `${relatorio.taxaConversao}%`, 'fechadas / criadas', colors.green],
+        ]
+      : []),
+    ...(mostrarEstatisticasPerdas
+      ? [['Negócios perdidos', relatorio.perdasNoPeriodo, 'marcados como perdidos', colors.red]]
+      : []),
   ]
   const gap = 9
   const cardWidth = (pageWidth - gap * 2) / 3
@@ -84,77 +96,137 @@ export const buildRelatorioPdfBuffer = (relatorio) => new Promise((resolve, reje
     const column = index % 3
     drawMetric(doc, 44 + column * (cardWidth + gap), startY + row * 88, cardWidth, ...metric)
   })
-  doc.y = startY + 2 * 88 + 4
+  doc.y = startY + Math.ceil(metrics.length / 3) * 88 + 4
 
-  ensureSpace(doc, 100)
-  drawSectionTitle(doc, 'Tempo médio por etapa')
-  const tableX = 44
-  const tableY = doc.y
-  const col1 = pageWidth * 0.68
-  const rowHeight = 25
-  doc.rect(tableX, tableY, pageWidth, rowHeight).fill(colors.pale)
-  doc.font('Helvetica-Bold').fontSize(9).fillColor(colors.ink)
-  doc.text('Etapa', tableX + 10, tableY + 8, { width: col1 - 12 })
-  doc.text('Tempo médio', tableX + col1, tableY + 8, { width: pageWidth - col1 - 10, align: 'right' })
-  doc.y = tableY + rowHeight
+  if (mostrarEstatisticasPerdas) {
+    ensureSpace(doc, 100)
+    drawSectionTitle(doc, 'Perdas por período')
+    const tableX = 44
+    const tableY = doc.y
+    const col1 = pageWidth * 0.68
+    const rowHeight = 24
+    doc.rect(tableX, tableY, pageWidth, rowHeight).fill(colors.pale)
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(colors.ink)
+    doc.text(relatorio.agrupamentoPerdas === 'dia' ? 'Dia' : 'Mês', tableX + 10, tableY + 8, { width: col1 - 12 })
+    doc.text('Quantidade de perdas', tableX + col1, tableY + 8, { width: pageWidth - col1 - 10, align: 'right' })
+    doc.y = tableY + rowHeight
 
-  const stages = relatorio.tempoMedioPorEtapa ?? []
-  if (stages.length === 0) {
-    doc.font('Helvetica').fontSize(9).fillColor(colors.muted).text('Não há etapas para exibir neste relatório.', tableX + 10, doc.y + 9)
-    doc.y += rowHeight
-  } else {
-    stages.forEach((item, index) => {
+    for (const [index, item] of (relatorio.perdasPorPeriodo ?? []).entries()) {
       ensureSpace(doc, rowHeight + 6)
       const y = doc.y
       if (index % 2 === 0) doc.rect(tableX, y, pageWidth, rowHeight).fill('#fbfdff')
       doc.strokeColor(colors.border).moveTo(tableX, y + rowHeight).lineTo(tableX + pageWidth, y + rowHeight).stroke()
-      doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(item.etapa, tableX + 10, y + 8, { width: col1 - 12 })
-      doc.text(`${item.diasMedio} dias`, tableX + col1, y + 8, { width: pageWidth - col1 - 10, align: 'right' })
+      doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(item.periodo, tableX + 10, y + 8, { width: col1 - 12 })
+      doc.text(String(item.quantidade), tableX + col1, y + 8, { width: pageWidth - col1 - 10, align: 'right' })
       doc.y += rowHeight
-    })
+    }
+
+    ensureSpace(doc, 110)
+    drawSectionTitle(doc, 'Perdas por motivo')
+    const motivoCol1 = pageWidth * 0.55
+    const motivoCol2 = pageWidth * 0.22
+    const motivoHeaderY = doc.y
+    doc.rect(tableX, motivoHeaderY, pageWidth, rowHeight).fill(colors.pale)
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(colors.ink)
+    doc.text('Motivo', tableX + 10, motivoHeaderY + 8, { width: motivoCol1 - 14 })
+    doc.text('Quantidade', tableX + motivoCol1, motivoHeaderY + 8, { width: motivoCol2 - 8, align: 'right' })
+    doc.text('Percentual', tableX + motivoCol1 + motivoCol2, motivoHeaderY + 8, { width: pageWidth - motivoCol1 - motivoCol2 - 10, align: 'right' })
+    doc.y = motivoHeaderY + rowHeight
+
+    const motivos = relatorio.perdasPorMotivo ?? []
+    if (motivos.length === 0) {
+      doc.font('Helvetica').fontSize(9).fillColor(colors.muted)
+        .text('Nenhum motivo de perda no período selecionado.', tableX + 10, doc.y + 8)
+      doc.y += rowHeight
+    } else {
+      for (const [index, item] of motivos.entries()) {
+        doc.font('Helvetica').fontSize(8)
+        const motivoHeight = doc.heightOfString(item.motivo, { width: motivoCol1 - 20 })
+        const motivoRowHeight = Math.max(rowHeight, motivoHeight + 12)
+        ensureSpace(doc, motivoRowHeight + 4)
+        const y = doc.y
+        if (index % 2 === 0) doc.rect(tableX, y, pageWidth, motivoRowHeight).fill('#fbfdff')
+        doc.strokeColor(colors.border).moveTo(tableX, y + motivoRowHeight).lineTo(tableX + pageWidth, y + motivoRowHeight).stroke()
+        doc.font('Helvetica').fontSize(8).fillColor(colors.ink)
+          .text(item.motivo, tableX + 10, y + 6, { width: motivoCol1 - 20 })
+        doc.text(String(item.quantidade), tableX + motivoCol1, y + 8, { width: motivoCol2 - 8, align: 'right' })
+        doc.text(`${item.percentual}%`, tableX + motivoCol1 + motivoCol2, y + 8, { width: pageWidth - motivoCol1 - motivoCol2 - 10, align: 'right' })
+        doc.y += motivoRowHeight
+      }
+    }
   }
 
-  if (relatorio.metas?.metas?.length) {
-    ensureSpace(doc, 80)
-    drawSectionTitle(doc, 'Metas comerciais no período')
-
-    const metasTableY = doc.y
-    const colVendedor = pageWidth * 0.45
-    const colAlvo = pageWidth * 0.30
-    const colProgresso = pageWidth - colVendedor - colAlvo
-
-    doc.rect(tableX, metasTableY, pageWidth, rowHeight).fill(colors.pale)
+  if (mostrarEstatisticasComerciais) {
+    ensureSpace(doc, 100)
+    drawSectionTitle(doc, 'Tempo médio por etapa')
+    const tableX = 44
+    const tableY = doc.y
+    const col1 = pageWidth * 0.68
+    const rowHeight = 25
+    doc.rect(tableX, tableY, pageWidth, rowHeight).fill(colors.pale)
     doc.font('Helvetica-Bold').fontSize(9).fillColor(colors.ink)
-    doc.text('Vendedor / Meta', tableX + 10, metasTableY + 8, { width: colVendedor - 12 })
-    doc.text('Alvo vs Realizado', tableX + colVendedor, metasTableY + 8, { width: colAlvo - 12 })
-    doc.text('Progresso', tableX + colVendedor + colAlvo, metasTableY + 8, { width: colProgresso - 10, align: 'right' })
-    doc.y = metasTableY + rowHeight
+    doc.text('Etapa', tableX + 10, tableY + 8, { width: col1 - 12 })
+    doc.text('Tempo médio', tableX + col1, tableY + 8, { width: pageWidth - col1 - 10, align: 'right' })
+    doc.y = tableY + rowHeight
 
-    const metasRowHeight = 34
-    relatorio.metas.metas.forEach((item, index) => {
-      ensureSpace(doc, metasRowHeight + 6)
-      const y = doc.y
-      if (index % 2 === 0) doc.rect(tableX, y, pageWidth, metasRowHeight).fill('#fbfdff')
-      doc.strokeColor(colors.border).moveTo(tableX, y + metasRowHeight).lineTo(tableX + pageWidth, y + metasRowHeight).stroke()
-      doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(
-        `${item.usuarioNome} (${item.tipoLabel})`,
-        tableX + 10,
-        y + 6,
-        { width: colVendedor - 12, lineBreak: false, ellipsis: true }
-      )
-      if (item.periodoInicio && item.periodoFim) {
-        doc.font('Helvetica').fontSize(7.5).fillColor(colors.muted).text(
-          `Período: ${formatDateBr(item.periodoInicio)} a ${formatDateBr(item.periodoFim)}`,
+    const stages = relatorio.tempoMedioPorEtapa ?? []
+    if (stages.length === 0) {
+      doc.font('Helvetica').fontSize(9).fillColor(colors.muted).text('Não há etapas para exibir neste relatório.', tableX + 10, doc.y + 9)
+      doc.y += rowHeight
+    } else {
+      stages.forEach((item, index) => {
+        ensureSpace(doc, rowHeight + 6)
+        const y = doc.y
+        if (index % 2 === 0) doc.rect(tableX, y, pageWidth, rowHeight).fill('#fbfdff')
+        doc.strokeColor(colors.border).moveTo(tableX, y + rowHeight).lineTo(tableX + pageWidth, y + rowHeight).stroke()
+        doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(item.etapa, tableX + 10, y + 8, { width: col1 - 12 })
+        doc.text(`${item.diasMedio} dias`, tableX + col1, y + 8, { width: pageWidth - col1 - 10, align: 'right' })
+        doc.y += rowHeight
+      })
+    }
+
+    if (relatorio.metas?.metas?.length) {
+      ensureSpace(doc, 80)
+      drawSectionTitle(doc, 'Metas comerciais no período')
+
+      const metasTableY = doc.y
+      const colVendedor = pageWidth * 0.45
+      const colAlvo = pageWidth * 0.30
+      const colProgresso = pageWidth - colVendedor - colAlvo
+
+      doc.rect(tableX, metasTableY, pageWidth, rowHeight).fill(colors.pale)
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(colors.ink)
+      doc.text('Vendedor / Meta', tableX + 10, metasTableY + 8, { width: colVendedor - 12 })
+      doc.text('Alvo vs Realizado', tableX + colVendedor, metasTableY + 8, { width: colAlvo - 12 })
+      doc.text('Progresso', tableX + colVendedor + colAlvo, metasTableY + 8, { width: colProgresso - 10, align: 'right' })
+      doc.y = metasTableY + rowHeight
+
+      const metasRowHeight = 34
+      relatorio.metas.metas.forEach((item, index) => {
+        ensureSpace(doc, metasRowHeight + 6)
+        const y = doc.y
+        if (index % 2 === 0) doc.rect(tableX, y, pageWidth, metasRowHeight).fill('#fbfdff')
+        doc.strokeColor(colors.border).moveTo(tableX, y + metasRowHeight).lineTo(tableX + pageWidth, y + metasRowHeight).stroke()
+        doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(
+          `${item.usuarioNome} (${item.tipoLabel})`,
           tableX + 10,
-          y + 19,
+          y + 6,
           { width: colVendedor - 12, lineBreak: false, ellipsis: true }
         )
-      }
-      doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(`${item.valorRealizado} / ${item.valorAlvo} ${item.unidade}`, tableX + colVendedor, y + 11, { width: colAlvo - 12 })
-      doc.font('Helvetica-Bold').fillColor(item.progressoPercentual >= 100 ? colors.green : colors.blue)
-        .text(`${item.progressoPercentual}%`, tableX + colVendedor + colAlvo, y + 11, { width: colProgresso - 10, align: 'right' })
-      doc.y += metasRowHeight
-    })
+        if (item.periodoInicio && item.periodoFim) {
+          doc.font('Helvetica').fontSize(7.5).fillColor(colors.muted).text(
+            `Período: ${formatDateBr(item.periodoInicio)} a ${formatDateBr(item.periodoFim)}`,
+            tableX + 10,
+            y + 19,
+            { width: colVendedor - 12, lineBreak: false, ellipsis: true }
+          )
+        }
+        doc.font('Helvetica').fontSize(9).fillColor(colors.ink).text(`${item.valorRealizado} / ${item.valorAlvo} ${item.unidade}`, tableX + colVendedor, y + 11, { width: colAlvo - 12 })
+        doc.font('Helvetica-Bold').fillColor(item.progressoPercentual >= 100 ? colors.green : colors.blue)
+          .text(`${item.progressoPercentual}%`, tableX + colVendedor + colAlvo, y + 11, { width: colProgresso - 10, align: 'right' })
+        doc.y += metasRowHeight
+      })
+    }
   }
 
   const range = doc.bufferedPageRange()

@@ -1537,11 +1537,6 @@ th {
   box-shadow: 0 0 0 2px #fee2e2 inset;
 }
 
-.kanbanCol.kanbanColPerdida {
-  background: var(--color-kanban-lost-bg);
-  border-color: var(--color-kanban-lost-border);
-}
-
 .kanbanHeader {
   display: flex;
   justify-content: space-between;
@@ -1960,9 +1955,109 @@ th {
 .reportMetricIcon.violet { background: #f5f3ff; color: #7c3aed; }
 .reportMetricIcon.amber { background: #fffbeb; color: #b45309; }
 .reportMetricIcon.green { background: #f0fdf4; color: #15803d; }
+.reportMetricIcon.red { background: #fef2f2; color: #dc2626; }
 .reportMetric span { display: block; min-height: 34px; color: var(--color-text-muted); font-size: 12px; }
 .reportMetric strong { display: block; margin: 4px 0; color: var(--color-text-strong); font-size: 28px; }
 .reportMetric small { color: var(--color-text-subtle); font-size: 11px; font-weight: 500; }
+
+.reportLossStats {
+  margin-bottom: 18px;
+  padding: 20px;
+}
+
+.reportLossStatsHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.reportLossStatsHeader h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.reportLossStatsHeader p {
+  margin: 5px 0 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.reportLossTotal {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.reportLossTableWrap {
+  overflow-x: auto;
+}
+
+.reportLossTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.reportLossTable th,
+.reportLossTable td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.reportLossTable thead th {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.reportLossTable tbody th {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.reportLossTable td:nth-child(2) {
+  width: 110px;
+  color: var(--color-text-strong);
+  font-weight: 700;
+}
+
+.reportLossTable th:last-child,
+.reportLossTable td:last-child {
+  width: 42%;
+}
+
+.reportLossReasonTable th:last-child,
+.reportLossReasonTable td:last-child {
+  width: 140px;
+  text-align: right;
+}
+
+.reportLossReasonTable td:nth-child(2) {
+  width: 110px;
+  text-align: right;
+}
+
+.reportLossBarTrack {
+  height: 8px;
+  min-width: 80px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-secondary-bg, #e2e8f0);
+}
+
+.reportLossBarTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #ef4444;
+}
 
 .reportDetailsGrid {
   margin-bottom: 24px;
@@ -2481,6 +2576,7 @@ th {
 .dashboardActivityDot-etapa { background: #7c3aed; }
 .dashboardActivityDot-responsavel { background: #e11d48; }
 .dashboardActivityDot-interacao { background: #2563eb; }
+.dashboardActivityDot-perda { background: #dc2626; }
 .dashboardActivityDot-tarefa { background: #d97706; }
 .dashboardActivityDot-temperatura { background: #0f766e; }
 .dashboardActivityContent { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }

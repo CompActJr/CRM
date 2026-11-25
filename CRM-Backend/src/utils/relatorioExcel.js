@@ -44,6 +44,9 @@ const mergeAndStyleRow = (sheet, rowNumber, fromCol, toCol, value, style) => {
 }
 
 export const buildRelatorioExcelBuffer = async (relatorio) => {
+  const visualizacaoPerdas = relatorio.visualizacaoPerdas ?? 'tudo'
+  const mostrarEstatisticasComerciais = visualizacaoPerdas !== 'apenas_perdas'
+  const mostrarEstatisticasPerdas = visualizacaoPerdas !== 'sem_perdas'
   const workbook = new ExcelJS.Workbook()
   workbook.creator = 'CRM CompAct.Jr'
   workbook.created = new Date()
@@ -98,6 +101,7 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
     filtros.cidade ? `Cidade: ${filtros.cidade}` : null,
     filtros.nicho ? `Nicho: ${filtros.nicho}` : null,
     filtros.status ? `Status: ${filtros.status}` : null,
+    filtros.visualizacaoPerdas ? `Visualização: ${filtros.visualizacaoPerdas}` : null,
   ].filter(Boolean)
   mergeAndStyleRow(
     sheet,
@@ -116,11 +120,18 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
 
   let currentRow = 6
 
-  mergeAndStyleRow(sheet, currentRow, 1, 3, 'Indicadores do período', (cell) => {
+  mergeAndStyleRow(
+    sheet,
+    currentRow,
+    1,
+    3,
+    visualizacaoPerdas === 'apenas_perdas' ? 'Estatísticas de perdas' : 'Indicadores do período',
+    (cell) => {
     cell.font = { name: Styles.fontName, bold: true, size: 12, color: { argb: Styles.sectionFont } }
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.sectionFill } }
     cell.alignment = { horizontal: 'left', vertical: 'middle' }
-  })
+    }
+  )
   currentRow += 1
 
   const indicadoresHeaderRow = sheet.getRow(currentRow)
@@ -137,11 +148,16 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
   currentRow += 1
 
   const indicadores = [
-    ['Leads no período', relatorio.leadsNoPeriodo],
-    ['Negocios criadas no período', relatorio.negociosCriadas],
-    ['Negocios abertas no período', relatorio.negociosAbertas],
-    ['Negocios fechadas no período', relatorio.negociosFechadas],
-    ['Taxa de conversão', `${relatorio.taxaConversao}%`],
+    ...(mostrarEstatisticasComerciais
+      ? [
+          ['Leads no período', relatorio.leadsNoPeriodo],
+          ['Negócios criados no período', relatorio.negociosCriadas],
+          ['Negócios abertos no período', relatorio.negociosAbertas],
+          ['Negócios fechados no período', relatorio.negociosFechadas],
+          ['Taxa de conversão', `${relatorio.taxaConversao}%`],
+        ]
+      : []),
+    ...(mostrarEstatisticasPerdas ? [['Negócios perdidos no período', relatorio.perdasNoPeriodo]] : []),
   ]
 
   indicadores.forEach(([label, value], index) => {
@@ -167,81 +183,118 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
     currentRow += 1
   })
 
-  currentRow += 1
-
-  mergeAndStyleRow(sheet, currentRow, 1, 3, 'Tempo médio por etapa', (cell) => {
-    cell.font = { name: Styles.fontName, bold: true, size: 12, color: { argb: Styles.sectionFont } }
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.sectionFill } }
-    cell.alignment = { horizontal: 'left', vertical: 'middle' }
-  })
-  currentRow += 1
-
-  const etapasHeaderRow = sheet.getRow(currentRow)
-  etapasHeaderRow.getCell(1).value = 'Etapa'
-  etapasHeaderRow.getCell(2).value = 'Tempo médio (dias)'
-  sheet.mergeCells(currentRow, 2, currentRow, 3)
-  forEachCellInRange(sheet, currentRow, 1, 3, (cell) => {
-    cell.font = { name: Styles.fontName, bold: true, size: 11, color: { argb: Styles.sectionFont } }
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.headerFill } }
-    cell.alignment = { horizontal: 'center', vertical: 'middle' }
-    applyBorder(cell)
-  })
-  etapasHeaderRow.height = 24
-  currentRow += 1
-
-  relatorio.tempoMedioPorEtapa.forEach((item, index) => {
-    const row = sheet.getRow(currentRow)
-    row.getCell(1).value = item.etapa
-    row.getCell(2).value = item.diasMedio
-    sheet.mergeCells(currentRow, 2, currentRow, 3)
-
-    const isZebra = index % 2 === 0
-    forEachCellInRange(sheet, currentRow, 1, 3, (cell, col) => {
-      cell.font = { name: Styles.fontName, size: 11, color: { argb: Styles.sectionFont } }
-      if (isZebra) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.zebraFill } }
-      }
-      cell.alignment = {
-        horizontal: col === 1 ? 'left' : 'center',
-        vertical: 'middle',
-      }
-      applyBorder(cell)
-    })
+  if (mostrarEstatisticasPerdas) {
     currentRow += 1
-  })
-
-  if (relatorio.metas?.metas?.length) {
-    currentRow += 1
-
-    mergeAndStyleRow(sheet, currentRow, 1, 3, 'Desempenho de Metas Comerciais', (cell) => {
+    mergeAndStyleRow(sheet, currentRow, 1, 3, 'Perdas por período', (cell) => {
       cell.font = { name: Styles.fontName, bold: true, size: 12, color: { argb: Styles.sectionFont } }
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.sectionFill } }
       cell.alignment = { horizontal: 'left', vertical: 'middle' }
     })
     currentRow += 1
 
-    const metasHeaderRow = sheet.getRow(currentRow)
-    metasHeaderRow.getCell(1).value = 'Vendedor / Meta'
-    metasHeaderRow.getCell(2).value = 'Alvo vs Realizado'
-    metasHeaderRow.getCell(3).value = '% Concluído (Status)'
+    const perdasHeader = sheet.getRow(currentRow)
+    perdasHeader.getCell(1).value = relatorio.agrupamentoPerdas === 'dia' ? 'Dia' : 'Mês'
+    perdasHeader.getCell(2).value = 'Quantidade de perdas'
+    sheet.mergeCells(currentRow, 2, currentRow, 3)
     forEachCellInRange(sheet, currentRow, 1, 3, (cell) => {
       cell.font = { name: Styles.fontName, bold: true, size: 11, color: { argb: Styles.sectionFont } }
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.headerFill } }
       cell.alignment = { horizontal: 'center', vertical: 'middle' }
       applyBorder(cell)
     })
-    metasHeaderRow.height = 24
     currentRow += 1
 
-    relatorio.metas.metas.forEach((meta, index) => {
+    ;(relatorio.perdasPorPeriodo ?? []).forEach((item, index) => {
       const row = sheet.getRow(currentRow)
-      const periodoTexto = meta.periodoInicio && meta.periodoFim
-        ? ` (${formatDateBr(meta.periodoInicio)} a ${formatDateBr(meta.periodoFim)})`
-        : ''
-      row.getCell(1).value = `${meta.usuarioNome} — ${meta.tipoLabel}${periodoTexto}`
-      row.getCell(2).value = `${meta.valorRealizado} / ${meta.valorAlvo} ${meta.unidade}`
-      row.getCell(3).value = `${meta.progressoPercentual}% (${meta.status})`
-      row.height = periodoTexto ? 28 : 22
+      row.getCell(1).value = item.periodo
+      row.getCell(2).value = item.quantidade
+      sheet.mergeCells(currentRow, 2, currentRow, 3)
+      forEachCellInRange(sheet, currentRow, 1, 3, (cell, col) => {
+        cell.font = { name: Styles.fontName, size: 11, color: { argb: Styles.sectionFont } }
+        if (index % 2 === 0) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.zebraFill } }
+        }
+        cell.alignment = { horizontal: col === 1 ? 'left' : 'center', vertical: 'middle' }
+        applyBorder(cell)
+      })
+      currentRow += 1
+    })
+
+    currentRow += 1
+    mergeAndStyleRow(sheet, currentRow, 1, 3, 'Perdas por motivo', (cell) => {
+      cell.font = { name: Styles.fontName, bold: true, size: 12, color: { argb: Styles.sectionFont } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.sectionFill } }
+      cell.alignment = { horizontal: 'left', vertical: 'middle' }
+    })
+    currentRow += 1
+
+    const motivos = relatorio.perdasPorMotivo ?? []
+    if (motivos.length === 0) {
+      mergeAndStyleRow(sheet, currentRow, 1, 3, 'Nenhum motivo de perda no período selecionado.', (cell) => {
+        cell.font = { name: Styles.fontName, size: 10, color: { argb: Styles.sectionFont } }
+        cell.alignment = { horizontal: 'left', vertical: 'middle' }
+        applyBorder(cell)
+      })
+      currentRow += 1
+    } else {
+      const motivoHeader = sheet.getRow(currentRow)
+      motivoHeader.getCell(1).value = 'Motivo'
+      motivoHeader.getCell(2).value = 'Quantidade'
+      motivoHeader.getCell(3).value = 'Percentual'
+      forEachCellInRange(sheet, currentRow, 1, 3, (cell) => {
+        cell.font = { name: Styles.fontName, bold: true, size: 11, color: { argb: Styles.sectionFont } }
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.headerFill } }
+        cell.alignment = { horizontal: 'center', vertical: 'middle' }
+        applyBorder(cell)
+      })
+      currentRow += 1
+
+      motivos.forEach((item, index) => {
+        const row = sheet.getRow(currentRow)
+        row.getCell(1).value = item.motivo
+        row.getCell(2).value = item.quantidade
+        row.getCell(3).value = `${item.percentual}%`
+        forEachCellInRange(sheet, currentRow, 1, 3, (cell, col) => {
+          cell.font = { name: Styles.fontName, size: 11, color: { argb: Styles.sectionFont } }
+          if (index % 2 === 0) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.zebraFill } }
+          }
+          cell.alignment = { horizontal: col === 1 ? 'left' : 'center', vertical: 'middle', wrapText: col === 1 }
+          applyBorder(cell)
+        })
+        currentRow += 1
+      })
+    }
+  }
+
+  if (mostrarEstatisticasComerciais) {
+    currentRow += 1
+
+    mergeAndStyleRow(sheet, currentRow, 1, 3, 'Tempo médio por etapa', (cell) => {
+      cell.font = { name: Styles.fontName, bold: true, size: 12, color: { argb: Styles.sectionFont } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.sectionFill } }
+      cell.alignment = { horizontal: 'left', vertical: 'middle' }
+    })
+    currentRow += 1
+
+    const etapasHeaderRow = sheet.getRow(currentRow)
+    etapasHeaderRow.getCell(1).value = 'Etapa'
+    etapasHeaderRow.getCell(2).value = 'Tempo médio (dias)'
+    sheet.mergeCells(currentRow, 2, currentRow, 3)
+    forEachCellInRange(sheet, currentRow, 1, 3, (cell) => {
+      cell.font = { name: Styles.fontName, bold: true, size: 11, color: { argb: Styles.sectionFont } }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.headerFill } }
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      applyBorder(cell)
+    })
+    etapasHeaderRow.height = 24
+    currentRow += 1
+
+    relatorio.tempoMedioPorEtapa.forEach((item, index) => {
+      const row = sheet.getRow(currentRow)
+      row.getCell(1).value = item.etapa
+      row.getCell(2).value = item.diasMedio
+      sheet.mergeCells(currentRow, 2, currentRow, 3)
 
       const isZebra = index % 2 === 0
       forEachCellInRange(sheet, currentRow, 1, 3, (cell, col) => {
@@ -252,12 +305,61 @@ export const buildRelatorioExcelBuffer = async (relatorio) => {
         cell.alignment = {
           horizontal: col === 1 ? 'left' : 'center',
           vertical: 'middle',
-          wrapText: col === 1,
         }
         applyBorder(cell)
       })
       currentRow += 1
     })
+
+    if (relatorio.metas?.metas?.length) {
+      currentRow += 1
+
+      mergeAndStyleRow(sheet, currentRow, 1, 3, 'Desempenho de Metas Comerciais', (cell) => {
+        cell.font = { name: Styles.fontName, bold: true, size: 12, color: { argb: Styles.sectionFont } }
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.sectionFill } }
+        cell.alignment = { horizontal: 'left', vertical: 'middle' }
+      })
+      currentRow += 1
+
+      const metasHeaderRow = sheet.getRow(currentRow)
+      metasHeaderRow.getCell(1).value = 'Vendedor / Meta'
+      metasHeaderRow.getCell(2).value = 'Alvo vs Realizado'
+      metasHeaderRow.getCell(3).value = '% Concluído (Status)'
+      forEachCellInRange(sheet, currentRow, 1, 3, (cell) => {
+        cell.font = { name: Styles.fontName, bold: true, size: 11, color: { argb: Styles.sectionFont } }
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.headerFill } }
+        cell.alignment = { horizontal: 'center', vertical: 'middle' }
+        applyBorder(cell)
+      })
+      metasHeaderRow.height = 24
+      currentRow += 1
+
+      relatorio.metas.metas.forEach((meta, index) => {
+        const row = sheet.getRow(currentRow)
+        const periodoTexto = meta.periodoInicio && meta.periodoFim
+          ? ` (${formatDateBr(meta.periodoInicio)} a ${formatDateBr(meta.periodoFim)})`
+          : ''
+        row.getCell(1).value = `${meta.usuarioNome} — ${meta.tipoLabel}${periodoTexto}`
+        row.getCell(2).value = `${meta.valorRealizado} / ${meta.valorAlvo} ${meta.unidade}`
+        row.getCell(3).value = `${meta.progressoPercentual}% (${meta.status})`
+        row.height = periodoTexto ? 28 : 22
+
+        const isZebra = index % 2 === 0
+        forEachCellInRange(sheet, currentRow, 1, 3, (cell, col) => {
+          cell.font = { name: Styles.fontName, size: 11, color: { argb: Styles.sectionFont } }
+          if (isZebra) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: Styles.zebraFill } }
+          }
+          cell.alignment = {
+            horizontal: col === 1 ? 'left' : 'center',
+            vertical: 'middle',
+            wrapText: col === 1,
+          }
+          applyBorder(cell)
+        })
+        currentRow += 1
+      })
+    }
   }
 
   sheet.pageSetup = {

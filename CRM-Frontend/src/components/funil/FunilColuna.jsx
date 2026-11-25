@@ -5,7 +5,6 @@ function FunilColuna({
   etapa,
   negocios,
   isBottleneck,
-  isPerdida,
   diasMedios,
   showTempoMedio,
   isMinimized = false,
@@ -22,7 +21,7 @@ function FunilColuna({
   return (
     <div
       ref={setNodeRef}
-      className={`kanbanCol ${isBottleneck ? 'bottleneck' : ''} ${isPerdida ? 'kanbanColPerdida' : ''} ${isOver ? 'kanbanColOver' : ''}`}
+      className={`kanbanCol ${isBottleneck ? 'bottleneck' : ''} ${isOver ? 'kanbanColOver' : ''}`}
     >
       <div className="kanbanHeader">
         <strong>{etapa}</strong>

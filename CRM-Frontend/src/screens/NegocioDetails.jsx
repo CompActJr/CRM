@@ -25,6 +25,7 @@ import {
   buildUpdatePayload,
   findEtapaPosVenda,
   hasValidValorEstimado,
+  isEtapaPerdida,
   isEtapaProposta,
   isEtapaVendida,
 } from '../utils/funilDrag'
@@ -83,7 +84,7 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
 
   const dealStages = useMemo(() => {
     return etapas
-      .filter((e) => e.ordem >= 4 && e.nome !== 'Perdida')
+      .filter((e) => e.ordem >= 4 && !isEtapaPerdida(e.nome))
       .sort((a, b) => a.ordem - b.ordem)
   }, [etapas])
 
@@ -109,7 +110,7 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
 
   const proximaEtapa = useMemo(() => {
     if (isNegocioPerdido) return null
-    return etapas.find((e) => e.ordem === currentOrdem + 1 && e.nome !== 'Perdida')
+    return etapas.find((e) => e.ordem === currentOrdem + 1 && !isEtapaPerdida(e.nome))
   }, [etapas, currentOrdem, isNegocioPerdido])
 
   const handleAvancarPara = (targetEtapa) => {
@@ -125,7 +126,7 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
     }
     setStageError('')
     setMudancaEtapaModal({
-      etapaOrigem: isNegocioPerdido ? 'Perdida' : currentEtapa?.nome || 'Etapa anterior',
+      etapaOrigem: isNegocioPerdido ? 'Negócio perdido' : currentEtapa?.nome || 'Etapa anterior',
       etapaDestino: targetEtapa.nome,
       etapaFunilId: targetEtapa.id,
     })
@@ -140,7 +141,7 @@ function NegocioDetails({ setScreen, negocioId, initialTab = 'timeline', current
     }
     setStageError('')
     setMudancaEtapaModal({
-      etapaOrigem: 'Perdida',
+      etapaOrigem: 'Negócio perdido',
       etapaDestino: primeiraEtapa.nome,
       etapaFunilId: primeiraEtapa.id,
     })

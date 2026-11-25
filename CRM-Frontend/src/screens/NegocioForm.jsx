@@ -4,7 +4,6 @@ import Field from '../components/common/Field'
 import SearchableSelect from '../components/common/SearchableSelect'
 import Header from '../components/layout/Header'
 import ModalMudancaEtapaFunil from '../components/negocios/ModalMudancaEtapaFunil'
-import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
 import { useSession } from '../context/SessionContext'
 import { createInteracaoForNegocio } from '../services/interacoesService'
 import { fetchEtapasFunil } from '../services/etapasService'
@@ -15,7 +14,7 @@ import {
   updateNegocio,
 } from '../services/negociosService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
-import { ETAPA_PERDIDA, hasValidValorEstimado, isEtapaVendida } from '../utils/funilDrag'
+import { hasValidValorEstimado, isEtapaPerdida } from '../utils/funilDrag'
 import { formatValorFromAmount, maskValorInput, parseValorInputToAmount } from '../utils/currencyInput'
 
 const EmptyForm = {
@@ -34,7 +33,6 @@ function NegocioForm({ setScreen, negocioId }) {
   const [etapas, setEtapas] = useState([])
   const [etapaOriginalId, setEtapaOriginalId] = useState('')
   const [mudancaEtapaModal, setMudancaEtapaModal] = useState(null)
-  const [perdidaModal, setPerdidaModal] = useState(false)
   const [pendingPayload, setPendingPayload] = useState(null)
   const [loading, setLoading] = useState(Boolean(negocioId))
   const [saving, setSaving] = useState(false)
@@ -50,7 +48,9 @@ function NegocioForm({ setScreen, negocioId }) {
           fetchUsuariosOpcoes(),
           fetchEtapasFunil(),
         ])
-        const etapasNegocios = etapasData.filter((etapa) => etapa.ordem >= 4)
+        const etapasNegocios = etapasData.filter(
+          (etapa) => etapa.ordem >= 4 && !isEtapaPerdida(etapa.nome)
+        )
         setLeads(leadsData)
         setUsuarios(usuariosData)
         setEtapas(etapasNegocios)
@@ -123,17 +123,7 @@ function NegocioForm({ setScreen, negocioId }) {
   const getEtapaNome = (etapaId) =>
     etapas.find((etapa) => String(etapa.id) === String(etapaId))?.nome ?? ''
 
-  const etapaOriginal = useMemo(
-    () => etapas.find((etapa) => String(etapa.id) === String(etapaOriginalId)) ?? null,
-    [etapas, etapaOriginalId]
-  )
-  const isOriginalPosVenda =
-    isEditing && (isEtapaVendida(etapaOriginal?.nome) || etapaOriginal?.ordem === 6)
-
-  const etapasDisponiveis = useMemo(() => {
-    if (!isOriginalPosVenda) return etapas
-    return etapas.filter((etapa) => etapa.nome !== ETAPA_PERDIDA)
-  }, [etapas, isOriginalPosVenda])
+  const etapasDisponiveis = etapas
 
   const salvarNegocio = async (payload) => {
     if (isEditing) {
@@ -177,10 +167,6 @@ function NegocioForm({ setScreen, negocioId }) {
 
     if (etapaAlterada) {
       setPendingPayload(payload)
-      if (getEtapaNome(form.etapaFunilId) === ETAPA_PERDIDA) {
-        setPerdidaModal(true)
-        return
-      }
       setMudancaEtapaModal({
         etapaOrigem: getEtapaNome(etapaOriginalId),
         etapaDestino: getEtapaNome(form.etapaFunilId),
@@ -222,31 +208,6 @@ function NegocioForm({ setScreen, negocioId }) {
   const handleMudancaEtapaClose = () => {
     setMudancaEtapaModal(null)
     setPendingPayload(null)
-  }
-
-  const handlePerdidaClose = () => {
-    setPerdidaModal(false)
-    setPendingPayload(null)
-  }
-
-  const handlePerdidaSuccess = async () => {
-    if (!pendingPayload) {
-      setScreen('negocios')
-      return
-    }
-    setSaving(true)
-    setError('')
-    try {
-      const { etapaFunilId: _etapa, ...resto } = pendingPayload
-      await updateNegocio(negocioId, resto)
-      setPerdidaModal(false)
-      setPendingPayload(null)
-      setScreen('negocios')
-    } catch (requestError) {
-      setError(requestError.message)
-    } finally {
-      setSaving(false)
-    }
   }
 
   if (loading) {
@@ -350,18 +311,6 @@ function NegocioForm({ setScreen, negocioId }) {
           etapaDestino={mudancaEtapaModal.etapaDestino}
           onClose={handleMudancaEtapaClose}
           onConfirm={handleMudancaEtapaConfirm}
-        />
-      )}
-      {perdidaModal && (
-        <ModalMarcarPerdida
-          negocio={{
-            id: negocioId,
-            titulo: form.titulo,
-            valorEstimado: pendingPayload?.valorEstimado ?? parseValorInputToAmount(form.valorEstimado),
-          }}
-          currentUser={currentUser}
-          onClose={handlePerdidaClose}
-          onSuccess={handlePerdidaSuccess}
         />
       )}
     </>

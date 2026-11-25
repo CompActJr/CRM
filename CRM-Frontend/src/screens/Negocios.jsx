@@ -113,6 +113,7 @@ function Negocios({ setScreen, onNewNegocio, onEditNegocio, onViewNegocio }) {
                     <td>
                       <div className="tableTitleCell">
                         <span>{negocio.titulo}</span>
+                        {negocio.perdida && <span className="tag danger">Perdido</span>}
                         <TarefaPendenteTag
                           count={negocio.tarefasPendentes}
                           prazoMaisProximo={negocio.prazoMaisProximo}
