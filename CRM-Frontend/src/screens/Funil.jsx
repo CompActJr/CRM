@@ -12,7 +12,6 @@ import { ArrowUp, ArrowDown, Maximize2, Minimize2, Plus } from 'lucide-react'
 import Header from '../components/layout/Header'
 import FiltroResponsavel from '../components/filtros/FiltroResponsavel'
 import FunilColuna from '../components/funil/FunilColuna'
-import ModalMarcarPerdida from '../components/negocios/ModalMarcarPerdida'
 import ModalMudancaEtapaFunil from '../components/negocios/ModalMudancaEtapaFunil'
 import ModalCriarNegocioProposta from '../components/negocios/ModalCriarNegocioProposta'
 import ModalGanharLead from '../components/negocios/ModalGanharLead'
@@ -21,13 +20,13 @@ import { fetchNegociosFunil, updateNegocio } from '../services/negociosService'
 import { fetchLeads, mudarEtapaLead } from '../services/leadsService'
 import { createInteracaoForNegocio } from '../services/interacoesService'
 import {
-  ETAPA_PERDIDA,
   buildUpdatePayload,
   findEtapaOrigem,
   resolveEtapaDestino,
   getFunilCardDisplayTitle,
   getTemperaturaInfo,
   hasValidValorEstimado,
+  isEtapaPerdida,
   isEtapaProposta,
   isEtapaVendida,
   isTituloGenerico,
@@ -35,7 +34,7 @@ import {
 import SearchableSelect, { buildUniqueSelectOptions } from '../components/common/SearchableSelect'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
 
-const etapasSemTempoMedio = new Set(['Fechado', 'Perdida', 'Pós Venda', 'Pos Venda', 'Pós-Venda', 'Ganho', 'Vendido'])
+const etapasSemTempoMedio = new Set(['Fechado', 'Pós Venda', 'Pos Venda', 'Pós-Venda', 'Ganho', 'Vendido'])
 
 function FunilOverlayCard({ negocio, isMinimized = false }) {
   const isLead = negocio?.tipoCard === 'lead'
@@ -132,7 +131,6 @@ function Funil({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeCard, setActiveCard] = useState(null)
-  const [perdidaModal, setPerdidaModal] = useState(null)
   const [mudancaEtapaModal, setMudancaEtapaModal] = useState(null)
   const [criarNegocioModal, setCriarNegocioModal] = useState(null)
   const [ganharModal, setGanharModal] = useState(null)
@@ -154,7 +152,7 @@ function Funil({
       ])
       setFunil(funilResponse.funil ?? funilResponse)
       setTempoMedioPorEtapa(funilResponse.tempoMedioPorEtapa ?? {})
-      setEtapas(etapasData)
+      setEtapas(etapasData.filter((etapa) => !isEtapaPerdida(etapa.nome)))
     } catch (requestError) {
       setError(requestError.message)
     } finally {
@@ -256,10 +254,6 @@ function Funil({
     const ordemDestino = etapaOrdemPorNome[etapaDestino]
     if (!etapaDestino || !etapaOrigem) return false
     if (etapaDestino === etapaOrigem) return false
-    if (etapaDestino === ETAPA_PERDIDA) {
-      return !(isEtapaVendida(etapaOrigem) || ordemOrigem === 6)
-    }
-
     // Negócios só podem existir a partir da fase de Proposta (ordem >= 4)
     if (card?.tipoCard === 'negocio' && ordemDestino < 4) {
       return false
@@ -281,7 +275,7 @@ function Funil({
   const handleDragEnd = async (event) => {
     setActiveCard(null)
     const { active, over } = event
-    if (!over || mudancaEtapaModal || perdidaModal || criarNegocioModal || ganharModal) return
+    if (!over || mudancaEtapaModal || criarNegocioModal || ganharModal) return
 
     const etapaDestino = resolveEtapaDestino(over.id, funil, etapasAtivas)
     const etapaOrigem = findEtapaOrigem(active.id, funil, etapasAtivas)
@@ -292,9 +286,7 @@ function Funil({
     const ordemDestino = etapaOrdemPorNome[etapaDestino]
 
     if (!podeMudarEtapa(card, etapaOrigem, etapaDestino)) {
-      if (etapaDestino === ETAPA_PERDIDA && (isEtapaVendida(etapaOrigem) || ordemOrigem === 6)) {
-        setError('Negócios na etapa de Pós Venda não podem ser marcados como perdidos.')
-      } else if (card.tipoCard === 'negocio' && ordemDestino < 4) {
+      if (card.tipoCard === 'negocio' && ordemDestino < 4) {
         setError('Negócios só podem existir a partir da fase de Proposta.')
       } else if (ordemDestino !== undefined && ordemOrigem !== undefined && ordemDestino < ordemOrigem) {
         setError('Não é possível retroceder etapas arrastando. Para voltar de etapa, utilize a edição.')
@@ -306,11 +298,6 @@ function Funil({
 
     // Se o card for um LEAD:
     if (card.tipoCard === 'lead') {
-      if (etapaDestino === ETAPA_PERDIDA) {
-        setPerdidaModal({ negocio: card, etapaOrigem })
-        return
-      }
-
       // Se for arrastado para Proposta (ou além):
       if (ordemDestino >= 4) {
         setCriarNegocioModal({
@@ -341,24 +328,12 @@ function Funil({
 
     if (!hasValidValorEstimado(card.valorEstimado)) {
       setError(
-        etapaDestino === ETAPA_PERDIDA
-          ? 'Preencha o valor estimado do negócio antes de marcá-lo como perdido.'
-          : 'Preencha o valor estimado do negócio antes de avançar de etapa.'
+        'Preencha o valor estimado do negócio antes de avançar de etapa.'
       )
       return
     }
 
-    if (etapaDestino === ETAPA_PERDIDA) {
-      setPerdidaModal({ negocio: card, etapaOrigem })
-      return
-    }
-
     await aplicarMudancaEtapa(card, etapaOrigem, etapaDestino)
-  }
-
-  const handlePerdidaSuccess = async () => {
-    setPerdidaModal(null)
-    await loadFunil()
   }
 
   const applyFilters = async () => {
@@ -490,7 +465,6 @@ function Funil({
             <section className="kanban">
               {etapasAtivas.map((etapa) => {
                 const diasMedios = tempoMedioPorEtapa[etapa] ?? null
-                const isPerdida = etapa === ETAPA_PERDIDA
                 const isBottleneck =
                   !etapasSemTempoMedio.has(etapa) &&
                   diasMedios !== null &&
@@ -503,7 +477,6 @@ function Funil({
                     etapa={etapa}
                     negocios={funil[etapa] ?? []}
                     isBottleneck={isBottleneck}
-                    isPerdida={isPerdida}
                     diasMedios={diasMedios}
                     showTempoMedio={!etapasSemTempoMedio.has(etapa)}
                     isMinimized={isCardsMinimized}
@@ -520,14 +493,6 @@ function Funil({
             {activeCard ? <FunilOverlayCard negocio={activeCard} isMinimized={isCardsMinimized} /> : null}
           </DragOverlay>
         </DndContext>
-      )}
-      {perdidaModal && (
-        <ModalMarcarPerdida
-          negocio={perdidaModal.negocio}
-          currentUser={currentUser}
-          onClose={() => setPerdidaModal(null)}
-          onSuccess={handlePerdidaSuccess}
-        />
       )}
       {criarNegocioModal && (
         <ModalCriarNegocioProposta

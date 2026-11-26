@@ -35,6 +35,20 @@ export const registrarMudancaEtapa = async (
   await registrarEntradaEtapa(tx, negocioId, novaEtapaFunilId, momento)
 }
 
+export const registrarSaidaEtapa = async (tx, negocioId, momento = new Date()) => {
+  const etapaAberta = await tx.negocioEtapaHistorico.findFirst({
+    where: { negocioId, saidaEm: null },
+    orderBy: { entradaEm: 'desc' },
+  })
+
+  if (!etapaAberta) return null
+
+  return tx.negocioEtapaHistorico.update({
+    where: { id: etapaAberta.id },
+    data: { saidaEm: momento },
+  })
+}
+
 export const calcularTempoMedioPorEtapa = async (query = {}) => {
   const usuarioId = parseUsuarioIdFilter(query)
   const filtroNegocio = {}

@@ -1,6 +1,7 @@
 import { Config } from '../config/constants.js'
 import prisma from '../lib/prisma.js'
 import { formatCurrencyBr } from '../utils/currency.js'
+import { NEGOCIO_PERDIDO_INTERACAO_PREFIX } from '../config/constants.js'
 import { isTermometroSyncRunning, syncTermometroMej } from './portalBjScraper.service.js'
 import {
   buildEtapaEvento,
@@ -65,6 +66,11 @@ export const getDashboardStats = async (query = {}) => {
   }
 
   const etapaFechado = await prisma.etapaFunil.findFirst({ where: { nome: 'Fechado' } })
+  const negocioEmAndamentoWhere = {
+    ...negocioWhere,
+    motivoPerdaId: null,
+    ...(etapaFechado ? { etapaFunilId: { not: etapaFechado.id } } : {}),
+  }
 
   const [
     totalLeads,
@@ -91,32 +97,18 @@ export const getDashboardStats = async (query = {}) => {
       select: { dataCadastro: true, status: true },
       orderBy: { dataCadastro: 'desc' },
     }),
-    etapaFechado
-      ? prisma.negocio.count({
-        where: {
-          ...negocioWhere,
-          etapaFunilId: { not: etapaFechado.id },
-        },
-      })
-      : prisma.negocio.count({ where: negocioWhere }),
+    prisma.negocio.count({ where: negocioEmAndamentoWhere }),
     prisma.negocio.count({
       where: {
         ...negocioWhere,
+        motivoPerdaId: null,
         etapaFunil: { nome: 'Negociação' },
       },
     }),
-    etapaFechado
-      ? prisma.negocio.findMany({
-        where: {
-          ...negocioWhere,
-          etapaFunilId: { not: etapaFechado.id },
-        },
-        select: { valorEstimado: true },
-      })
-      : prisma.negocio.findMany({
-        where: negocioWhere,
-        select: { valorEstimado: true },
-      }),
+    prisma.negocio.findMany({
+      where: negocioEmAndamentoWhere,
+      select: { valorEstimado: true },
+    }),
   ])
 
   const leadsInativos = totalLeads - leadsAtivos
@@ -212,14 +204,23 @@ export const getDashboardAtividades = async (usuarioIdParam) => {
       },
       include: timelineTarefaInclude,
     }) : [],
-    leadIds.length ? prisma.interacao.findMany({
+    leadIds.length || negocioIds.length ? prisma.interacao.findMany({
       where: {
-        leadId: { in: leadIds },
-        tipo: 'Nota',
         dataInteracao: { gte: cutoffDate },
         OR: [
-          { negocioId: null },
-          ...(negocioIds.length ? [{ negocioId: { in: negocioIds } }] : []),
+          ...(leadIds.length ? [{
+            leadId: { in: leadIds },
+            tipo: 'Nota',
+            OR: [
+              { negocioId: null },
+              ...(negocioIds.length ? [{ negocioId: { in: negocioIds } }] : []),
+            ],
+          }] : []),
+          ...(negocioIds.length ? [{
+            negocioId: { in: negocioIds },
+            tipo: 'Registro',
+            descricao: { startsWith: NEGOCIO_PERDIDO_INTERACAO_PREFIX },
+          }] : []),
         ],
       },
       include: timelineInteracaoInclude,
@@ -304,7 +305,23 @@ export const getDashboardAtividades = async (usuarioIdParam) => {
       .flatMap((tarefa) => buildTarefaEventos(tarefa).map((evento) => ({ ...evento, leadId: tarefa.leadId }))),
     ...interacoes
       .filter((interacao) => !interacoesExcluidas.has(interacao.id) && (!interacao.negocioId || negocioMap.has(interacao.negocioId)))
-      .map((interacao) => ({ ...buildInteracaoEvento(interacao), leadId: interacao.leadId })),
+      .map((interacao) => {
+        const evento = buildInteracaoEvento(interacao)
+        const ehPerdaDeNegocio = interacao.tipo === 'Registro'
+          && interacao.descricao.startsWith(NEGOCIO_PERDIDO_INTERACAO_PREFIX)
+
+        return {
+          ...evento,
+          ...(ehPerdaDeNegocio ? {
+            tipo: 'perda',
+            tipoLabel: 'Perda',
+            evento: 'Negócio marcado como perdido',
+            descricao: null,
+            detalhe: `Motivo: ${interacao.descricao.slice(NEGOCIO_PERDIDO_INTERACAO_PREFIX.length).trim()}`,
+          } : {}),
+          leadId: interacao.leadId,
+        }
+      }),
     ...historicoLead.flatMap((registro) => buildResponsavelEventos(registro, 'lead').map((evento) => ({ ...evento, leadId: registro.leadId }))),
     ...historicoNegocio
       .filter((registro) => registro.entradaEm.getTime() !== negocioMap.get(registro.negocioId)?.dataCriacao.getTime())

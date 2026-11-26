@@ -1,8 +1,10 @@
 #!/bin/sh
 set -e
 
-# O pooler em modo transaction (porta 6543) pode ficar indisponível; a porta 5432
-# (session pooler) usa a mesma credencial e atende a API sem prepared statements.
+# A URL direta é usada apenas para sincronizar o schema e verificar o seed.
+# A API mantém DATABASE_URL para usar o pooler de runtime, que multiplexa conexões.
+runtimeDatabaseUrl="$DATABASE_URL"
+
 if [ -n "$DIRECT_URL" ] && [ "$DATABASE_URL" != "$DIRECT_URL" ]; then
   case "$DATABASE_URL" in
     *:6543/*)
@@ -18,6 +20,9 @@ npx prisma db push --skip-generate
 
 echo "Verificando seed inicial..."
 node prisma/ensureSeed.js
+
+DATABASE_URL="$runtimeDatabaseUrl"
+export DATABASE_URL
 
 echo "Iniciando API..."
 exec npm start

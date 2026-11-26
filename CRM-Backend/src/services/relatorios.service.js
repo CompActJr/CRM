@@ -1,6 +1,6 @@
-import { ErrorMessages } from '../config/constants.js'
+import { ErrorMessages, NEGOCIO_PERDIDO_INTERACAO_PREFIX } from '../config/constants.js'
 import prisma from '../lib/prisma.js'
-import { parseDateInput } from '../utils/date.js'
+import { parseDateInput, parseDateTimeInput } from '../utils/date.js'
 import { buildRelatorioExcelBuffer } from '../utils/relatorioExcel.js'
 import { buildRelatorioPdfBuffer } from '../utils/relatorioPdf.js'
 import { calcularTempoMedioPorEtapa } from './negocioEtapaHistorico.service.js'
@@ -13,7 +13,107 @@ const TipoMetaLabels = {
   DIAGNOSTICOS: 'Meta de Diagnósticos Marcados',
 }
 
-const formatDateQuery = (date) => date.toISOString().slice(0, 10)
+const SaoPauloDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+const getDateKeyInSaoPaulo = (date) => {
+  const parts = Object.fromEntries(
+    SaoPauloDateFormatter.formatToParts(date).map(({ type, value }) => [type, value])
+  )
+  return `${parts.year}-${parts.month}-${parts.day}`
+}
+
+const formatDateKeyBr = (dateKey) => dateKey.split('-').reverse().join('/')
+
+const getLossPeriodBuckets = (dataInicio, dataFim) => {
+  const start = new Date(`${dataInicio}T12:00:00Z`)
+  const end = new Date(`${dataFim}T12:00:00Z`)
+  const dayCount = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1
+
+  if (dayCount <= 31) {
+    return {
+      agrupamento: 'dia',
+      buckets: Array.from({ length: dayCount }, (_unused, index) => {
+        const date = new Date(start)
+        date.setUTCDate(date.getUTCDate() + index)
+        const key = date.toISOString().slice(0, 10)
+        return { chave: key, periodo: formatDateKeyBr(key), quantidade: 0 }
+      }),
+    }
+  }
+
+  const buckets = []
+  const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1, 12))
+  const lastMonth = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1, 12))
+  const formatter = new Intl.DateTimeFormat('pt-BR', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+
+  while (cursor <= lastMonth) {
+    const key = cursor.toISOString().slice(0, 7)
+    buckets.push({
+      chave: key,
+      periodo: formatter.format(cursor),
+      quantidade: 0,
+    })
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1)
+  }
+
+  return { agrupamento: 'mes', buckets }
+}
+
+const buildLossStats = (historicoPerdas, filters) => {
+  const { agrupamento, buckets } = getLossPeriodBuckets(filters.dataInicioStr, filters.dataFimStr)
+  const bucketByKey = new Map(buckets.map((bucket) => [bucket.chave, bucket]))
+  const motivosMap = new Map()
+  const ultimaMarcacaoPorNegocio = new Map()
+
+  for (const registro of historicoPerdas) {
+    if (registro.negocioId === null || registro.negocioId === undefined) continue
+
+    const marcacaoAtual = ultimaMarcacaoPorNegocio.get(registro.negocioId)
+    if (!marcacaoAtual || registro.dataInteracao >= marcacaoAtual.dataInteracao) {
+      ultimaMarcacaoPorNegocio.set(registro.negocioId, registro)
+    }
+  }
+
+  const ultimasPerdas = [...ultimaMarcacaoPorNegocio.values()]
+
+  for (const registro of ultimasPerdas) {
+    const dataKey = getDateKeyInSaoPaulo(registro.dataInteracao)
+    const chave = agrupamento === 'dia' ? dataKey : dataKey.slice(0, 7)
+    const bucket = bucketByKey.get(chave)
+    if (bucket) bucket.quantidade += 1
+
+    const motivo = registro.descricao.startsWith(NEGOCIO_PERDIDO_INTERACAO_PREFIX)
+      ? registro.descricao.slice(NEGOCIO_PERDIDO_INTERACAO_PREFIX.length).trim() || 'Motivo não informado'
+      : 'Motivo não informado'
+    motivosMap.set(motivo, (motivosMap.get(motivo) ?? 0) + 1)
+  }
+
+  const perdasPorMotivo = [...motivosMap.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR'))
+    .map(([motivo, quantidade]) => ({
+      motivo,
+      quantidade,
+      percentual: ultimasPerdas.length > 0
+        ? Number(((quantidade / ultimasPerdas.length) * 100).toFixed(1))
+        : 0,
+    }))
+
+  return {
+    perdasNoPeriodo: ultimasPerdas.length,
+    agrupamentoPerdas: agrupamento,
+    perdasPorPeriodo: buckets.map(({ periodo, quantidade }) => ({ periodo, quantidade })),
+    perdasPorMotivo,
+  }
+}
 
 const parseRelatorioFilters = (query) => {
   const dataInicio = parseDateInput(query.dataInicio)
@@ -44,6 +144,10 @@ const parseRelatorioFilters = (query) => {
   const fimDoDia = new Date(dataFim)
   fimDoDia.setHours(23, 59, 59, 999)
 
+  const dataInicioPerdas = parseDateTimeInput(`${query.dataInicio.trim()}T00:00`)
+  const dataFimPerdas = parseDateTimeInput(`${query.dataFim.trim()}T23:59:59`)
+  dataFimPerdas?.setMilliseconds(999)
+
   let usuarioId = null
   if (query.usuarioId && query.usuarioId !== 'todos') {
     const parsed = Number(query.usuarioId)
@@ -55,6 +159,8 @@ const parseRelatorioFilters = (query) => {
   return {
     dataInicio,
     dataFim: fimDoDia,
+    dataInicioPerdas,
+    dataFimPerdas,
     dataInicioStr: query.dataInicio.trim(),
     dataFimStr: query.dataFim.trim(),
     usuarioId,
@@ -64,6 +170,9 @@ const parseRelatorioFilters = (query) => {
     cidade: query.cidade?.trim() || null,
     nicho: query.nicho?.trim() || null,
     status: ['Ativo', 'Inativo'].includes(query.status) ? query.status : null,
+    visualizacaoPerdas: ['apenas_perdas', 'sem_perdas'].includes(query.visualizacaoPerdas)
+      ? query.visualizacaoPerdas
+      : 'tudo',
     incluirTermometro:
       query.incluirTermometro === 'true' ||
       query.incluirTermometro === '1' ||
@@ -112,6 +221,23 @@ const buildNegocioWhere = (filters) => ({
     : {}),
 })
 
+const buildInteracoesPerdasWhere = (filters) => ({
+  tipo: 'Registro',
+  descricao: { startsWith: NEGOCIO_PERDIDO_INTERACAO_PREFIX },
+  dataInteracao: {
+    gte: filters.dataInicioPerdas,
+    lte: filters.dataFimPerdas,
+  },
+  negocio: {
+    is: {
+      ...(filters.usuarioId ? { responsaveis: { some: { id: filters.usuarioId } } } : {}),
+      ...(Object.keys(buildLeadAttributeWhere(filters)).length > 0
+        ? { lead: { is: buildLeadAttributeWhere(filters) } }
+        : {}),
+    },
+  },
+})
+
 const buildTempoMedioPorEtapa = async (filters, excludedEtapaIds = []) => {
   const query = {
     dataInicio: filters.dataInicio,
@@ -128,10 +254,12 @@ const buildTempoMedioPorEtapa = async (filters, excludedEtapaIds = []) => {
     orderBy: { ordem: 'asc' },
   })
 
-  return etapas.map((etapa) => ({
+  return etapas
+    .filter((etapa) => etapa.nome.trim().toLowerCase() !== 'perdida')
+    .map((etapa) => ({
     etapa: etapa.nome,
     diasMedio: tempoMedioMap[etapa.nome] ?? 0,
-  }))
+    }))
 }
 
 export const gerarRelatorio = async (query) => {
@@ -139,18 +267,16 @@ export const gerarRelatorio = async (query) => {
   const leadWhere = buildLeadWhere(filters)
   const negocioWhere = buildNegocioWhere(filters)
 
-  const [etapaFechado, etapaPerdida] = await Promise.all([
-    prisma.etapaFunil.findFirst({ where: { nome: 'Fechado' } }),
-    prisma.etapaFunil.findFirst({ where: { nome: 'Perdida' } }),
-  ])
+  const etapaFechado = await prisma.etapaFunil.findFirst({ where: { nome: 'Fechado' } })
 
-  const excludedEtapaIds = [etapaFechado?.id, etapaPerdida?.id].filter(Boolean)
+  const excludedEtapaIds = [etapaFechado?.id].filter(Boolean)
 
   const [
     leadsNoPeriodo,
     negociosNoPeriodo,
     negociosAbertas,
     negociosFechadas,
+    interacoesPerdas,
     tempoMedioPorEtapa,
     metasResult,
     termometroMej,
@@ -166,6 +292,7 @@ export const gerarRelatorio = async (query) => {
     prisma.negocio.count({
       where: {
         ...negocioWhere,
+        motivoPerdaId: null,
         ...(excludedEtapaIds.length > 0 ? { etapaFunilId: { notIn: excludedEtapaIds } } : {}),
       },
     }),
@@ -177,6 +304,15 @@ export const gerarRelatorio = async (query) => {
         },
       })
       : Promise.resolve(0),
+    prisma.interacao.findMany({
+      where: buildInteracoesPerdasWhere(filters),
+      select: {
+        negocioId: true,
+        dataInteracao: true,
+        descricao: true,
+      },
+      orderBy: [{ dataInteracao: 'asc' }, { id: 'asc' }],
+    }),
     buildTempoMedioPorEtapa(filters, excludedEtapaIds),
     getMetasDashboardStats({
       dataInicio: filters.dataInicioStr,
@@ -192,6 +328,12 @@ export const gerarRelatorio = async (query) => {
     totalNegocios > 0 ? Math.round((negociosFechadas / totalNegocios) * 100) : 0
 
   const responsavel = await resolveResponsavelLabel(filters.usuarioId)
+  const lossStats = buildLossStats(interacoesPerdas, filters)
+  const visualizacaoPerdasLabels = {
+    tudo: 'Tudo junto',
+    apenas_perdas: 'Apenas estatísticas de perdas',
+    sem_perdas: 'Sem estatísticas de perdas',
+  }
 
   return {
     periodo: {
@@ -207,7 +349,9 @@ export const gerarRelatorio = async (query) => {
       cidade: filters.cidade,
       nicho: filters.nicho,
       status: filters.status,
+      visualizacaoPerdas: visualizacaoPerdasLabels[filters.visualizacaoPerdas],
     },
+    visualizacaoPerdas: filters.visualizacaoPerdas,
     leadsNoPeriodo,
     negociosAbertas,
     negociosCriadas: totalNegocios,
@@ -216,6 +360,7 @@ export const gerarRelatorio = async (query) => {
     oportunidadesAbertas: negociosAbertas,
     oportunidadesFechadas: negociosFechadas,
     taxaConversao,
+    ...lossStats,
     tempoMedioPorEtapa,
     metas: metasResult,
     termometroMej,

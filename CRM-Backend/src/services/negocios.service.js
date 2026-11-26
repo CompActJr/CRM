@@ -1,4 +1,8 @@
-import { ErrorMessages, isEtapaPosVenda } from '../config/constants.js'
+import {
+  ErrorMessages,
+  isEtapaPosVenda,
+  NEGOCIO_PERDIDO_INTERACAO_PREFIX,
+} from '../config/constants.js'
 import prisma from '../lib/prisma.js'
 import { TransactionOptions } from '../lib/transaction.js'
 import { formatCurrencyBr, parseValorEstimado } from '../utils/currency.js'
@@ -8,6 +12,7 @@ import {
   calcularTempoMedioPorEtapa,
   registrarEntradaEtapa,
   registrarMudancaEtapa,
+  registrarSaidaEtapa,
 } from './negocioEtapaHistorico.service.js'
 import {
   registrarResponsaveisNegocio,
@@ -106,6 +111,11 @@ const buildNegocioData = async (body) => {
     error.statusCode = 400
     throw error
   }
+  if (normalizeString(etapa.nome) === 'perdida') {
+    const error = new Error(ErrorMessages.negocioPerdidaNaoEtapa)
+    error.statusCode = 400
+    throw error
+  }
   if (etapa.ordem < 4) {
     const error = new Error('Negócios só podem ser criados ou movidos a partir da fase de Proposta.')
     error.statusCode = 400
@@ -169,7 +179,7 @@ export const listNegociosFunil = async (query = {}) => {
   const empresa = normalizeString(query.empresa)
   const temperatura = query.temperatura
 
-  const where = {}
+  const where = { motivoPerdaId: null }
 
   if (usuarioId) {
     where.responsaveis = {
@@ -211,6 +221,7 @@ export const listNegociosFunil = async (query = {}) => {
     ...(empresa ? { empresa: { contains: empresa, mode: 'insensitive' } } : {}),
     negocios: {
       none: {
+        motivoPerdaId: null,
         etapaFunil: { ordem: { gte: 4, lte: 6 } },
       },
     },
@@ -251,6 +262,8 @@ export const listNegociosFunil = async (query = {}) => {
       orderBy: { createdAt: 'desc' },
     }),
   ])
+
+  const etapasDoFunil = etapas.filter((etapa) => normalizeString(etapa.nome) !== 'perdida')
 
   const agora = Date.now()
   const MS_PER_DAY = 1000 * 60 * 60 * 24
@@ -307,7 +320,7 @@ export const listNegociosFunil = async (query = {}) => {
 
   const funil = {}
 
-  for (const etapa of etapas) {
+  for (const etapa of etapasDoFunil) {
     if (etapa.ordem < 4) {
       funil[etapa.nome] = filtradosLeads.filter((item) => item.etapaFunilId === etapa.id)
     } else {
@@ -553,19 +566,10 @@ export const marcarNegocioComoPerdida = async (idParam, body, usuarioIdHeader = 
     throw error
   }
 
-  const [motivo, etapaPerdida] = await Promise.all([
-    prisma.motivoPerda.findFirst({ where: { id: motivoPerdaId, ativo: true } }),
-    prisma.etapaFunil.findFirst({ where: { nome: 'Perdida' } }),
-  ])
+  const motivo = await prisma.motivoPerda.findFirst({ where: { id: motivoPerdaId, ativo: true } })
 
   if (!motivo) {
     const error = new Error(ErrorMessages.motivoPerdaNotFound)
-    error.statusCode = 400
-    throw error
-  }
-
-  if (!etapaPerdida) {
-    const error = new Error(ErrorMessages.etapaPerdidaNotFound)
     error.statusCode = 400
     throw error
   }
@@ -577,14 +581,14 @@ export const marcarNegocioComoPerdida = async (idParam, body, usuarioIdHeader = 
     existing.lead?.usuarioId
   )
 
+  const dataPerda = new Date()
   const negocio = await prisma.$transaction(async (tx) => {
-    await registrarMudancaEtapa(tx, id, etapaPerdida.id)
+    await registrarSaidaEtapa(tx, id, dataPerda)
 
     const updated = await tx.negocio.update({
       where: { id },
       data: {
         motivoPerdaId,
-        etapaFunilId: etapaPerdida.id,
         ...(valorAtualizado !== undefined ? { valorEstimado: valorAtualizado } : {}),
       },
       include: negocioInclude,
@@ -594,8 +598,8 @@ export const marcarNegocioComoPerdida = async (idParam, body, usuarioIdHeader = 
       await tx.interacao.create({
         data: {
           tipo: 'Registro',
-          descricao: `Negocio marcada como perdida. Motivo: ${motivo.nome}`,
-          dataInteracao: new Date(),
+          descricao: `${NEGOCIO_PERDIDO_INTERACAO_PREFIX}${motivo.nome}`,
+          dataInteracao: dataPerda,
           leadId: existing.leadId,
           negocioId: id,
           usuarioId,

@@ -20,7 +20,7 @@ import Header from '../components/layout/Header'
 import { fetchLeadById, mudarEtapaLead } from '../services/leadsService'
 import { fetchEtapasFunil } from '../services/etapasService'
 import { fetchUsuariosOpcoes } from '../services/usuariosService'
-import { findEtapaPosVenda, isEtapaProposta, isEtapaVendida } from '../utils/funilDrag'
+import { findEtapaPosVenda, isEtapaPerdida, isEtapaProposta, isEtapaVendida } from '../utils/funilDrag'
 
 function LeadDetails({
   setScreen,
@@ -88,7 +88,7 @@ function LeadDetails({
   }, [leadId, initialTab, initialAction])
 
   const leadStages = useMemo(() => {
-    return etapas.filter((e) => e.nome !== 'Perdida' && e.ordem <= 4)
+    return etapas.filter((e) => !isEtapaPerdida(e.nome) && e.ordem <= 4)
   }, [etapas])
 
   const currentEtapa = useMemo(() => {
@@ -125,7 +125,7 @@ function LeadDetails({
 
   const proximaEtapa = useMemo(() => {
     if (isLeadInativo) return null
-    return etapas.find((e) => e.ordem === currentOrdem + 1 && e.nome !== 'Perdida')
+    return etapas.find((e) => e.ordem === currentOrdem + 1 && !isEtapaPerdida(e.nome))
   }, [etapas, currentOrdem, isLeadInativo])
 
   const handleAvancarPara = (targetEtapa) => {

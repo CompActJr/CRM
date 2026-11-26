@@ -89,7 +89,7 @@ function ModalMarcarPerdida({ negocio, currentUser, onClose, onSuccess }) {
             {negocio.tipoCard === 'lead' ? (
               <>O lead <strong>{negocio.titulo}</strong> será desqualificado e marcado como inativo no CRM.</>
             ) : (
-              <>O negócio <strong>{negocio.titulo}</strong> será movido para a etapa Perdida.</>
+              <>O negócio <strong>{negocio.titulo}</strong> será marcado como perdido. A etapa atual do funil será mantida.</>
             )}
           </p>
           <form onSubmit={handleSubmit}>

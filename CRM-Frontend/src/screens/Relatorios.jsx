@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BarChart3, CheckCircle2, Download, RefreshCw, Target, Users } from 'lucide-react'
+import { BarChart3, CheckCircle2, Download, RefreshCw, Target, TrendingDown, Users } from 'lucide-react'
 import Header from '../components/layout/Header'
 import SearchableSelect, { buildUniqueSelectOptions } from '../components/common/SearchableSelect'
 import TermometroMejCard from '../components/dashboard/TermometroMejCard'
@@ -33,10 +33,17 @@ const TipoMetaOptions = [
   { value: 'diagnosticos', label: 'Meta de Diagnósticos Marcados' },
 ]
 
+const VisualizacaoPerdasOptions = [
+  { value: 'tudo', label: 'Tudo junto' },
+  { value: 'apenas_perdas', label: 'Apenas estatísticas de perdas' },
+  { value: 'sem_perdas', label: 'Sem estatísticas de perdas' },
+]
+
 function Relatorios() {
   const [period, setPeriod] = useState(getDefaultPeriod)
   const [usuarioId, setUsuarioId] = useState('todos')
   const [tipoMeta, setTipoMeta] = useState('todos')
+  const [visualizacaoPerdas, setVisualizacaoPerdas] = useState('tudo')
   const [incluirTermometro, setIncluirTermometro] = useState(false)
   const [usuarios, setUsuarios] = useState([])
   const [opcoesLead, setOpcoesLead] = useState({ nomes: [], empresas: [], cidades: [], nichos: [], status: [] })
@@ -66,7 +73,7 @@ function Relatorios() {
   const buildParams = () => ({
     ...period,
     usuarioId,
-    tipoMeta,
+    tipoMeta, visualizacaoPerdas,
     ...filtrosLead,
     ...(incluirTermometro ? { incluirTermometro: 'true' } : {}),
   })
@@ -124,9 +131,14 @@ function Relatorios() {
         filtrosAplicados.cidade && `Cidade: ${filtrosAplicados.cidade}`,
         filtrosAplicados.nicho && `Nicho: ${filtrosAplicados.nicho}`,
         filtrosAplicados.status && `Status: ${filtrosAplicados.status}`,
+        filtrosAplicados.visualizacaoPerdas &&
+          `Visualização: ${VisualizacaoPerdasOptions.find((opt) => opt.value === filtrosAplicados.visualizacaoPerdas)?.label || filtrosAplicados.visualizacaoPerdas}`,
         filtrosAplicados.incluirTermometro && 'Termômetro MEJ',
       ].filter(Boolean)
     : []
+  const mostrarEstatisticasComerciais = relatorio?.visualizacaoPerdas !== 'apenas_perdas'
+  const mostrarEstatisticasPerdas = relatorio?.visualizacaoPerdas !== 'sem_perdas'
+  const maiorQuantidadePerdas = Math.max(1, ...(relatorio?.perdasPorPeriodo || []).map((item) => item.quantidade))
 
   return (
     <>
@@ -193,6 +205,12 @@ function Relatorios() {
             {TipoMetaOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
           </select>
         </label>
+        <label>
+          <span>Estatísticas de perdas</span>
+          <select value={visualizacaoPerdas} onChange={(e) => setVisualizacaoPerdas(e.target.value)}>
+            {VisualizacaoPerdasOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+          </select>
+        </label>
         <label className="reportCheckboxLabel">
           <input
             type="checkbox"
@@ -213,7 +231,7 @@ function Relatorios() {
         <section className="panel reportEmptyState">
           <div className="reportEmptyIcon"><BarChart3 size={24} /></div>
           <h2>Seu relatório aparecerá aqui</h2>
-          <p>Defina os filtros acima e gere o relatório para visualizar os indicadores comerciais.</p>
+          <p>Defina os filtros acima e gere o relatório para visualizar as estatísticas do período.</p>
         </section>
       ) : (
         <>
@@ -235,11 +253,21 @@ function Relatorios() {
           </section>
 
           <section className="reportMetricsGrid">
-            <article className="metric reportMetric"><div className="reportMetricIcon blue"><Users size={19} /></div><span>Leads no período</span><strong>{relatorio.leadsNoPeriodo}</strong><small>novos leads cadastrados</small></article>
-            <article className="metric reportMetric"><div className="reportMetricIcon violet"><BarChart3 size={19} /></div><span>Negócios criados</span><strong>{relatorio.negociosCriadas}</strong><small>no período selecionado</small></article>
-            <article className="metric reportMetric"><div className="reportMetricIcon amber"><RefreshCw size={19} /></div><span>Negócios abertos</span><strong>{relatorio.negociosAbertas}</strong><small>em andamento</small></article>
-            <article className="metric reportMetric"><div className="reportMetricIcon green"><CheckCircle2 size={19} /></div><span>Negócios fechados</span><strong>{relatorio.negociosFechadas}</strong><small>concluídos com sucesso</small></article>
-            <article className="metric reportMetric"><div className="reportMetricIcon green"><CheckCircle2 size={19} /></div><span>Taxa de conversão</span><strong>{relatorio.taxaConversao}%</strong><small>fechadas / criadas no período</small></article>
+            {mostrarEstatisticasComerciais && <>
+              <article className="metric reportMetric"><div className="reportMetricIcon blue"><Users size={19} /></div><span>Leads no período</span><strong>{relatorio.leadsNoPeriodo}</strong><small>novos leads cadastrados</small></article>
+              <article className="metric reportMetric"><div className="reportMetricIcon violet"><BarChart3 size={19} /></div><span>Negócios criados</span><strong>{relatorio.negociosCriadas}</strong><small>no período selecionado</small></article>
+              <article className="metric reportMetric"><div className="reportMetricIcon amber"><RefreshCw size={19} /></div><span>Negócios abertos</span><strong>{relatorio.negociosAbertas}</strong><small>em andamento</small></article>
+              <article className="metric reportMetric"><div className="reportMetricIcon green"><CheckCircle2 size={19} /></div><span>Negócios fechados</span><strong>{relatorio.negociosFechadas}</strong><small>concluídos com sucesso</small></article>
+              <article className="metric reportMetric"><div className="reportMetricIcon green"><CheckCircle2 size={19} /></div><span>Taxa de conversão</span><strong>{relatorio.taxaConversao}%</strong><small>fechadas / criadas no período</small></article>
+            </>}
+            {mostrarEstatisticasPerdas && (
+              <article className="metric reportMetric">
+                <div className="reportMetricIcon red"><TrendingDown size={19} /></div>
+                <span>Negócios perdidos</span>
+                <strong>{relatorio.perdasNoPeriodo}</strong>
+                <small>marcados como perdidos no período</small>
+              </article>
+            )}
           </section>
 
           {relatorio.termometroMej && (
@@ -250,7 +278,74 @@ function Relatorios() {
             />
           )}
 
-          <section className="gridTwo reportDetailsGrid">
+          {relatorio.termometroMej && (
+            <TermometroMejCard
+              termometro={relatorio.termometroMej}
+              loading={false}
+              isAdmin={false}
+            />
+          )}
+
+          {mostrarEstatisticasPerdas && (
+            <section className="panel reportLossStats">
+              <div className="reportLossStatsHeader">
+                <div>
+                  <h2>Perdas por período</h2>
+                  <p>Quantidade de negócios marcados como perdidos {relatorio.agrupamentoPerdas === 'dia' ? 'por dia' : 'por mês'}.</p>
+                </div>
+                <span className="reportLossTotal">{relatorio.perdasNoPeriodo} perdas</span>
+              </div>
+              {relatorio.perdasPorPeriodo?.length ? (
+                <div className="reportLossTableWrap">
+                  <table className="reportLossTable">
+                    <thead><tr><th>Período</th><th>Quantidade</th><th aria-label="Representação visual" /></tr></thead>
+                    <tbody>
+                      {relatorio.perdasPorPeriodo.map((item) => (
+                        <tr key={item.periodo}>
+                          <th scope="row">{item.periodo}</th>
+                          <td>{item.quantidade}</td>
+                          <td>
+                            <div className="reportLossBarTrack" aria-label={`${item.quantidade} perdas`}>
+                              <span style={{ width: `${(item.quantidade / maiorQuantidadePerdas) * 100}%` }} />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : <p className="tableMessage">Nenhuma perda no período selecionado.</p>}
+            </section>
+          )}
+
+          {mostrarEstatisticasPerdas && (
+            <section className="panel reportLossStats">
+              <div className="reportLossStatsHeader">
+                <div>
+                  <h2>Perdas por motivo</h2>
+                  <p>Distribuição dos motivos informados ao marcar negócios como perdidos.</p>
+                </div>
+              </div>
+              {relatorio.perdasPorMotivo?.length ? (
+                <div className="reportLossTableWrap">
+                  <table className="reportLossTable reportLossReasonTable">
+                    <thead><tr><th>Motivo</th><th>Quantidade</th><th>Percentual</th></tr></thead>
+                    <tbody>
+                      {relatorio.perdasPorMotivo.map((item) => (
+                        <tr key={item.motivo}>
+                          <th scope="row">{item.motivo}</th>
+                          <td>{item.quantidade}</td>
+                          <td>{item.percentual}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : <p className="tableMessage">Nenhum motivo de perda no período selecionado.</p>}
+            </section>
+          )}
+
+          {mostrarEstatisticasComerciais && <section className="gridTwo reportDetailsGrid">
             <div className="panel">
               <h2>Tempo médio por etapa</h2>
               {relatorio.tempoMedioPorEtapa?.length ? (
@@ -329,7 +424,7 @@ function Relatorios() {
                 <p className="tableMessage">Nenhuma meta configurada para o período selecionado.</p>
               )}
             </div>
-          </section>
+          </section>}
         </>
       )}
     </>

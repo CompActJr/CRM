@@ -27,6 +27,8 @@ export const Config = {
   },
 }
 
+export const NEGOCIO_PERDIDO_INTERACAO_PREFIX = 'Negocio marcada como perdida. Motivo: '
+
 export const EtapasFunilDefault = [
   { nome: 'Mapeamento', ordem: 1 },
   { nome: 'Entrada de Contato', ordem: 2 },
@@ -114,13 +116,13 @@ export const ErrorMessages = {
   motivoPerdaNomeInUse: 'Motivo de perda já cadastrado',
   motivoPerdaInUse: 'Motivo vinculado a negocios e não pode ser excluído',
   motivoPerdaRequired: 'Motivo de perda é obrigatório',
+  negocioPerdidaNaoEtapa: 'Negócios perdidos são identificados pelo motivo de perda, não por uma etapa do funil',
   invalidCargoId: 'ID do cargo inválido',
   cargoNotFound: 'Cargo não encontrado ou inativo',
   cargoNomeRequired: 'Nome do cargo é obrigatório',
   cargoNomeInUse: 'Cargo já cadastrado',
   cargoInUse: 'Cargo vinculado a usuários e não pode ser excluído',
   negocioJaPerdida: 'Negocio já está marcada como perdida',
-  etapaPerdidaNotFound: 'Etapa "Perdida" não configurada no funil',
   etapaPosVendaNotFound: 'Etapa de Pós Venda / Fechado não configurada no funil',
   valorProjetoRequired: 'Informe o valor do projeto maior que zero',
   negocioNaoEstaEmProposta: 'A conversão antecipada só pode ser realizada na etapa de Proposta',

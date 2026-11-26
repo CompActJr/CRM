@@ -49,9 +49,13 @@ model Usuario {
   avatarUrl                   String?                       @map("avatar_url") @db.Text
   ativo                       Boolean                       @default(true)
   ativarMetaLeads             Boolean                       @default(false) @map("ativar_meta_leads")
+  // Campos antigos mantidos para preservar valores já existentes nos bancos implantados.
+  // A aplicação atual não usa mais a meta de negociações.
+  ativarMetasNegociacoes      Boolean                       @default(false) @map("ativar_metas_negociacoes")
   ativarMetaEntradasContato   Boolean                       @default(false) @map("ativar_meta_entradas_contato")
   ativarMetaDiagnosticos      Boolean                       @default(false) @map("ativar_meta_diagnosticos")
   quantidadeLeads             Int                           @default(0) @map("quantidade_leads")
+  quantidadeNegociacoes      Int                           @default(0) @map("quantidade_negociacoes")
   quantidadeEntradasContato   Int                           @default(0) @map("quantidade_entradas_contato")
   quantidadeDiagnosticos      Int                           @default(0) @map("quantidade_diagnosticos")
   metaPeriodoInicio           DateTime?                     @map("meta_periodo_inicio") @db.Date
@@ -206,6 +210,7 @@ model Proposta {
   status       PropostaStatus @default(Rascunho)
   dataProposta DateTime       @map("data_proposta") @db.Date
   observacoes  String?        @db.Text
+  anexos       String[]       @default([])
   negocioId    Int            @map("negocio_id")
   usuarioId    Int            @map("usuario_id")
   createdAt    DateTime       @default(now()) @map("created_at")
@@ -294,7 +299,6 @@ model NegocioResponsavelHistorico {
   @@index([entradaEm])
   @@map("negocio_responsavel_historico")
 }
-
 model TermometroMej {
   id                 Int       @id @default(autoincrement())
   ano                Int       @unique

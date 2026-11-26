@@ -8,6 +8,7 @@ const colors = {
   muted: '#64748b',
   rule: '#cbd5e1',
   hairline: '#e2e8f0',
+  red: '#dc2626',
 }
 
 const formatDateBr = (isoDate) => {
@@ -185,6 +186,7 @@ export const buildRelatorioPdfBuffer = (relatorio) =>
       filtros.cidade ? `Cidade: ${filtros.cidade}` : null,
       filtros.nicho ? `Nicho: ${filtros.nicho}` : null,
       filtros.status ? `Status: ${filtros.status}` : null,
+      filtros.visualizacaoPerdas ? `Visualização: ${filtros.visualizacaoPerdas}` : null,
       relatorio.termometroMej ? 'Termômetro MEJ: Sim' : null,
     ].filter(Boolean)
 
@@ -216,19 +218,79 @@ export const buildRelatorioPdfBuffer = (relatorio) =>
     const negociosCriados = relatorio.negociosCriadas ?? relatorio.oportunidadesCriadas ?? 0
     const negociosAbertos = relatorio.negociosAbertas ?? relatorio.oportunidadesAbertas ?? 0
     const negociosFechados = relatorio.negociosFechadas ?? relatorio.oportunidadesFechadas ?? 0
+    const visualizacaoPerdas = relatorio.visualizacaoPerdas ?? 'tudo'
+    const mostrarEstatisticasPerdas = visualizacaoPerdas !== 'sem_perdas'
+    const mostrarEstatisticasComerciais = visualizacaoPerdas !== 'apenas_perdas'
 
     drawSummaryStrip(
       doc,
       [
-        { label: 'Leads no período', value: relatorio.leadsNoPeriodo ?? 0, caption: 'cadastrados' },
-        { label: 'Negócios criados', value: negociosCriados, caption: 'no período' },
-        { label: 'Negócios abertos', value: negociosAbertos, caption: 'em andamento' },
-        { label: 'Negócios fechados', value: negociosFechados, caption: 'concluídos' },
-        { label: 'Taxa de conversão', value: `${relatorio.taxaConversao ?? 0}%`, caption: 'fechados / criados' },
+        ...(mostrarEstatisticasComerciais ? [
+          { label: 'Leads no período', value: relatorio.leadsNoPeriodo ?? 0, caption: 'cadastrados' },
+          { label: 'Negócios criados', value: negociosCriados, caption: 'no período' },
+          { label: 'Negócios abertos', value: negociosAbertos, caption: 'em andamento' },
+          { label: 'Negócios fechados', value: negociosFechados, caption: 'concluídos' },
+          { label: 'Taxa de conversão', value: `${relatorio.taxaConversao ?? 0}%`, caption: 'fechados / criados' },
+        ] : []),
+        ...(mostrarEstatisticasPerdas ? [
+          { label: 'Negócios perdidos', value: relatorio.perdasNoPeriodo ?? 0, caption: 'no período' },
+        ] : []),
       ],
       pageWidth
     )
 
+    if (mostrarEstatisticasPerdas) {
+      drawSectionTitle(doc, 'Perdas por período', pageWidth)
+      const perdasCols = [
+        { label: 'Período', x: MARGIN, width: pageWidth * 0.72, align: 'left' },
+        { label: 'Quantidade', x: MARGIN + pageWidth * 0.72, width: pageWidth * 0.28, align: 'right' },
+      ]
+      const perdasPorPeriodo = relatorio.perdasPorPeriodo ?? []
+      if (perdasPorPeriodo.length === 0) {
+        doc.font('Helvetica').fontSize(8.5).fillColor(colors.muted)
+          .text('Nenhuma perda no período selecionado.', MARGIN, doc.y)
+        doc.y += 14
+      } else {
+        drawTableHeader(doc, perdasCols, pageWidth)
+        perdasPorPeriodo.forEach((item) => {
+          if (ensureSpace(doc, 24)) drawTableHeader(doc, perdasCols, pageWidth)
+          const y = doc.y
+          doc.font('Helvetica').fontSize(8.5).fillColor(colors.text)
+            .text(item.periodo, perdasCols[0].x, y, { width: perdasCols[0].width })
+          doc.font('Helvetica-Bold').fontSize(8.5).fillColor(colors.red)
+            .text(String(item.quantidade), perdasCols[1].x, y, { width: perdasCols[1].width, align: 'right' })
+          drawRule(doc, y + 16, pageWidth, colors.hairline, 0.4)
+          doc.y = y + 20
+        })
+      }
+
+      drawSectionTitle(doc, 'Perdas por motivo', pageWidth)
+      const motivos = relatorio.perdasPorMotivo ?? []
+      const motivoCols = [
+        { label: 'Motivo', x: MARGIN, width: pageWidth * 0.58, align: 'left' },
+        { label: 'Quantidade', x: MARGIN + pageWidth * 0.58, width: pageWidth * 0.22, align: 'right' },
+        { label: 'Percentual', x: MARGIN + pageWidth * 0.80, width: pageWidth * 0.20, align: 'right' },
+      ]
+      if (motivos.length === 0) {
+        doc.font('Helvetica').fontSize(8.5).fillColor(colors.muted)
+          .text('Nenhum motivo de perda informado no período.', MARGIN, doc.y)
+        doc.y += 14
+      } else {
+        drawTableHeader(doc, motivoCols, pageWidth)
+        motivos.forEach((item) => {
+          if (ensureSpace(doc, 24)) drawTableHeader(doc, motivoCols, pageWidth)
+          const y = doc.y
+          doc.font('Helvetica').fontSize(8.5).fillColor(colors.text)
+            .text(item.motivo, motivoCols[0].x, y, { width: motivoCols[0].width - 6 })
+          doc.text(String(item.quantidade), motivoCols[1].x, y, { width: motivoCols[1].width, align: 'right' })
+          doc.text(`${item.percentual}%`, motivoCols[2].x, y, { width: motivoCols[2].width, align: 'right' })
+          drawRule(doc, y + 16, pageWidth, colors.hairline, 0.4)
+          doc.y = y + 20
+        })
+      }
+    }
+
+    if (mostrarEstatisticasComerciais) {
     // Tempo médio por etapa
     drawSectionTitle(doc, 'Tempo médio por etapa', pageWidth)
     const stageCols = [
@@ -364,6 +426,7 @@ export const buildRelatorioPdfBuffer = (relatorio) =>
           .text(`Última atualização: ${formatDateTimeBr(tm.coletadoEm)}`, MARGIN, doc.y)
         doc.y += 10
       }
+    }
     }
 
     // Rodapé em todas as páginas
